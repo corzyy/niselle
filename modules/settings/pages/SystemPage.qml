@@ -42,6 +42,20 @@ SettingsPage {
 
     PrefGroup {
         ActionRow {
+            title: "Update Shell"
+            subtitle: ShellUpdateService.running ? "Updating …" : (ShellUpdateService.state === "failed" ? ShellUpdateService.message : (ShellUpdateService.state === "done" ? ShellUpdateService.message : "Pull the latest commit from GitHub and restart"))
+            icon: "software-update-available-symbolic"
+            Button {
+                text: ShellUpdateService.running ? "Updating …" : "Update"
+                enabled: !ShellUpdateService.running
+                primary: true
+                onClicked: ShellUpdateService.start()
+            }
+        }
+    }
+
+    PrefGroup {
+        ActionRow {
             title: "Reduce Animations"
             ToggleSwitch {
                 checked: SettingsService.a11yReduceMotion
