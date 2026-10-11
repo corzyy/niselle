@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Settings
+GenericName=System Settings
+Comment=Configure the Niselle shell and your system
+Exec=niselle settings
+Icon=niselle-settings
+Terminal=false
+Categories=Settings;DesktopSettings;
+Keywords=settings;preferences;config;niselle;
+StartupNotify=false

@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""niselle-matugen-install — install matching templates from InioX/matugen-themes.
+
+Detects installed programs, compares them with the programs listed in the
+matugen-themes README and adds the template plus a [templates.*] entry to
+~/.config/matugen/config.toml for each match. Existing entries are left alone.
+
+Prints one event per line for the shell window: "<kind>|<text>" with kind one of
+step, info, ok, skip, warn, error, done.
+"""
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+REPO = "https://github.com/InioX/matugen-themes"
+HOME = os.path.expanduser("~")
+CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", HOME + "/.cache"), "niselle", "matugen-themes")
+MATUGEN = os.path.join(os.environ.get("XDG_CONFIG_HOME", HOME + "/.config"), "matugen")
+CONFIG = os.path.join(MATUGEN, "config.toml")
+TEMPLATES = os.path.join(MATUGEN, "templates")
+
+# README section -> executables / desktop ids / flatpak ids that mean "installed".
+# Sections not listed fall back to the lower-cased first word as executable.
+DETECT = {
+    "Aerc": ["aerc"], "Alacritty": ["alacritty"], "Btop": ["btop"], "Cava": ["cava"],
+    "Clipse": ["clipse"], "Dunst": ["dunst"], "Foot": ["foot"], "Fuzzel": ["fuzzel"],
+    "Ghostty": ["ghostty"], "Ghostwriter": ["ghostwriter"], "Helix": ["hx", "helix"],
+    "Heroic": ["heroic"], "Hyprwat": ["hyprwat"], "Kvantum": ["kvantummanager"],
+    "Labwc": ["labwc"], "Mako": ["mako"], "MangoWC": ["mango", "mangowc"],
+    "McFly": ["mcfly"], "Micro": ["micro"], "Neovim": ["nvim"], "Niri": ["niri"],
+    "Obsidian": ["obsidian", "md.obsidian.Obsidian"], "Opencode": ["opencode"],
+    "PrismLauncher": ["prismlauncher", "org.prismlauncher.PrismLauncher"],
+    "Pywalfox": ["pywalfox"], "Qt": ["qt5ct", "qt6ct"], "Rmpc": ["rmpc"],
+    "Rofi": ["rofi"], "Spicetify": ["spicetify"], "Starship": ["starship"],
+    "Sway": ["sway"], "Swaybar": ["swaybar"], "Television": ["tv", "television"],
+    "Telegram": ["telegram-desktop", "org.telegram.desktop"],
+    "Tmux": ["tmux"], "Zellij": ["zellij"], "Vivaldi": ["vivaldi", "vivaldi-stable"],
+    "VS Code": ["code", "codium"], "Waybar": ["waybar"], "WezTerm": ["wezterm"],
+    "Wlogout": ["wlogout"], "Yazi": ["yazi"], "Zen": ["zen", "zen-browser", "app.zen_browser.zen"],
+    "Zathura": ["zathura"], "Zed": ["zed", "zeditor", "dev.zed.Zed"], "Wofi": ["wofi"],
+    "SwayNC": ["swaync"], "Steam": ["steam"], "Discord": ["discord", "vesktop", "equibop"],
+    "Hyprland": ["Hyprland", "hyprland"], "Kitty": ["kitty"], "GTK": ["gtk4-launch", "gtk-launch"],
+    "Papirus": ["papirus-folders"],
+}
+# Need manual work beyond a template + config entry (python post-process, directory templates, …).
+SKIP = {"Cosmic", "ANSI", "Gnome-shell", "Neovim plugin", "Quickshell", "Wine", "Windows Terminal"}
+
+
+def emit(kind, text):
+    print(f"{kind}|{text}", flush=True)
+
+
+def installed_ids():
+    ids = set()
+    dirs = [d for d in os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":") if d]
+    dirs += [HOME + "/.local/share", "/var/lib/flatpak/exports/share", HOME + "/.local/share/flatpak/exports/share"]
+    for d in dirs:
+        try:
+            for f in os.listdir(os.path.join(d, "applications")):
+                if f.endswith(".desktop"):
+                    ids.add(f[:-8].lower())
+        except OSError:
+            pass
+    return ids
+
+
+def is_installed(names, desktop):
+    for n in names:
+        if shutil.which(n) or n.lower() in desktop:
+            return True
+    return False
+
+
+def parse_readme(path):
+    text = open(path, encoding="utf-8").read()
+    text = text.split("## Templates for programs", 1)[-1]
+    sections = []
+    for m in re.finditer(r"^### (.+?)\n(.*?)(?=^### |\Z)", text, re.S | re.M):
+        name, body = m.group(1).strip(), m.group(2)
+        if name.startswith("List of"):
+            continue
+        link = re.findall(r"\]\(\./(templates/[^)\s]+)\)", body)
+        blocks = []
+        for code in re.findall(r"```(?:toml)?\n(.*?)```", body, re.S):
+            if "[templates." in code:
+                blocks.extend(parse_tables(code))
+        sections.append({"name": name, "links": list(dict.fromkeys(link)), "tables": blocks})
+    return sections
+
+
+def parse_tables(code):
+    tables = []
+    cur = None
+    for line in code.splitlines():
+        h = re.match(r"\s*\[templates\.([\w.-]+)\]\s*$", line)
+        if h:
+            cur = {"id": h.group(1), "lines": []}
+            tables.append(cur)
+        elif re.match(r"\s*\[", line):
+            cur = None
+        elif cur is not None and line.strip() and not line.strip().startswith("#"):
+            cur["lines"].append(line.strip())
+    return tables
+
+
+def field(table, key):
+    for l in table["lines"]:
+        m = re.match(rf"{key}\s*=\s*(['\"])(.*)\1\s*$", l)
+        if m:
+            return m.group(2)
+    return None
+
+
+def main():
+    emit("step", "Fetching matugen-themes")
+    os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+    if os.path.isdir(CACHE + "/.git"):
+        r = subprocess.run(["git", "-C", CACHE, "pull", "--ff-only", "-q"], capture_output=True, text=True)
+    else:
+        shutil.rmtree(CACHE, ignore_errors=True)
+        r = subprocess.run(["git", "clone", "-q", "--depth", "1", REPO, CACHE], capture_output=True, text=True)
+    if r.returncode != 0:
+        emit("error", "Could not fetch the repository: " + (r.stderr.strip() or "git failed"))
+        return 1
+    emit("ok", "Repository is up to date")
+
+    if not shutil.which("matugen"):
+        emit("warn", "matugen is not installed; entries are added anyway")
+    os.makedirs(TEMPLATES, exist_ok=True)
+    config = open(CONFIG, encoding="utf-8").read() if os.path.exists(CONFIG) else "[config]\n"
+    existing_ids = set(re.findall(r"^\s*\[templates\.([\w.-]+)\]", config, re.M))
+    existing_out = set(re.findall(r"^\s*output_path\s*=\s*['\"](.*?)['\"]", config, re.M))
+
+    emit("step", "Scanning installed programs")
+    desktop = installed_ids()
+    sections = parse_readme(CACHE + "/README.md")
+    emit("info", f"{len(sections)} programs in the theme list")
+
+    # A template that belongs to another program (e.g. Wofi's link points at zellij) is a README
+    # copy/paste slip; such a link is only used by a section whose name appears in the file name.
+    usage = {}
+    for sec in sections:
+        for l in sec["links"]:
+            usage[l] = usage.get(l, 0) + 1
+
+    additions = []
+    installed = 0
+    for sec in sections:
+        name = sec["name"]
+        if any(name.startswith(s) for s in SKIP):
+            emit("skip", f"{name}: needs manual setup")
+            continue
+        key = next((k for k in DETECT if name.lower().startswith(k.lower())), None)
+        names = DETECT.get(key) or [name.split()[0].lower()]
+        if not is_installed(names, desktop):
+            emit("skip", f"{name}: not installed")
+            continue
+        if len(sec["tables"]) != 1 or len(sec["links"]) != 1:
+            emit("warn", f"{name}: installed, but no single template to set up automatically")
+            continue
+        link = sec["links"][0]
+        first = name.split()[0].lower()
+        other = any(o["name"] != name and o["name"].split()[0].lower() in link.lower() for o in sections)
+        if first not in link.lower() and (usage[link] > 1 or other):
+            emit("warn", f"{name}: README points to {os.path.basename(link)}, which belongs to another program")
+            continue
+        src = os.path.join(CACHE, link)
+        if not os.path.isfile(src):
+            emit("warn", f"{name}: template {sec['links'][0]} is not a plain file")
+            continue
+        emit("step", f"{name}: installing theme")
+        dest = os.path.join(TEMPLATES, os.path.basename(src))
+        added = 0
+        for t in sec["tables"]:
+            out = field(t, "output_path")
+            if t["id"] in existing_ids or (out and out in existing_out):
+                emit("skip", f"{name}: [{t['id']}] is already configured")
+                continue
+            if not out:
+                emit("warn", f"{name}: [{t['id']}] has no output_path")
+                continue
+            lines = [f"input_path = '~/.config/matugen/templates/{os.path.basename(src)}'"]
+            lines += [l for l in t["lines"] if not l.startswith("input_path")]
+            additions.append(f"[templates.{t['id']}]\n" + "\n".join(lines) + "\n")
+            existing_ids.add(t["id"])
+            existing_out.add(out)
+            added += 1
+            emit("info", f"{name}: [{t['id']}] → {out}")
+        if added:
+            shutil.copyfile(src, dest)
+            installed += 1
+            emit("ok", f"{name}: template installed")
+
+    if additions:
+        if os.path.exists(CONFIG):
+            backup = f"{CONFIG}.bak-{time.strftime('%Y%m%d-%H%M%S')}"
+            shutil.copyfile(CONFIG, backup)
+            emit("info", f"Backup: {backup}")
+        with open(CONFIG, "w", encoding="utf-8") as f:
+            f.write(config.rstrip("\n") + "\n\n# Added by Niselle (Matugen Install)\n" + "\n".join(additions))
+        emit("ok", "config.toml updated")
+    emit("done", f"{installed} theme(s) installed")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

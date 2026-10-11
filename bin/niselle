@@ -1,0 +1,367 @@
+#!/usr/bin/env bash
+#
+# niselle — control the Niselle Quickshell (GNOME-Shell-Klon).
+#
+#   niselle start                 Start the shell (single instance, detached)
+#   niselle restart               Restart the shell
+#   niselle stop | close          Stop the shell
+#   niselle status                Print whether the shell is running
+#   niselle toggle                Toggle the overview
+#   niselle overview [open|close|toggle]   Open, close or toggle the overview
+#   niselle lock                  Lock the screen
+#   niselle screenshot [record|close]  Open the screenshot UI (record: screen recording)
+#   niselle switcher [next|prev|window|close]  Alt+Tab app switcher (next/prev app, window: next window of the app)
+#   niselle caffeine [on|off|toggle]  Keep the screen awake (no idle lock or suspend)
+#   niselle clipboard             Show the clipboard history next to the cursor
+#   niselle suspend               Lock (if set in Settings › Power) and suspend
+#   niselle search <text>         Open the overview with a search term
+#   niselle apps [open|close]     Toggle the app grid (open: from overview, close: hide)
+#   niselle theme regenerate|scheme <type>|color <hex>  Regenerate the colour palette with matugen
+#   niselle config list|get <key>|set <key> <json>  Read/write shell settings (clock12h, weekStart, wallpaper, …)
+#   niselle settings [panel|close] Open the settings app (optionally at a panel, e.g. sound, about)
+#   niselle osd locks             Report Caps/Num Lock state to the OSD (bind to the lock keys)
+#   niselle ipc <target> <func> [args...]  Call a Quickshell IPC target directly
+#   niselle log                   Show the path (and tail) of the start log
+#   niselle doctor                Diagnose the runtime environment
+#   niselle help                  Show this help
+#
+# The shell lives at $NISELLE_CONFIG (default ~/.config/ownqs/niselle) and is driven
+# through Quickshell's IPC — see the IpcHandler in services/OverviewService.qml.
+
+set -euo pipefail
+
+CONFIG="${NISELLE_CONFIG:-$HOME/.config/ownqs/niselle}"
+
+# Resolve the quickshell binary: an explicit NISELLE_QS wins, then `qs`, then
+# `quickshell` (some packages only ship the long name).
+resolve_qs() {
+    if [ -n "${NISELLE_QS:-}" ]; then
+        QS="$NISELLE_QS"
+    elif command -v qs >/dev/null 2>&1; then
+        QS="qs"
+    elif command -v quickshell >/dev/null 2>&1; then
+        QS="quickshell"
+    else
+        QS="qs"
+    fi
+}
+resolve_qs
+
+# `niselle` is usually invoked from a compositor keybind, whose environment may not
+# carry WAYLAND_DISPLAY. Fall back to the first Wayland socket in the runtime
+# directory so we can still start/attach to the shell.
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+    XDG_RUNTIME_DIR="/run/user/$(id -u)"
+    export XDG_RUNTIME_DIR
+fi
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    for sock in "$XDG_RUNTIME_DIR"/wayland-*; do
+        if [ -S "$sock" ]; then
+            WAYLAND_DISPLAY="$(basename "$sock")"
+            export WAYLAND_DISPLAY
+            break
+        fi
+    done
+fi
+
+# Qt muss mit 96 dpi laufen, damit die pointSize-Werte in Theme.qml den GNOME-Pixelwerten
+# entsprechen (1em = 11pt = 14.667px, siehe Theme.qml). Ohne das richten sich Schriftgrößen
+# nach der Monitor-DPI und laufen aus dem Layout.
+export QT_FONT_DPI="${QT_FONT_DPI:-96}"
+
+die() { printf 'niselle: %s\n' "$*" >&2; exit 1; }
+
+# True when an instance of this config is running.
+#
+# The whole `qs list` output is read rather than piped into `grep -q`: under
+# `set -o pipefail` grep -q exits on the first match and can close the pipe
+# early, making qs die with SIGPIPE and the pipeline report failure even though
+# the shell is running.
+is_running() {
+    local out
+    out="$("$QS" list -p "$CONFIG" 2>/dev/null || true)"
+    case "$out" in
+        *"Process ID:"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# True once the shell's `overview` IPC target has registered (it needs a moment
+# after launch, especially across a restart).
+ipc_ready() {
+    local out
+    out="$("$QS" ipc -p "$CONFIG" show 2>/dev/null || true)"
+    case "$out" in
+        *"target overview"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Where quickshell's own stdout/stderr is captured when we launch it, so a
+# startup crash can be shown instead of vanishing into /dev/null.
+start_log() {
+    printf '%s' "${XDG_STATE_HOME:-$HOME/.local/state}/niselle/start.log"
+}
+
+# Verify everything needed to launch the shell, with actionable messages.
+require_runtime() {
+    if ! command -v "$QS" >/dev/null 2>&1; then
+        die "quickshell ('$QS') is not installed — install it or set NISELLE_QS"
+    fi
+    if [ ! -f "$CONFIG/shell.qml" ]; then
+        die "no shell config at $CONFIG (expected shell.qml) — set NISELLE_CONFIG"
+    fi
+    if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+        die "no Wayland display found (WAYLAND_DISPLAY unset) — start niselle inside your Wayland session"
+    fi
+    return 0
+}
+
+start() {
+    if is_running; then
+        echo "niselle: already running"
+        return 0
+    fi
+    require_runtime || return 1
+
+    local log; log="$(start_log)"
+    mkdir -p "$(dirname "$log")"
+    : >"$log"
+
+    # Icon pack chosen in Settings › Appearance › Icons (Quickshell only reads it at startup)
+    local icon_file="${XDG_STATE_HOME:-$HOME/.local/state}/niselle/icon-theme" icon_theme=""
+    [ -r "$icon_file" ] && icon_theme="$(head -n1 "$icon_file")"
+    export QS_ICON_THEME="${icon_theme:-Adwaita}"
+
+    # Launch quickshell detached but keep its output: `setsid -f` forks, so the
+    # redirect stays attached to the child that survives this script. `-n` makes
+    # a second invocation exit instead of stacking another shell.
+    if ! setsid -f "$QS" -n -p "$CONFIG" >"$log" 2>&1; then
+        die "could not launch quickshell ('$QS')"
+    fi
+
+    for _ in $(seq 1 50); do
+        if is_running; then
+            echo "niselle: started"
+            return 0
+        fi
+        sleep 0.1
+    done
+
+    printf 'niselle: failed to start the shell\n' >&2
+    if [ -s "$log" ]; then
+        printf 'niselle: quickshell output:\n' >&2
+        tail -n 25 "$log" | sed 's/^/  /' >&2
+    fi
+    printf 'niselle: full log: %s\n' "$log" >&2
+    printf 'niselle: run "niselle doctor" for a full diagnosis\n' >&2
+    exit 1
+}
+
+close() {
+    if ! is_running; then
+        echo "niselle: not running"
+        return 0
+    fi
+    "$QS" kill -p "$CONFIG" >/dev/null 2>&1 || true
+    for _ in $(seq 1 50); do
+        if ! is_running; then
+            echo "niselle: closed"
+            return 0
+        fi
+        sleep 0.1
+    done
+    die "timed out stopping the shell"
+}
+
+restart() {
+    close >/dev/null 2>&1 || true
+    start
+}
+
+# Start the shell if needed and wait until its IPC target is live.
+ensure_running() {
+    is_running || start >/dev/null
+    for _ in $(seq 1 50); do
+        if is_running && ipc_ready; then
+            return 0
+        fi
+        sleep 0.1
+    done
+    die "could not reach the running shell"
+}
+
+# Call an IPC function, starting the shell first only if the fast path fails.
+# This is normally a keybind and the shell is nearly always already up.
+ipc_call() {
+    if ! "$QS" ipc -p "$CONFIG" call "$@" >/dev/null 2>&1; then
+        ensure_running
+        "$QS" ipc -p "$CONFIG" call "$@" >/dev/null 2>&1 || true
+    fi
+}
+
+overview() {
+    case "${1:-toggle}" in
+        open)      ipc_call overview open ;;
+        close)     ipc_call overview close ;;
+        ""|toggle) ipc_call overview toggle ;;
+        *)         die "unknown option '$1' (open|close|toggle)" ;;
+    esac
+    echo "niselle: overview ${1:-toggle}"
+}
+
+apps() {
+    case "${1:-toggle}" in
+        open)      ipc_call overview apps ;;
+        close)     ipc_call overview close ;;
+        ""|toggle) ipc_call overview apps ;;
+        *)         die "unknown option '$1' (open|close)" ;;
+    esac
+    echo "niselle: apps ${1:-toggle}"
+}
+
+settings() {
+    case "${1:-}" in
+        close)  ipc_call settings close ;;
+        toggle) ipc_call settings toggle ;;
+        *)      ipc_call settings open "${1:-}" ;;
+    esac
+    echo "niselle: settings ${1:-open}"
+}
+
+osd() {
+    case "${1:-}" in
+        locks) ipc_call osd locks ;;
+        *)     die "unknown option '${1:-}' (locks)" ;;
+    esac
+}
+
+log() {
+    local l; l="$(start_log)"
+    printf '%s\n' "$l"
+    [ -s "$l" ] && tail -n 20 "$l" | sed 's/^/  /'
+    return 0
+}
+
+status() {
+    if is_running; then
+        echo "niselle: running"
+    else
+        echo "niselle: stopped"
+        return 1
+    fi
+}
+
+# Print a diagnosis of the environment and why the shell might not start.
+doctor() {
+    local ok="[ ok ]" bad="[fail]" warn="[warn]"
+    printf 'niselle doctor\n\n'
+    printf '  %-6s quickshell binary : %s\n' \
+        "$(command -v "$QS" >/dev/null 2>&1 && echo "$ok" || echo "$bad")" \
+        "$(command -v "$QS" 2>/dev/null || echo "'$QS' not found")"
+    if command -v "$QS" >/dev/null 2>&1; then
+        printf '  %-6s quickshell version: %s\n' "$ok" "$("$QS" --version 2>/dev/null | head -n1)"
+    fi
+    printf '  %-6s config directory  : %s\n' \
+        "$([ -f "$CONFIG/shell.qml" ] && echo "$ok" || echo "$bad")" \
+        "$CONFIG$([ -f "$CONFIG/shell.qml" ] || echo ' (shell.qml missing)')"
+    printf '  %-6s wayland display   : %s\n' \
+        "$([ -n "${WAYLAND_DISPLAY:-}" ] && echo "$ok" || echo "$bad")" \
+        "${WAYLAND_DISPLAY:-unset (not in a Wayland session?)}"
+    printf '  %-6s runtime dir       : %s\n' \
+        "$([ -n "${XDG_RUNTIME_DIR:-}" ] && echo "$ok" || echo "$warn")" \
+        "${XDG_RUNTIME_DIR:-unset}"
+    printf '  %-6s hyprland          : %s\n' \
+        "$([ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && echo "$ok" || echo "$warn")" \
+        "$([ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && echo 'in session' || echo 'not detected (running elsewhere?)')"
+    printf '  %-6s shell running     : %s\n' \
+        "$(is_running && echo "$ok" || echo "$warn")" \
+        "$(is_running && echo yes || echo no)"
+    printf '\n'
+
+    local l; l="$(start_log)"
+    if [ -s "$l" ]; then
+        printf 'last start log (%s):\n' "$l"
+        tail -n 20 "$l" | sed 's/^/  /'
+    else
+        printf 'no start log yet at %s\n' "$l"
+    fi
+}
+
+usage() {
+    cat <<'EOF'
+niselle — control the Niselle Quickshell (GNOME-Shell-Klon)
+
+Usage:
+  niselle start                 Start the shell (single instance, detached)
+  niselle restart               Restart the shell
+  niselle stop | close          Stop the shell
+  niselle status                Print whether the shell is running
+  niselle toggle                Toggle the overview
+  niselle overview [open|close|toggle]   Open, close or toggle the overview
+  niselle lock                  Lock the screen
+  niselle screenshot [record|close]  Open the screenshot UI (record: screen recording)
+  niselle apps [open|close]     Toggle the app grid (open: from overview, close: hide)
+  niselle switcher [next|prev|window|close]  Alt+Tab app switcher (window: next window of the current app)
+  niselle caffeine [on|off|toggle]  Keep the screen awake (no idle lock or suspend)
+  niselle clipboard             Show the clipboard history next to the cursor
+  niselle suspend               Lock (if set in Settings › Power) and suspend
+  niselle search <text>         Open the overview with a search term
+  niselle theme regenerate|scheme <type>|color <hex>  Regenerate the colour palette with matugen
+  niselle config list|get <key>|set <key> <json>  Read/write shell settings
+  niselle settings [panel|close|toggle]  Open the settings app (panel: network, sound, about, …)
+  niselle osd locks             Report Caps/Num Lock state to the OSD (bind to the lock keys)
+  niselle ipc <target> <func> [args...]  Call a Quickshell IPC target directly
+  niselle log                   Show the start log
+  niselle doctor                Diagnose the runtime environment
+  niselle help                  Show this help
+
+Environment:
+  NISELLE_CONFIG   Config directory (default: ~/.config/ownqs/niselle)
+  NISELLE_QS       Quickshell binary (default: qs, then quickshell)
+EOF
+}
+
+cmd="${1:-help}"
+[ $# -gt 0 ] && shift || true
+
+case "$cmd" in
+    start)             start ;;
+    restart)           restart ;;
+    stop|close|kill)   close ;;
+    status)            status ;;
+    toggle)            overview toggle ;;
+    overview)          overview "${1:-toggle}" ;;
+    lock)              ipc_call lock lock ;;
+    screenshot|shot)   case "${1:-}" in
+                           close)  ipc_call screenshot close ;;
+                           record) ipc_call screenshot toggle record ;;
+                           ""|ui)  ipc_call screenshot toggle screenshot ;;
+                           *)      die "unknown option '$1' (record|close)" ;;
+                       esac ;;
+    apps|app)          apps "${1:-toggle}" ;;
+    switcher|switch)   case "${1:-next}" in
+                           next|prev|window|close) ipc_call switcher "${1:-next}" ;;
+                           *) die "unknown option '$1' (next|prev|window|close)" ;;
+                       esac ;;
+    caffeine)          case "${1:-toggle}" in
+                           on|off|toggle) ipc_call idle caffeine "${1:-toggle}" ;;
+                           *) die "unknown option '$1' (on|off|toggle)" ;;
+                       esac ;;
+    clipboard|clip)    ipc_call clipboard toggle ;;
+    suspend|sleep)     ipc_call session suspend ;;
+    search)            [ $# -ge 1 ] || die "usage: niselle search <text>"
+                       ipc_call overview search "$*" ;;
+    theme)             [ $# -ge 1 ] || die "usage: niselle theme regenerate|scheme <type>|color <hex>"
+                       "$QS" ipc -p "$CONFIG" call theme "$@" ;;
+    config)            [ $# -ge 1 ] || die "usage: niselle config list|get <key>|set <key> <json>"
+                       "$QS" ipc -p "$CONFIG" call config "$@" ;;
+    settings|prefs)    settings "${1:-}" ;;
+    osd)               osd "${1:-}" ;;
+    ipc)               [ $# -ge 2 ] || die "usage: niselle ipc <target> <func> [args...]"
+                       "$QS" ipc -p "$CONFIG" call "$@" ;;
+    log|logs)          log ;;
+    doctor|diag)       doctor ;;
+    help|-h|--help)    usage ;;
+    *)                 die "unknown command '$cmd' (try 'niselle help')" ;;
+esac
