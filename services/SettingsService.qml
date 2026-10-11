@@ -223,9 +223,11 @@ Singleton {
             "center": ["clock"],
             "right": ["capture", "updates", "keyboard", "status"]
         })
-    readonly property var barLayout: _normalizeBarLayout(store.barLayout)
+    readonly property var barLayout: _normalizeBarLayout(barStore.layout)
 
     function _normalizeBarLayout(raw) {
+        // Aus der JSON-Datei geladene Listen sind keine echten JS-Arrays (Array.isArray ist false) – erst normalisieren
+        raw = raw ? JSON.parse(JSON.stringify(raw)) : raw;
         const src = raw && (raw.left || raw.center || raw.right) ? raw : root.defaultBarLayout;
         const known = root.barItems.map(i => i.id);
         const seen = [];
@@ -263,10 +265,10 @@ Singleton {
             next[z] = root.barLayout[z].filter(x => x !== id);
         if (zone !== "")
             next[zone].splice(Math.max(0, Math.min(index ?? next[zone].length, next[zone].length)), 0, id);
-        store.barLayout = next;
+        barStore.layout = next;
     }
     function resetBarLayout() {
-        store.barLayout = ({});
+        barStore.layout = ({});
     }
 
     // Kacheln der Quick-Settings in Anzeigereihenfolge (IDs aus QuickSettings.tileCatalog); nicht gelistete Kacheln sind ausgeblendet
@@ -320,6 +322,8 @@ Singleton {
             root.gameMode = value;
         else if (key === "bigYahoo")
             root.bigYahoo = value;
+        else if (key === "barLayout")
+            barStore.layout = value;
         else
             store[key] = value;
         return true;
@@ -387,6 +391,21 @@ Singleton {
     property string _nightLightBackend: ""
 
     // ───────── Persistenz ─────────
+
+    // Menüleisten-Layout (left/center/right) in eigener Datei mit festem Pfad: statePath hängt vom Shell-Hash ab und
+    // wird nach jedem Shell-Update zu einer neuen, leeren Datei; so bleibt das Layout über Updates und Neustarts erhalten.
+    FileView {
+        path: Quickshell.env("HOME") + "/.local/state/niselle/menubar.json"
+        blockLoading: true
+        watchChanges: true
+        onFileChanged: reload()
+        onAdapterUpdated: writeAdapter()
+        onLoadFailed: error => writeAdapter()
+        adapter: JsonAdapter {
+            id: barStore
+            property var layout: ({})
+        }
+    }
 
     FileView {
         id: file
