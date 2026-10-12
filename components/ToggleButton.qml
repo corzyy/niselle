@@ -33,15 +33,6 @@ Item {
     implicitHeight: Theme.quickToggleHeight
     activeFocusOnTab: true
 
-    scale: main.pressed && !Theme.gameMode ? Theme.pressScale : 1
-    Behavior on scale {
-        enabled: !Theme.gameMode
-        NumberAnimation {
-            duration: Theme.durationPress
-            easing.type: Theme.easeOut
-        }
-    }
-
     // Hauptsegment: bei checked button(..., $style: default) mit Akzent [_common.scss:122-128]
     Rectangle {
         id: mainBg

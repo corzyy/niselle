@@ -132,7 +132,7 @@ Card {
                     RowLayout {
                         visible: root.plain
                         Layout.fillWidth: true
-                        spacing: Theme.worldClocksColumnSpacing
+                        spacing: Theme.basePadding * 2
 
                         Text {
                             Layout.alignment: Qt.AlignTop

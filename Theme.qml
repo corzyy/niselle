@@ -46,9 +46,6 @@ Singleton {
         return blur && !gameMode ? alpha(c, Qt.color(c).a * blurSurfaceOpacity) : c;
     }
 
-    // Schriftgröße: Faktor auf alle fontSize*-Werte (shell.qml bindet das an SettingsService.a11yLargeText)
-    property real textScale: 1
-
     // Kompakte Darstellung: engere Abstände und niedrigere Leiste/Kacheln/Zeilen (shell.qml bindet das an SettingsService.compact)
     property bool compact: false
 
@@ -523,6 +520,66 @@ Singleton {
     // Abgerundete Bildschirmecken (oben); GNOME-Shell zeichnet keine, Radius = Fensterradius
     readonly property real screenCornerRadius: radiusWindow
 
+    // Menüleisten-Anker (übernommen aus corzyy/solstice, style/themes/Theme.qml): jedes Leisten-Element
+    // veröffentlicht seine Bildschirmposition, Panels hängen sich darüber darunter (components/BarAnchor.qml).
+    property var barAnchors: ({})
+    property var _pendingAnchors: ({})
+    property bool _anchorFlushScheduled: false
+
+    function setBarAnchor(id, x, y, w, h) {
+        const key = (id || "").trim();
+        if (key.length === 0)
+            return;
+        const nx = Math.round(x), ny = Math.round(y);
+        const nw = Math.max(1, Math.round(w)), nh = Math.max(1, Math.round(h));
+        let cur = _pendingAnchors[key];
+        if (cur === undefined)
+            cur = barAnchors[key];
+        if (cur && cur.x === nx && cur.y === ny && cur.w === nw && cur.h === nh)
+            return;
+        _pendingAnchors[key] = {
+            "x": nx,
+            "y": ny,
+            "w": nw,
+            "h": nh
+        };
+        if (_anchorFlushScheduled)
+            return;
+        _anchorFlushScheduled = true;
+        Qt.callLater(() => {
+            _anchorFlushScheduled = false;
+            const pend = _pendingAnchors;
+            _pendingAnchors = ({});
+            const next = {};
+            for (const k in barAnchors)
+                next[k] = barAnchors[k];
+            let changed = false;
+            for (const k in pend) {
+                const n = pend[k], c = next[k];
+                if (!c || c.x !== n.x || c.y !== n.y || c.w !== n.w || c.h !== n.h) {
+                    next[k] = n;
+                    changed = true;
+                }
+            }
+            if (changed)
+                barAnchors = next;
+        });
+    }
+    function barAnchor(id) {
+        const a = barAnchors[(id || "").trim()];
+        return a ? a : null;
+    }
+    property int anchorRefreshTrigger: 0
+    Timer {
+        id: anchorRefreshDebounce
+        interval: 80
+        repeat: false
+        onTriggered: anchorRefreshTrigger++
+    }
+    function refreshBarAnchors() {
+        anchorRefreshDebounce.restart();
+    }
+
     // Popover / Menü
     readonly property real popoverPadding: basePadding           // 6 [_popovers:28]
     readonly property real popoverMinWidth: 220                  // 15em ≈ 220px [_popovers:17]
@@ -609,7 +666,7 @@ Singleton {
     readonly property real lockDialogWidth: 26 * 14.667          // .login-dialog-prompt-layout 25em × 1.2 (hier etwas schmaler)
     readonly property real lockClockSpacing: basePadding * 3     // .unlock-dialog-clock spacing 2em
     readonly property real lockClockHintMargin: basePadding * 3  // .unlock-dialog-clock-hint margin-top 2em
-    readonly property real lockNameFontSize: 20 * textScale      // .user-widget.vertical .user-widget-label fontsize(20pt)
+    readonly property real lockNameFontSize: 20      // .user-widget.vertical .user-widget-label fontsize(20pt)
     readonly property real lockEntryRadius: baseRadius * 1.5     // .login-dialog-prompt-entry border-radius
     readonly property real lockButtonRadius: radiusPill          // %lockscreen_button border-radius base×4
     readonly property real lockButtonFontSize: fontSizeBase + 2  // @include fontsize($base_font_size + 2) [_login-lock.scss:263]
@@ -624,18 +681,15 @@ Singleton {
     // ───────────────────────── Schatten ─────────────────────────
     // CSS box-shadow: x y blur spread color. Spread ist in der Shell überall 0.
 
-    // .popup-menu-content: 0 2px 4px 0 shadow_color [_popovers:32]
-    // Premium: weit gestreuter, tiefer Schatten statt GNOMEs enger Kante (Popover schweben sichtbar über dem Inhalt)
-    readonly property real shadowPopoverY: 10
-    readonly property real shadowPopoverBlur: 28
-    // Karten: 0 1px 2px 0 card_shadow_color [_common:144]
-    readonly property real shadowCardY: 2
-    readonly property real shadowCardBlur: 8
-    // Haarlinie am oberen Rand erhabener Flächen (Glanzkante): Farbe der Mitte, an den Enden läuft sie aus
-    readonly property color highlightEdge: dark ? alpha(light1, 0.14) : alpha(light1, 0.9)
-    // Switch-Handle: 0 2px 4px rgba(0,0,0,.2) [_switches:61]
-    readonly property real shadowHandleY: 2
-    readonly property real shadowHandleBlur: 4
+    // Minimal: keine Schatten an Popovern, Karten und Schaltern
+    readonly property real shadowPopoverY: 0
+    readonly property real shadowPopoverBlur: 0
+    readonly property real shadowCardY: 0
+    readonly property real shadowCardBlur: 0
+    // keine Glanzkante am oberen Rand
+    readonly property color highlightEdge: "transparent"
+    readonly property real shadowHandleY: 0
+    readonly property real shadowHandleBlur: 0
 
     // ───────────────────────── Schrift ─────────────────────────
     // Adwaita Sans (GNOME 48+), Fallback Cantarell. Größe 11.
@@ -648,16 +702,16 @@ Singleton {
     readonly property string fontFamilyMono: fontMonoOverride !== "" ? fontMonoOverride : (Qt.fontFamilies().indexOf("Adwaita Mono") >= 0 ? "Adwaita Mono" : "monospace")
 
     // Größen in pt (Qt font.pointSize, bei 96 dpi = GNOME-Pixel). [_common:241-284]
-    readonly property real fontSizeBase: 11 * textScale        // stage [_common:30,69]
-    readonly property real fontSizeLargeTitle: 24 * textScale  // [_common:243]
-    readonly property real fontSizeTitle1: 20 * textScale      // [_common:248]
-    readonly property real fontSizeTitle2: 15 * textScale      // [_common:253]
-    readonly property real fontSizeTitle3: 15 * textScale      // [_common:258]
-    readonly property real fontSizeTitle4: 13 * textScale      // [_common:263]
-    readonly property real fontSizeHeading: 11 * textScale     // [_common:268]
-    readonly property real fontSizeCaptionHeading: 9 * textScale // [_common:273]
-    readonly property real fontSizeCaption: 9 * textScale      // [_common:278]
-    readonly property real fontSizeSmaller: 9 * textScale      // [_common:283]
+    readonly property real fontSizeBase: 11        // stage [_common:30,69]
+    readonly property real fontSizeLargeTitle: 24  // [_common:243]
+    readonly property real fontSizeTitle1: 20      // [_common:248]
+    readonly property real fontSizeTitle2: 15      // [_common:253]
+    readonly property real fontSizeTitle3: 15      // [_common:258]
+    readonly property real fontSizeTitle4: 13      // [_common:263]
+    readonly property real fontSizeHeading: 11     // [_common:268]
+    readonly property real fontSizeCaptionHeading: 9 // [_common:273]
+    readonly property real fontSizeCaption: 9      // [_common:278]
+    readonly property real fontSizeSmaller: 9      // [_common:283]
 
     // Gewichte (CSS font-weight → Qt Font.Weight)
     readonly property int fontWeightLight: Font.Light       // 300, large-title [_common:242]
@@ -717,20 +771,15 @@ Singleton {
     readonly property int durationButton: 260
     readonly property int durationSwitch: 160
 
-    // Gestaffeltes Einblenden: Fortschritt p (0..1) eines Containers, Element i von n beginnt versetzt und läuft
-    // über die halbe Gesamtzeit; Ergebnis 0..1 mit weichem Auslauf (für opacity und Translate)
+    // Minimal: kein gestaffeltes Einblenden und kein Anheben der Einträge beim Öffnen
     function enter(p, i, n) {
-        if (gameMode)
-            return 1;
-        const w = 0.55;
-        const t = Math.max(0, Math.min(1, (p - (1 - w) * i / Math.max(1, n - 1)) / w));
-        return 1 - Math.pow(1 - t, 3);
+        return 1;
     }
-    readonly property real enterRise: 14
+    readonly property real enterRise: 0
     readonly property int durationControlCenter: 460
 
-    // Druckrückmeldung: Schaltflächen und Kacheln federn beim Drücken leicht ein
-    readonly property real pressScale: 0.97
+    // Minimal: kein Feder-Rückmeldung beim Drücken
+    readonly property real pressScale: 1.0
     readonly property int durationPress: 120
 
     // Easing-Typen der Shell-JS-Animationen
@@ -805,9 +854,11 @@ Singleton {
     // Fensterbereich [workspace.js, windowPreview.js, _window-picker.scss]
     // Layout: Größtanteil, Gewichtung von Skalierung und Flächennutzung beim Wählen der Zeilenzahl [workspace.js:15-24]
     readonly property real windowPreviewMaxScale: 0.95          // WINDOW_PREVIEW_MAXIMUM_SCALE [workspace.js:15]
-    // Arbeitsflächen-Hintergrund hinter den Fenstern: Eckenradius der Vorschaufläche, mit dem Fortschritt
-    // von 0 auf 30 px [workspace.js:30, 1002-1009]
+    // Arbeitsflächen-Hintergrund hinter den Fenstern: Eckenradius der Vorschaufläche in Endgröße; die gemeinsame
+    // Textur skaliert mit der Fläche [workspace.js:30, 1002-1009]
     readonly property real workspaceCornerRadius: 30            // BACKGROUND_CORNER_RADIUS_PIXELS [workspace.js:30]
+    // Größe der Nachbarflächen im Fensterbereich gegenüber der aktiven [workspacesView.js: WORKSPACE_INACTIVE_SCALE]
+    readonly property real workspaceInactiveScale: 0.94
     // Seitlicher Einzug des Hintergrunds von den Bildschirmrändern, damit er sie nicht berührt
     // [workspacesView.js:22 WORKSPACE_MIN_SPACING]
     readonly property real workspaceSideInset: 24
@@ -965,9 +1016,10 @@ Singleton {
     // Dash und fahren auseinander an ihren Platz, die obere Zeile zuerst. `appGridRevealSpread` ist der Anteil des
     // Fortschritts, über den die Zeilenverzögerung verteilt wird, `appGridRevealOpacity` die Deckkraft der noch
     // nicht aufgedeckten Kachel.
-    readonly property real appGridRevealOpacity: 0
-    readonly property real appGridRevealSpread: 0.5
-    readonly property real appGridRevealScale: 0.8      // Anfangsgröße der Kacheln: 1 - Wert
+    // Minimal: App-Grid erscheint sofort, ohne Staffelung und Aufwachsen
+    readonly property real appGridRevealOpacity: 1
+    readonly property real appGridRevealSpread: 0
+    readonly property real appGridRevealScale: 0
     readonly property int durationAppGridReveal: 520
     // Zoom beim Start einer App [iconGrid.js:25-26, 391-425]
     readonly property real appIconLaunchScale: 3
@@ -1032,9 +1084,9 @@ Singleton {
     readonly property real searchOverlayRadius: radiusModal * 1.5
     readonly property real searchOverlayMinHeight: 180
     readonly property real searchOverlayScrim: 0.35
-    readonly property real searchOverlayStartScale: 0.9
-    // Startversatz nach unten beim Aufschwingen (gleitet mit der Feder herein) [Overview.qml: searchPanel]
-    readonly property real searchOverlayStartOffset: baseMargin * 2
+    readonly property real searchOverlayStartScale: 1
+    // Kein Startversatz: das Such-Overlay erscheint an seinem Platz
+    readonly property real searchOverlayStartOffset: 0
     readonly property real searchCalcFontSize: 22
     // Abschnitte [_search-results:13-36]
     readonly property real searchSectionSpacing: basePadding * 3
@@ -1179,25 +1231,10 @@ Singleton {
     readonly property real calendarWeekNumberPaddingH: basePadding
     readonly property real radiusCalendarWeekNumber: baseRadius * 0.5
 
-    // Termine, Weltuhren, Wetter [_calendar:152-285]
+    // Termine [_calendar:152-285]
     readonly property real eventsTitlePaddingBottom: basePadding
     readonly property real eventsListSpacing: basePadding
-    readonly property real worldClocksRowSpacing: basePadding
-    readonly property real worldClocksColumnSpacing: basePadding * 2
-    readonly property real worldClocksRow: 40            // große Zeile mit Zifferblatt
-    readonly property real worldClocksDial: 40
-    readonly property real worldClocksCompactRow: 24     // kompakte Liste ab mehr als 4 Uhren
-    readonly property real worldClocksCompactDial: 22
-    readonly property real calendarSideWidth: 17 * 14.667 // linke Spalte (Datum, Wetter, Termine) im zweispaltigen Menü
-    readonly property real weatherSpacing: basePadding
-    readonly property real weatherForecastTimePadding: basePadding
-    readonly property real weatherForecastIconSize: iconSize * 2  // $large_scalable_icon_size
-    readonly property real weatherForecastIconMargin: baseMargin
-    // Sonne in Gelb wie im Mockup, sonst Vordergrundfarbe
-    function weatherIconColor(icon) {
-        return icon.indexOf("weather-clear-symbolic") === 0 || icon.indexOf("weather-few-clouds-symbolic") === 0 ? yellow3 : fgColor;
-    }
-    readonly property int weatherMaxForecasts: 5                  // MAX_FORECASTS [dateMenu.js:22]
+    readonly property real calendarSideWidth: 17 * 14.667 // linke Spalte (Datum, Termine) im zweispaltigen Menü
 
     // Animationen [messageList.js:20-25, messageTray.js:17]
     readonly property int durationMessage: 100                    // MESSAGE_ANIMATION_TIME
@@ -1208,8 +1245,8 @@ Singleton {
     readonly property real notificationBannerWidth: (compact ? 30 : 34) * 14.667   // 34em
     readonly property real notificationBannerMinHeight: compact ? 52 : 64
     readonly property real notificationBannerMargin: baseMargin
-    readonly property real notificationBannerShadowBlur: 24
-    readonly property real notificationBannerShadowY: 8
+    readonly property real notificationBannerShadowBlur: 0
+    readonly property real notificationBannerShadowY: 0
     readonly property real notificationBannerScaleFrom: 0.9
     readonly property real notificationWindowMargin: 5 * baseMargin * 2 // Platz für den Schatten im Layer-Fenster
     readonly property real notificationWindowHeight: 480          // höchster aufgeklappter Banner samt Stapel

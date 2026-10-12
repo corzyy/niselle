@@ -28,37 +28,11 @@ Item {
     property real revealProgress: 1
     property real revealDelay: 0
     property point revealOrigin: Qt.point(0, 0)
-    readonly property real reveal: {
-        if (root.revealProgress >= 1)
-            return 1;
-        if (root.revealProgress <= 0)
-            return 0;
-        const window_ = Math.max(0.0001, 1 - Theme.appGridRevealSpread);
-        return Math.max(0, Math.min(1, (root.revealProgress - root.revealDelay * Theme.appGridRevealSpread) / window_));
-    }
-
-    // Auslaufkurve mit leichtem Überschwingen: die Kachel setzt sich federnd an ihren Platz
-    readonly property real settle: {
-        const t = root.reveal - 1;
-        return 1 + 2.2 * t * t * t + 1.2 * t * t;
-    }
-
-    // Kacheln fahren aus dem Stapel unten auseinander und wachsen dabei auf; jede mit eigenem Verlauf
-    transform: [
-        Translate {
-            x: root.reveal >= 1 ? 0 : (root.revealOrigin.x - root.x - root.width / 2) * (1 - root.settle)
-            y: root.reveal >= 1 ? 0 : (root.revealOrigin.y - root.y - root.height / 2) * (1 - root.settle)
-        },
-        Scale {
-            origin.x: root.width / 2
-            origin.y: root.height / 2
-            xScale: 1 - Theme.appGridRevealScale * (1 - root.settle)
-            yScale: xScale
-        }
-    ]
+    // Minimal: keine Staffelung, keinen Überschwinger, kein Aufwachsen – Kacheln sind sofort an ihrem Platz
+    readonly property real reveal: 1
 
     // Kacheln blenden gestaffelt von oben nach unten auf
-    opacity: Theme.appGridRevealOpacity + (1 - Theme.appGridRevealOpacity) * root.reveal
+    opacity: 1
 
     readonly property bool isFolder: item ? item.kind === "folder" : false
     readonly property var entry: item ? item.entry : null

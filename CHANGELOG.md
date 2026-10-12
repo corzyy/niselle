@@ -1,5 +1,24 @@
 # Änderungs-Log
 
+## 2026-10-12 – Vivaldi-Theme über Matugen Install
+- `bin/niselle-matugen-install` richtet Vivaldi jetzt ein: Das README von matugen-themes nennt nur einen Platzhalter als `output_path`, das Skript ersetzt ihn (`OUTPUT`) durch `~/.config/matugen/vivaldi/vivaldi.css` und legt den Ordner an.
+- Beim Kopieren der Vorlage wird `| set_lightness:` durch `| lighten:` ersetzt (`REWRITE`). Seit matugen 4 setzt `set_lightness` die Helligkeit absolut; aus `-10.0` wurde daher Schwarz für alle abgeschwächten Farben.
+- Danach zeigt das Fenster die Handgriffe, die in Vivaldi noch fehlen (`NOTES`): unter vivaldi://experiments „Allow for using CSS modifications“ einschalten, dann unter Settings › Appearance › Custom UI Modifications den Ordner `~/.config/matugen/vivaldi` wählen.
+
+## 2026-10-12 – Panels folgen ihren Leistenelementen
+- Neue Option Einstellungen › Menu Bar › **Panels › Attach to Items** (`barPanelsFollowItems`, Standard an): Datumsmenü und Quick-Settings öffnen direkt unter ihrem Element (Uhr bzw. Systempille) statt an fester Bildschirmposition (Mitte bzw. rechte obere Ecke). Wandert das Element im Layout-Editor in eine andere Zone, wandert das Panel mit; bei fehlendem Element greift die feste Position. Ausschalten stellt das alte, feste Verhalten her.
+
+## 2026-10-12 – Animationen mit voller Bildrate (144 Hz statt 60)
+- Ursache: Sind mehrere Fenster der Shell sichtbar (Leiste je Monitor, Übersicht …), treibt Qt Quick alle Animationen mit einem Timer statt mit dem Bildtakt. Die Standard-Renderschleife mit NVIDIA („basic“) nimmt dafür fest 16 ms, die „threaded“-Schleife die Bildrate des *primären* Qt-Bildschirms, unter Wayland des ersten Ausgangs (hier HDMI-A-1 mit 60 Hz). Gemessen: 60 Animationsschritte/s auf beiden Monitoren, auch auf DP-1 mit 144 Hz.
+- `bin/niselle start` schaltet jetzt auf die „threaded“-Renderschleife und lädt den Shim `native/anim-refresh.c` vor (wird beim Start mit `cc` nach `~/.cache/niselle/anim-refresh.so` gebaut). Der Shim meldet Qt als Bildrate mindestens die des schnellsten Monitors (`hyprctl monitors`). Gemessen: 143 Schritte/s. Gestartete Programme erben weder Shim noch `QSG_RENDER_LOOP` (`execve` filtert die Variablen).
+- Abschalten mit `NISELLE_HIGH_REFRESH=0`. Ohne `cc` startet die Shell wie bisher. Nach einer Änderung der Bildrate: `niselle restart`.
+
+## 2026-10-11 – Aufnahme und Systemmenü zusammengelegt
+- Das Element **Recording** (`CaptureIndicators`) ist kein eigenes Leistenelement mehr, sondern Teil von **System Menu & Recording** (`status`): die rote Aufnahme- und die orange Freigabe-Pille erscheinen direkt links neben der Statuspille, solange etwas läuft. Gespeicherte Anordnungen mit `capture` verlieren den Eintrag automatisch.
+
+## 2026-10-11 – Neustart-Hinweis in der Menüleiste
+- Der Neustart-Hinweis ist Teil des Elements **Updates & Restart** (`UpdateButton`, `UpdateService.rebootReasons`) und kein eigenes Element mehr: es bleibt unsichtbar, bis der laufende Kernel nicht mehr dem neuesten installierten entspricht oder glibc, systemd, dbus-broker, linux-firmware bzw. Mikrocode seit dem Start aktualisiert wurden. Das Popover zeigt zusätzlich die Gründe und „Restart“; ohne anstehende Updates erscheint das Neustart-Symbol. Geprüft wird nur mit `rpm` und `/proc` (ohne Rechte, ohne Metadaten): 5 s nach dem Start, stündlich und nach jeder Update-Prüfung oder -Installation.
+
 ## 2026-10-11 – Menüleiste frei anordnen
 - Einstellungen › Menu Bar: Neuer Editor (`BarLayoutEditor`) mit Vorschau in drei Zonen (links, Mitte, rechts) und Ablage „Hidden“. Element anklicken, dann per ◀ ▶ umsortieren, mit Klick auf eine Zone dorthin verschieben oder ausblenden; „Reset“ stellt die Standardanordnung her. Die Systempille (Quick-Settings) ist Pflicht und wird bei Bedarf rechts ergänzt.
 - Die Leiste (`TopBar.qml`) baut ihre Zonen aus `SettingsService.barLayout` (Loader je Element) statt aus festen Reihen. Neu wählbar: Barrierefreiheit-Menü, Aufnahme-Anzeige und Tastaturlayout frei platzierbar.

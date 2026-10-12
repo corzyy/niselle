@@ -10,7 +10,7 @@ import qs.modules.quicksettings
 
 // Top Bar (#panel) [_panel.scss, panel.js]: nur auf dem primären Monitor (siehe shell.qml), 32 px, volle Breite, reserviert ihren Platz.
 // Schwarz, in der Übersicht transparent (Übergang 250 ms). Welche Elemente (Arbeitsflächen, fokussierte App, Uhr, Aufnahme,
-// Barrierefreiheit, Tastaturlayout, Quick-Settings-Pille) in welcher Zone (links/Mitte/rechts) stehen, bestimmt SettingsService.barLayout. StatusNotifier-Einträge liegen jetzt in
+// Tastaturlayout, Quick-Settings-Pille) in welcher Zone (links/Mitte/rechts) stehen, bestimmt SettingsService.barLayout. StatusNotifier-Einträge liegen jetzt in
 // den Quick-Settings unter „Hintergrundprogramme“.
 PanelWindow {
     id: root
@@ -122,6 +122,36 @@ PanelWindow {
                 Layout.fillHeight: true
                 Layout.preferredWidth: item && item.visible ? item.implicitWidth : 0
                 sourceComponent: root.itemComponents[modelData] ?? null
+
+                // Bildschirmposition des Elements für die Panels veröffentlichen (Theme.setBarAnchor);
+                // siehe components/BarAnchor.qml und die Panels in DateMenu/QuickSettings
+                function publishAnchor() {
+                    const it = item;
+                    if (!it || !it.visible || it.width <= 0 || it.height <= 0)
+                        return;
+                    const p = it.mapToItem(null, 0, 0);
+                    Theme.setBarAnchor(modelData, p.x, p.y, it.width, it.height);
+                }
+                onItemChanged: publishAnchor()
+                Connections {
+                    target: slot.item
+
+                    function onXChanged() {
+                        slot.publishAnchor();
+                    }
+                    function onYChanged() {
+                        slot.publishAnchor();
+                    }
+                    function onWidthChanged() {
+                        slot.publishAnchor();
+                    }
+                    function onHeightChanged() {
+                        slot.publishAnchor();
+                    }
+                    function onVisibleChanged() {
+                        slot.publishAnchor();
+                    }
+                }
             }
         }
     }
@@ -129,13 +159,7 @@ PanelWindow {
     readonly property var itemComponents: ({
             "workspaces": workspacesItem,
             "activeWindow": activeWindowItem,
-            "vitals": vitalsItem,
-            "updates": updatesItem,
-            "media": mediaItem,
-            "visualizer": visualizerItem,
             "clock": clockItem,
-            "capture": captureItem,
-            "accessibility": accessibilityItem,
             "keyboard": keyboardItem,
             "status": statusItem
         })
@@ -157,30 +181,6 @@ PanelWindow {
         }
     }
     Component {
-        id: vitalsItem
-        VitalsButton {
-            foreground: root.foreground
-        }
-    }
-    Component {
-        id: updatesItem
-        UpdateButton {
-            foreground: root.foreground
-        }
-    }
-    Component {
-        id: mediaItem
-        MediaButton {
-            foreground: root.foreground
-        }
-    }
-    Component {
-        id: visualizerItem
-        AudioVisualizer {
-            foreground: root.foreground
-        }
-    }
-    Component {
         id: clockItem
         ClockButton {
             foreground: root.foreground
@@ -192,31 +192,29 @@ PanelWindow {
         }
     }
     Component {
-        id: captureItem
-        CaptureIndicators {
-            foreground: root.foreground
-        }
-    }
-    Component {
-        id: accessibilityItem
-        AccessibilityIndicator {
-            foreground: root.foreground
-        }
-    }
-    Component {
         id: keyboardItem
         KeyboardIndicator {
             foreground: root.foreground
         }
     }
+    // Systemmenü: Aufnahme-/Freigabe-Pillen (nur sichtbar, solange etwas läuft) direkt links neben der Statuspille
     Component {
         id: statusItem
-        QuickSettingsButton {
-            foreground: root.foreground
-            checked: root.quickSettingsOpen
-            onQuickSettingsRequested: {
-                quickSettings.toggle();
-                root.quickSettingsRequested();
+        RowLayout {
+            spacing: 0
+
+            CaptureIndicators {
+                Layout.fillHeight: true
+                foreground: root.foreground
+            }
+            QuickSettingsButton {
+                Layout.fillHeight: true
+                foreground: root.foreground
+                checked: root.quickSettingsOpen
+                onQuickSettingsRequested: {
+                    quickSettings.toggle();
+                    root.quickSettingsRequested();
+                }
             }
         }
     }

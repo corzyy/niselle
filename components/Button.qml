@@ -27,15 +27,6 @@ Item {
     implicitHeight: Math.max(Theme.buttonMinHeight, label.implicitHeight) + 2 * paddingV
     activeFocusOnTab: true
 
-    scale: pressed && enabled && !Theme.gameMode ? Theme.pressScale : 1
-    Behavior on scale {
-        enabled: !Theme.gameMode
-        NumberAnimation {
-            duration: Theme.durationPress
-            easing.type: Theme.easeOut
-        }
-    }
-
     Rectangle {
         anchors.fill: parent
         radius: root.radius

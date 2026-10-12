@@ -51,6 +51,37 @@ Singleton {
         root.departingRevision++;
     }
 
+    // Angeforderte, von Hyprland noch nicht bestätigte Fläche je Monitor ({ monitorName: id }). Übersicht und Leiste
+    // gleiten sofort dorthin, statt auf das IPC-Ereignis zu warten; nach `pendingTimeout` ms ohne Bestätigung verfällt die Marke.
+    property var pendingActive: ({})
+    property int pendingRevision: 0
+    readonly property int pendingTimeout: 800
+
+    // Angeforderte Fläche des Monitors, -1 wenn keine aussteht
+    function pendingFor(screen) {
+        void root.pendingRevision;
+        const mon = screen ? Hyprland.monitorFor(screen) : root.focusedMonitor;
+        if (!mon)
+            return -1;
+        const id = root.pendingActive[mon.name];
+        return id === undefined ? -1 : id;
+    }
+    function _setPending(mon, id) {
+        const next = Object.assign({}, root.pendingActive);
+        next[mon.name] = id;
+        root.pendingActive = next;
+        root.pendingRevision++;
+        pendingTimer.restart();
+    }
+    Timer {
+        id: pendingTimer
+        interval: root.pendingTimeout
+        onTriggered: {
+            root.pendingActive = ({});
+            root.pendingRevision++;
+        }
+    }
+
     // Fasst schnelle Ereignisfolgen (Öffnen, Verschieben, Größe) zu einer Abfrage zusammen
     Timer {
         id: geometryTimer
@@ -115,15 +146,20 @@ Singleton {
 
     // Zu Fläche wechseln; mit `screen` zuerst den Monitor fokussieren (nötig für neue, leere Flächen)
     function switchTo(id, screen) {
-        const mon = screen ? Hyprland.monitorFor(screen) : null;
+        const mon = screen ? Hyprland.monitorFor(screen) : root.focusedMonitor;
+        if (mon)
+            root._setPending(mon, id);
         if (mon && mon !== root.focusedMonitor)
             root._dispatch("focusmonitor " + mon.name, 'hl.dsp.focus({ monitor = "' + mon.name + '" })');
         root._dispatch("workspace " + id, "hl.dsp.focus({ workspace = " + id + " })");
     }
     function switchRelative(delta, screen) {
-        // Auf den belegten Flächen des Monitors, wie Strg+Alt+Pfeil in GNOME
+        // Auf den belegten Flächen des Monitors, wie Strg+Alt+Pfeil in GNOME. Ausgangspunkt ist eine noch
+        // ausstehende Anforderung, damit schnelles Scrollen mehrere Flächen weit kommt.
         const list = screen ? root.workspacesFor(screen) : root.workspaces;
-        const cur = list.findIndex(w => w.active);
+        const pending = root.pendingFor(screen);
+        const pendingIndex = pending >= 0 ? list.findIndex(w => w.id === pending) : -1;
+        const cur = pendingIndex >= 0 ? pendingIndex : list.findIndex(w => w.active);
         const target = list[Math.max(0, Math.min(list.length - 1, cur + delta))];
         if (target && cur >= 0 && target.id !== list[cur].id)
             root.switchTo(target.id, screen);
@@ -135,8 +171,12 @@ Singleton {
             root._dispatch("focusmonitor " + mon.name, 'hl.dsp.focus({ monitor = "' + mon.name + '" })');
     }
 
+    // Zeitpunkt (ms) der letzten Fokus-Anforderung für ein Fenster (OverviewService.hide überschreibt sie nicht)
+    property double lastFocusRequest: 0
+
     function focusWindow(toplevel) {
         if (toplevel) {
+            root.lastFocusRequest = Date.now();
             const a = root._address(toplevel);
             root._dispatch("focuswindow address:" + a, 'hl.dsp.focus({ window = "address:' + a + '" })');
         }
@@ -144,6 +184,7 @@ Singleton {
     // Fenster über seine Hyprland-Adresse fokussieren (wechselt bei Bedarf die Arbeitsfläche)
     function focusAddress(address) {
         const a = address.startsWith("0x") ? address : "0x" + address;
+        root.lastFocusRequest = Date.now();
         root._dispatch("focuswindow address:" + a, 'hl.dsp.focus({ window = "address:' + a + '" })');
     }
     function closeWindow(toplevel) {
@@ -216,7 +257,9 @@ Singleton {
                 root._claimOpenedWindow(e.data);
             if (e.name === "workspace" || e.name === "workspacev2" || e.name === "focusedmon" || e.name === "moveworkspace" || e.name === "activespecial")
                 root.revision++;
-            if (["openwindow", "closewindow", "movewindow", "movewindowv2", "windowtitle", "windowtitlev2", "fullscreen", "changefloatingmode", "resizewindow", "activewindowv2", "moveworkspace", "workspacev2", "createworkspacev2", "destroyworkspacev2"].indexOf(e.name) >= 0)
+            // Titel- und Fokuswechsel ändern keine Geometrie: sie kommen bei Terminals und Browsern ständig und
+            // lösten sonst bei offener Übersicht laufend ein neues Layout aller Flächen aus
+            if (["openwindow", "closewindow", "movewindow", "movewindowv2", "fullscreen", "changefloatingmode", "resizewindow", "moveworkspace", "workspacev2", "createworkspacev2", "destroyworkspacev2"].indexOf(e.name) >= 0)
                 geometryTimer.restart();
         }
     }

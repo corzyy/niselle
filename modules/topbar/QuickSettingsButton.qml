@@ -6,7 +6,7 @@ import qs.services
 import qs.components
 
 // Quick-Settings-Pille mit Status-Icons [quickSettings.js, GNOME-Mockup system-status-indicators]. Reihenfolge wie im Mockup:
-// Datenschutz (Freigabe, Kamera, Mikrofon, Standort, orange), Nachtlicht, Thunderbolt, Netzwerk (USB, WLAN, VPN,
+// Datenschutz (Freigabe, Kamera, Mikrofon, Standort, orange), Thunderbolt, Netzwerk (USB, WLAN, VPN,
 // Flugmodus), Bluetooth, Lautstärke, Akku (ohne Akku: Ausschalten).
 Pill {
     id: root
@@ -61,10 +61,6 @@ Pill {
         visible: root.privacy && PrivacyService.locationInUse
     }
 
-    StatusIcon {
-        name: "night-light-symbolic"
-        visible: root.extras && SettingsService.nightLightActive
-    }
     StatusIcon {
         name: "thunderbolt-symbolic"
         visible: root.extras && PrivacyService.thunderboltAttention

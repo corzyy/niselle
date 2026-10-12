@@ -11,7 +11,7 @@ import qs.services
 import qs.modules.datemenu
 
 // Quick-Settings-Popover (QuickSettingsMenu) [quickSettings.js, system.js, volume.js, brightness.js, network.js,
-// bluetooth.js, powerProfiles.js, nightLight.js, darkMode.js, rfkill.js]: hängt unter dem rechten Panel-Bereich,
+// bluetooth.js, powerProfiles.js, darkMode.js, rfkill.js]: hängt unter dem rechten Panel-Bereich,
 // 6px Abstand zu Panel und Bildschirmrand [boxpointer.js:515-566]. Von oben: Kopfzeile, Lautstärke, Helligkeit,
 // Kachelraster (2 Spalten). Untermenüs liegen wie in der Shell auf einer eigenen Ebene über dem Raster, das
 // Raster darunter wird abgedunkelt; im Layout reserviert ein Platzhalter ihre Höhe.
@@ -98,12 +98,6 @@ Scope {
             "category": "device"
         },
         {
-            "id": "nightLight",
-            "title": "Nachtlicht",
-            "icon": "night-light-symbolic",
-            "category": "appearance"
-        },
-        {
             "id": "dark",
             "title": "Dunkler Stil",
             "icon": Quickshell.shellPath("assets/icons/dark-mode-symbolic.svg"),
@@ -139,7 +133,6 @@ Scope {
             "performance": performanceTile.available,
             "gamemode": gamemodeTile.available,
             "keyboard": keyboardTile.available,
-            "nightLight": nightLightTile.available,
             "dark": darkTile.available,
             "dnd": dndTile.available,
             "caffeine": caffeineTile.available,
@@ -472,17 +465,31 @@ Scope {
 
     // ───────── Popover ─────────
 
+    // Anker aus der Leiste (Theme.barAnchor("status")): folgt der Systempille, sonst fest an der rechten oberen Ecke
+    BarAnchor {
+        id: shellAnchor
+
+        moduleId: "status"
+        panelWidth: popup.implicitWidth - 2 * popup.margin
+        screenWidth: root.barWindow.width
+        margin: Theme.popoverRise
+        fallbackX: root.barWindow.width - Theme.popoverRise + popup.margin - 1 - (popup.implicitWidth - 2 * popup.margin)
+    }
+
     PopupMenu {
         id: popup
 
+        readonly property bool follows: SettingsService.barPanelsFollowItems && shellAnchor.valid
+
         anchor.window: root.barWindow
-        // Rechte obere Ecke der Karte: 6px unter dem Panel und 6px vom Bildschirmrand
-        anchor.rect.x: root.barWindow.width - Theme.popoverRise + margin - 1
-        anchor.rect.y: root.barWindow.height + Theme.popoverRise - margin - 1
+        anchor.rect.x: popup.follows ? shellAnchor.panelCenterX : root.barWindow.width - Theme.popoverRise + popup.margin - 1
+        anchor.rect.y: root.barWindow.height + Theme.popoverRise - popup.margin - 1
         anchor.rect.width: 1
         anchor.rect.height: 1
-        anchor.edges: Edges.Bottom | Edges.Right
-        anchor.gravity: Edges.Bottom | Edges.Left
+        anchor.edges: popup.follows ? Edges.Bottom : (Edges.Bottom | Edges.Right)
+        anchor.gravity: popup.follows ? Edges.Bottom : (Edges.Bottom | Edges.Left)
+        // Nicht nachschieben: die Position ist in BarAnchor schon an den Bildschirmrand geklemmt; ein
+        // PopupAdjustment.SlideX würde das Fenster samt Schattenrand klemmen und einen zu großen Rand lassen.
         anchor.adjustment: PopupAdjustment.None
 
         // Klick außerhalb schließt über den Fokus-Grab. NISELLE_QS_NOGRAB=1 schaltet ihn ab (Screenshots per IPC ohne Klick).
@@ -637,7 +644,6 @@ Scope {
                 "profile": profileTile,
                 "performance": performanceTile,
                 "gamemode": gamemodeTile,
-                "nightLight": nightLightTile,
                 "dark": darkTile,
                 "vpn": vpnTile,
                 "airplane": airplaneTile,
@@ -790,22 +796,6 @@ Scope {
                         icon: "applications-games-symbolic"
                         checked: SettingsService.gameMode
                         onClicked: SettingsService.toggleGameMode()
-                    }
-
-                    // Nachtlicht [nightLight.js:14-35]
-                    ToggleButton {
-                        id: nightLightTile
-                        opacity: Theme.enter(popup.progress, 3 + grid.slotOf(nightLightTile), 12)
-                        transform: Translate { y: (1 - Theme.enter(popup.progress, 3 + grid.slotOf(nightLightTile), 12)) * Theme.enterRise }
-                        readonly property bool available: root.demo || SettingsService.nightLightAvailable
-                        readonly property bool shown: available && SettingsService.quickToggles.indexOf("nightLight") >= 0
-                        visible: shown
-                        x: grid.xOf(nightLightTile)
-                        y: grid.yOf(nightLightTile)
-                        title: "Nachtlicht"
-                        icon: "night-light-symbolic"
-                        checked: SettingsService.nightLight
-                        onClicked: SettingsService.toggleNightLight()
                     }
 
                     // Dunkler Stil [darkMode.js:10-40]

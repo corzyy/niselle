@@ -1,48 +1,43 @@
 #!/usr/bin/env bash
 #
 # niselle-update-shell — pull the latest commit from the git remote and restart
-# the shell. Called from Settings › System ("Update Shell").
-#
-# Prints one event per line for the settings app: "<kind>|<text>" with kind one
-# of step, info, ok, warn, error, done (same format as niselle-matugen-install).
+# the shell. Terminal-only: reachable via `niselle shell update`.
 #
 # The restart is detached with setsid so it survives this shell process being
 # killed by the very restart it triggers.
 
 set -uo pipefail
 
-emit() { printf '%s|%s\n' "$1" "$2"; }
-
 # The config directory is the parent of this script's bin/.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="$(dirname "$SCRIPT_DIR")"
 
 if [ ! -d "$CONFIG/.git" ]; then
-    emit error "Not a git checkout: $CONFIG"
+    printf 'niselle: not a git checkout: %s\n' "$CONFIG" >&2
     exit 1
 fi
 
 if ! command -v git >/dev/null 2>&1; then
-    emit error "git is not installed"
+    printf 'niselle: git is not installed\n' >&2
     exit 1
 fi
 
 BRANCH="$(git -C "$CONFIG" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
-emit step "Pulling latest commit (origin/$BRANCH) …"
+printf 'niselle: pulling latest commit (origin/%s) …\n' "$BRANCH"
 
 if ! out="$(git -C "$CONFIG" pull --ff-only origin "$BRANCH" 2>&1)"; then
-    emit error "$(printf '%s' "$out" | tail -n1)"
+    printf 'niselle: %s\n' "$(printf '%s' "$out" | tail -n1)" >&2
     exit 1
 fi
 
 case "$out" in
     *"Already up to date"*|*"Already up-to-date"*)
-        emit ok "Already up to date" ;;
+        printf 'niselle: already up to date\n' ;;
     *)
-        emit ok "$(printf '%s' "$out" | tail -n1)" ;;
+        printf 'niselle: %s\n' "$(printf '%s' "$out" | tail -n1)" ;;
 esac
 
-emit done "Updated — restarting the shell …"
+printf 'niselle: restarting the shell …\n'
 
 # Restart detached so it survives this process being killed by the restart.
 if command -v setsid >/dev/null 2>&1; then

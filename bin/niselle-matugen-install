@@ -47,6 +47,18 @@ DETECT = {
 }
 # Need manual work beyond a template + config entry (python post-process, directory templates, …).
 SKIP = {"Cosmic", "ANSI", "Gnome-shell", "Neovim plugin", "Quickshell", "Wine", "Windows Terminal"}
+# The README only gives a placeholder output_path for these; template id -> real path.
+OUTPUT = {"vivaldi": "~/.config/matugen/vivaldi/vivaldi.css"}
+# Template rewrites applied while copying. matugen 4 made set_lightness absolute (matugen 3 shifted it),
+# which turns every "set_lightness: -10.0" into black; lighten keeps the relative meaning.
+REWRITE = {"vivaldi.css": [("| set_lightness:", "| lighten:")]}
+# Steps the user still has to do by hand after the template is set up.
+NOTES = {
+    "Vivaldi": [
+        "Vivaldi: enable \"Allow for using CSS modifications\" in vivaldi://experiments",
+        "Vivaldi: Settings > Appearance > Custom UI Modifications → select ~/.config/matugen/vivaldi",
+    ],
+}
 
 
 def emit(kind, text):
@@ -175,7 +187,7 @@ def main():
         dest = os.path.join(TEMPLATES, os.path.basename(src))
         added = 0
         for t in sec["tables"]:
-            out = field(t, "output_path")
+            out = OUTPUT.get(t["id"]) or field(t, "output_path")
             if t["id"] in existing_ids or (out and out in existing_out):
                 emit("skip", f"{name}: [{t['id']}] is already configured")
                 continue
@@ -183,16 +195,24 @@ def main():
                 emit("warn", f"{name}: [{t['id']}] has no output_path")
                 continue
             lines = [f"input_path = '~/.config/matugen/templates/{os.path.basename(src)}'"]
-            lines += [l for l in t["lines"] if not l.startswith("input_path")]
+            lines.append(f"output_path = '{out}'")
+            lines += [l for l in t["lines"] if not l.startswith(("input_path", "output_path"))]
             additions.append(f"[templates.{t['id']}]\n" + "\n".join(lines) + "\n")
             existing_ids.add(t["id"])
             existing_out.add(out)
+            os.makedirs(os.path.dirname(os.path.expanduser(out)), exist_ok=True)
             added += 1
             emit("info", f"{name}: [{t['id']}] → {out}")
         if added:
-            shutil.copyfile(src, dest)
+            text = open(src, encoding="utf-8").read()
+            for old, new in REWRITE.get(os.path.basename(src), []):
+                text = text.replace(old, new)
+            with open(dest, "w", encoding="utf-8") as f:
+                f.write(text)
             installed += 1
             emit("ok", f"{name}: template installed")
+            for note in NOTES.get(name, []):
+                emit("warn", note)
 
     if additions:
         if os.path.exists(CONFIG):

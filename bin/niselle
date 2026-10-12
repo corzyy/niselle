@@ -10,7 +10,6 @@
 #   niselle overview [open|close|toggle]   Open, close or toggle the overview
 #   niselle lock                  Lock the screen
 #   niselle screenshot [record|close]  Open the screenshot UI (record: screen recording)
-#   niselle switcher [next|prev|window|close]  Alt+Tab app switcher (next/prev app, window: next window of the app)
 #   niselle caffeine [on|off|toggle]  Keep the screen awake (no idle lock or suspend)
 #   niselle clipboard             Show the clipboard history next to the cursor
 #   niselle suspend               Lock (if set in Settings › Power) and suspend
@@ -19,6 +18,7 @@
 #   niselle theme regenerate|scheme <type>|color <hex>  Regenerate the colour palette with matugen
 #   niselle config list|get <key>|set <key> <json>  Read/write shell settings (clock12h, weekStart, wallpaper, …)
 #   niselle settings [panel|close] Open the settings app (optionally at a panel, e.g. sound, about)
+#   niselle shell update          Pull the latest commit from git and restart the shell
 #   niselle osd locks             Report Caps/Num Lock state to the OSD (bind to the lock keys)
 #   niselle ipc <target> <func> [args...]  Call a Quickshell IPC target directly
 #   niselle log                   Show the path (and tail) of the start log
@@ -117,6 +117,37 @@ require_runtime() {
     return 0
 }
 
+# Animationen mit der Bildrate des schnellsten Monitors statt fest 60/s (siehe native/anim-refresh.c):
+# „threaded“-Renderschleife plus Preload-Shim, der Qt die höchste Bildrate als Takt meldet.
+# Abschalten mit NISELLE_HIGH_REFRESH=0. Nach dem Ändern der Bildrate: `niselle restart`.
+setup_high_refresh() {
+    [ "${NISELLE_HIGH_REFRESH:-1}" = "0" ] && return 0
+    command -v hyprctl >/dev/null 2>&1 || return 0
+
+    local hz
+    hz="$(hyprctl monitors -j 2>/dev/null | grep -o '"refreshRate": *[0-9.]*' | grep -o '[0-9.]*$' | sort -rn | head -n1)"
+    [ -n "$hz" ] || return 0
+
+    local src="$CONFIG/native/anim-refresh.c"
+    local lib="${XDG_CACHE_HOME:-$HOME/.cache}/niselle/anim-refresh.so"
+    if [ ! -f "$lib" ] || [ "$src" -nt "$lib" ]; then
+        mkdir -p "$(dirname "$lib")"
+        if ! cc -O2 -shared -fPIC -o "$lib.tmp" "$src" -ldl 2>/dev/null; then
+            rm -f "$lib.tmp"
+            echo "niselle: could not build $src (cc missing?) — animations stay at 60 Hz" >&2
+            return 0
+        fi
+        mv -f "$lib.tmp" "$lib"
+    fi
+
+    # Nur ohne andere Preloads (der Shim entfernt LD_PRELOAD danach wieder aus der Umgebung)
+    [ -z "${LD_PRELOAD:-}" ] || return 0
+    export LD_PRELOAD="$lib" NISELLE_ANIM_HZ="$hz"
+    if [ -z "${QSG_RENDER_LOOP:-}" ]; then
+        export QSG_RENDER_LOOP=threaded NISELLE_CLEAR_RENDER_LOOP=1
+    fi
+}
+
 start() {
     if is_running; then
         echo "niselle: already running"
@@ -132,6 +163,8 @@ start() {
     local icon_file="${XDG_STATE_HOME:-$HOME/.local/state}/niselle/icon-theme" icon_theme=""
     [ -r "$icon_file" ] && icon_theme="$(head -n1 "$icon_file")"
     export QS_ICON_THEME="${icon_theme:-Adwaita}"
+
+    setup_high_refresh
 
     # Launch quickshell detached but keep its output: `setsid -f` forks, so the
     # redirect stays attached to the child that survives this script. `-n` makes
@@ -236,6 +269,14 @@ osd() {
     esac
 }
 
+# Shell maintenance. Terminal-only: the shell updater is not exposed in the UI.
+shell() {
+    case "${1:-}" in
+        update) exec "$CONFIG/bin/niselle-update-shell" ;;
+        *)      die "unknown option '${1:-}' (update)" ;;
+    esac
+}
+
 log() {
     local l; l="$(start_log)"
     printf '%s\n' "$l"
@@ -302,7 +343,6 @@ Usage:
   niselle lock                  Lock the screen
   niselle screenshot [record|close]  Open the screenshot UI (record: screen recording)
   niselle apps [open|close]     Toggle the app grid (open: from overview, close: hide)
-  niselle switcher [next|prev|window|close]  Alt+Tab app switcher (window: next window of the current app)
   niselle caffeine [on|off|toggle]  Keep the screen awake (no idle lock or suspend)
   niselle clipboard             Show the clipboard history next to the cursor
   niselle suspend               Lock (if set in Settings › Power) and suspend
@@ -310,6 +350,7 @@ Usage:
   niselle theme regenerate|scheme <type>|color <hex>  Regenerate the colour palette with matugen
   niselle config list|get <key>|set <key> <json>  Read/write shell settings
   niselle settings [panel|close|toggle]  Open the settings app (panel: network, sound, about, …)
+  niselle shell update          Pull the latest commit from git and restart the shell
   niselle osd locks             Report Caps/Num Lock state to the OSD (bind to the lock keys)
   niselle ipc <target> <func> [args...]  Call a Quickshell IPC target directly
   niselle log                   Show the start log
@@ -340,10 +381,6 @@ case "$cmd" in
                            *)      die "unknown option '$1' (record|close)" ;;
                        esac ;;
     apps|app)          apps "${1:-toggle}" ;;
-    switcher|switch)   case "${1:-next}" in
-                           next|prev|window|close) ipc_call switcher "${1:-next}" ;;
-                           *) die "unknown option '$1' (next|prev|window|close)" ;;
-                       esac ;;
     caffeine)          case "${1:-toggle}" in
                            on|off|toggle) ipc_call idle caffeine "${1:-toggle}" ;;
                            *) die "unknown option '$1' (on|off|toggle)" ;;
@@ -357,6 +394,7 @@ case "$cmd" in
     config)            [ $# -ge 1 ] || die "usage: niselle config list|get <key>|set <key> <json>"
                        "$QS" ipc -p "$CONFIG" call config "$@" ;;
     settings|prefs)    settings "${1:-}" ;;
+    shell)             shell "${1:-}" ;;
     osd)               osd "${1:-}" ;;
     ipc)               [ $# -ge 2 ] || die "usage: niselle ipc <target> <func> [args...]"
                        "$QS" ipc -p "$CONFIG" call "$@" ;;

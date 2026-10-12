@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 // Einstellungen der Shell. Alles liegt in einer JSON-Datei unter Quickshell.statePath("settings.json"); es gibt keine
-// Abhängigkeit von gsettings/dconf. Hell/Dunkel, Nachtlicht, Flugmodus, Nicht stören und Gamemode sind Zustände mit
+// Abhängigkeit von gsettings/dconf. Hell/Dunkel, Flugmodus, Nicht stören und Gamemode sind Zustände mit
 // eigenen Funktionen; die übrigen Werte (Uhr, Kalender, Hintergrund, Standard-Apps) werden über `set(key, value)` geschrieben.
 Singleton {
     id: root
@@ -16,7 +16,6 @@ Singleton {
     readonly property bool loaded: _loaded
 
     property bool darkMode: true
-    property bool nightLight: false
     // Flugmodus: rfkill block/unblock all, Zustand per `rfkill event`
     property bool airplaneMode: false
     // Nicht stören = Banner aus
@@ -26,17 +25,6 @@ Singleton {
     // BigYahoo: ersetzt jedes Symbol in der Shell durch die israelische Flagge (siehe components/Icon.qml)
     property bool bigYahoo: false
 
-    // Nachtlicht über hyprsunset oder wlsunset: "hyprsunset", "wlsunset" oder "" (nichts installiert)
-    readonly property string nightLightBackend: _nightLightBackend
-    // Nachtlicht lässt sich schalten (ein Werkzeug ist installiert)
-    readonly property bool nightLightAvailable: _nightLightBackend !== ""
-    // Farbtemperatur in Kelvin
-    readonly property int nightLightTemperature: store.nightLightTemperature
-    // Zeitplan: "automatic" (Sonnenunter- bis -aufgang) oder "manual"
-    readonly property string nightLightSchedule: store.nightLightSchedule ?? "automatic"
-    // Manuelle Zeiten als Stundenbruch (z. B. 20.5 = 20:30)
-    readonly property real nightLightFrom: store.nightLightFrom
-    readonly property real nightLightTo: store.nightLightTo
     // Primäranzeige (Monitor mit Leiste und Aktivitäten), Name des Monitors
     readonly property string primaryDisplay: store.primaryDisplay ?? ""
     // Gespeicherte Anzeigenzuweisung (siehe DisplayService): { mode, outputs: { name: {…} } }
@@ -47,30 +35,20 @@ Singleton {
     readonly property bool showBatteryPercentage: store.showBatteryPercentage
     // Aktives Fenster (Icon und Name) in der Leiste zeigen; Leiste ohne Hintergrund
     readonly property bool transparentBar: store.transparentBar
+    // Panels (Datumsmenü, Systemmenü) hängen direkt unter ihrem Leisten-Element und wandern mit, wenn es die Zone wechselt
+    readonly property bool barPanelsFollowItems: store.barPanelsFollowItems ?? true
     // Menüleiste: Uhr ("dateTime" | "time" | "date"), Arbeitsflächen ("dots" | "numbers"), aktive App, Symbole der Systempille
     readonly property string barClockFormat: store.barClockFormat ?? "dateTime"
     readonly property string barWorkspaceStyle: store.barWorkspaceStyle ?? "dots"
-    // Systemaktualisierungen (UpdateService): automatisch prüfen, Abstand in Stunden
-    readonly property bool updatesAutoCheck: store.updatesAutoCheck ?? true
-    readonly property int updatesCheckHours: store.updatesCheckHours ?? 3
-    readonly property bool barVitalsCpu: store.barVitalsCpu ?? true
-    readonly property bool barVitalsMemory: store.barVitalsMemory ?? true
-    readonly property bool barVitalsTemp: store.barVitalsTemp ?? true
-    readonly property bool barVitalsNet: store.barVitalsNet ?? false
-    readonly property int barVisualizerBars: store.barVisualizerBars ?? 12
     readonly property bool barAppShowIcon: store.barAppShowIcon ?? true
     readonly property bool barAppShowName: store.barAppShowName ?? true
     readonly property bool barShowNetwork: store.barShowNetwork ?? true
     readonly property bool barShowBluetooth: store.barShowBluetooth ?? true
     readonly property bool barShowVolume: store.barShowVolume ?? true
     // Statusanzeigen der Leiste: Datenschutz (Kamera, Mikrofon, Standort), Netzwerk-/Systemstatus (VPN, USB-Tethering,
-    // Flugmodus, Nachtlicht, Thunderbolt) und das Menü für Barrierefreiheit
+    // Flugmodus, Thunderbolt)
     readonly property bool showPrivacyIndicators: store.showPrivacyIndicators
     readonly property bool showStatusIndicators: store.showStatusIndicators
-    // Barrierefreiheit: größere Schrift, Animationen aus, Bildschirmleser (Orca)
-    readonly property bool a11yLargeText: store.a11yLargeText
-    readonly property bool a11yReduceMotion: store.a11yReduceMotion
-    readonly property bool a11yScreenReader: store.a11yScreenReader
     // Übersicht: Fenster-Kacheln live (Screencopy-Stream) statt eines einzelnen Standbilds
     readonly property bool overviewLiveWindows: store.overviewLiveWindows ?? true
     // Dash/Dock: größte Icongröße (px), dauerhaft am unteren Rand sichtbar (sonst nur in der Übersicht), mit Autohide
@@ -104,35 +82,18 @@ Singleton {
     // Zuletzt über die Einstellungen gesetzte Hintergrundbilder (Pfade), neuestes zuerst
     readonly property var wallpaperHistory: store.wallpaperHistory ?? []
 
-    // Anwendungen, die ein Klick im Datumsmenü startet: { calendar, weather, clocks } = Desktop-Datei-ID; leer = nicht klickbar
+    // Anwendungen, die ein Klick im Datumsmenü startet: { calendar } = Desktop-Datei-ID; leer = nicht klickbar
     readonly property var defaultApps: store.defaultApps ?? ({})
-
-    // Optionale Module im Datumsmenü; leer = Abschnitt ausgeblendet.
-    //   worldClocks:     [{ "name": "Tokio", "timezone": "Asia/Tokyo" }, …]
-    //   weatherLocation: { "name": "Berlin", "latitude": 52.52, "longitude": 13.41 }
-    readonly property var worldClocks: store.worldClocks ?? []
-    readonly property var weatherLocation: store.weatherLocation ?? ({})
 
     // Aufbau des Datumsmenüs [GNOME-Mockup calendar-popover]
     //   calendarLayout:            "auto" (zweispaltig, sobald Termine sichtbar sind), "single" oder "split"
     //   calendarShowDateHeader:    Wochentag und Datum über den Terminen (zweispaltig)
-    //   calendarShowEvents/…Clocks/…Weather: Abschnitte ein- und ausblenden
-    //   calendarWeatherStyle:      "summary" (Zustand, Höchst-/Tiefstwert) oder "forecast" (stündlich)
+    //   calendarShowEvents:        Termine ein- und ausblenden
     //   calendarUpcomingOnly:      nur noch anstehende Termine des heutigen Tages
-    //   calendarAnalogClocks:      Weltuhren mit Zifferblatt
-    //   calendarCompactClocksAbove / calendarPageClocksAbove: ab so vielen Uhren kompakte Liste bzw. Seiten
-    //   weatherUnit:               "celsius" oder "fahrenheit"
     readonly property string calendarLayout: store.calendarLayout
     readonly property bool calendarShowDateHeader: store.calendarShowDateHeader
     readonly property bool calendarShowEvents: store.calendarShowEvents
-    readonly property bool calendarShowWorldClocks: store.calendarShowWorldClocks
-    readonly property bool calendarShowWeather: store.calendarShowWeather
-    readonly property string calendarWeatherStyle: store.calendarWeatherStyle
     readonly property bool calendarUpcomingOnly: store.calendarUpcomingOnly
-    readonly property bool calendarAnalogClocks: store.calendarAnalogClocks
-    readonly property int calendarCompactClocksAbove: store.calendarCompactClocksAbove
-    readonly property int calendarPageClocksAbove: store.calendarPageClocksAbove
-    readonly property string weatherUnit: store.weatherUnit
 
     // Sperrbildschirm: Aussehen von Uhr und Datum (siehe components/LockClock.qml und LockscreenPage).
     //   lockClockStyle:    "inline" | "stacked" | "minimal" | "mono"
@@ -172,39 +133,9 @@ Singleton {
             "icon": "preferences-system-windows-symbolic"
         },
         {
-            "id": "vitals",
-            "title": "Vitals",
-            "icon": "utilities-system-monitor-symbolic"
-        },
-        {
-            "id": "updates",
-            "title": "Updates",
-            "icon": "software-update-available-symbolic"
-        },
-        {
-            "id": "media",
-            "title": "Media Player",
-            "icon": "multimedia-player-symbolic"
-        },
-        {
-            "id": "visualizer",
-            "title": "Audio Visualizer",
-            "icon": "audio-volume-high-symbolic"
-        },
-        {
             "id": "clock",
             "title": "Clock",
             "icon": "preferences-system-time-symbolic"
-        },
-        {
-            "id": "capture",
-            "title": "Recording",
-            "icon": "media-record-symbolic"
-        },
-        {
-            "id": "accessibility",
-            "title": "Accessibility",
-            "icon": "preferences-desktop-accessibility-symbolic"
         },
         {
             "id": "keyboard",
@@ -213,7 +144,7 @@ Singleton {
         },
         {
             "id": "status",
-            "title": "System Menu",
+            "title": "System Menu & Recording",
             "icon": "emblem-system-symbolic",
             "required": true
         }
@@ -221,7 +152,7 @@ Singleton {
     readonly property var defaultBarLayout: ({
             "left": ["workspaces", "activeWindow"],
             "center": ["clock"],
-            "right": ["capture", "updates", "keyboard", "status"]
+            "right": ["keyboard", "status"]
         })
     readonly property var barLayout: _normalizeBarLayout(barStore.layout)
 
@@ -274,7 +205,7 @@ Singleton {
     // Kacheln der Quick-Settings in Anzeigereihenfolge (IDs aus QuickSettings.tileCatalog); nicht gelistete Kacheln sind ausgeblendet
     // Das frühere "wifi" ist in "network" aufgegangen; alte Listen werden beim Laden umgeschrieben
     readonly property var quickToggles: _normalizeQuickToggles(store.quickToggles ?? defaultQuickToggles)
-    readonly property var defaultQuickToggles: ["network", "bluetooth", "profile", "performance", "gamemode", "nightLight", "dark", "airplane", "dnd", "caffeine", "keyboard", "bigyahoo"]
+    readonly property var defaultQuickToggles: ["network", "bluetooth", "profile", "performance", "gamemode", "dark", "airplane", "dnd", "caffeine", "keyboard", "bigyahoo"]
 
     function _normalizeQuickToggles(list) {
         const out = [];
@@ -306,16 +237,14 @@ Singleton {
     readonly property bool airplaneModeSynced: _rfkillWorks
 
     // Beliebigen gespeicherten Wert setzen (clock12h, showBatteryPercentage, showWeekNumbers, weekStart, wallpaper,
-    // wallpaperDark, wallpaperHistory, nightLightTemperature, quickToggles, defaultApps, worldClocks, weatherLocation, calendar*, weatherUnit)
-    readonly property var keys: ["darkMode", "nightLight", "nightLightSchedule", "nightLightFrom", "nightLightTo", "doNotDisturb", "gameMode", "bigYahoo", "nightLightTemperature", "quickToggles", "useMatugen", "matugenScheme", "fontFamily", "fontFamilyMono", "clock12h", "showBatteryPercentage", "transparentBar", "barLayout", "barClockFormat", "barWorkspaceStyle", "barVisualizerBars", "barVitalsCpu", "barVitalsMemory", "barVitalsTemp", "barVitalsNet", "updatesAutoCheck", "updatesCheckHours", "barAppShowIcon", "barAppShowName", "barShowNetwork", "barShowBluetooth", "barShowVolume", "showPrivacyIndicators", "showStatusIndicators", "a11yLargeText", "a11yReduceMotion", "a11yScreenReader", "overviewLiveWindows", "dockIconSize", "dockPersistent", "dockAutohide", "showWeekNumbers", "weekStart", "wallpaper", "wallpaperDark", "wallpaperHistory", "defaultApps", "worldClocks", "weatherLocation", "calendarLayout", "calendarShowDateHeader", "calendarShowEvents", "calendarShowWorldClocks", "calendarShowWeather", "calendarWeatherStyle", "calendarUpcomingOnly", "calendarAnalogClocks", "calendarCompactClocksAbove", "calendarPageClocksAbove", "weatherUnit", "lockClockStyle", "lockClockSize", "lockClockWeight", "lockClockPosition", "lockClockColor", "lockDateFormat", "lockDateUppercase", "lockShowHint", "lockBlurCurtain", "shellBlur", "compact", "idleLockEnabled", "idleLockDelay", "idleSuspendEnabled", "idleSuspendDelay", "lockBeforeSuspend", "searchDisabled", "clipboardHistory", "primaryDisplay", "displays"]
+    // wallpaperDark, wallpaperHistory, quickToggles, defaultApps, calendar*)
+    readonly property var keys: ["darkMode", "doNotDisturb", "gameMode", "bigYahoo", "quickToggles", "useMatugen", "matugenScheme", "fontFamily", "fontFamilyMono", "clock12h", "showBatteryPercentage", "transparentBar", "barPanelsFollowItems", "barLayout", "barClockFormat", "barWorkspaceStyle", "barAppShowIcon", "barAppShowName", "barShowNetwork", "barShowBluetooth", "barShowVolume", "showPrivacyIndicators", "showStatusIndicators", "overviewLiveWindows", "dockIconSize", "dockPersistent", "dockAutohide", "showWeekNumbers", "weekStart", "wallpaper", "wallpaperDark", "wallpaperHistory", "defaultApps", "calendarLayout", "calendarShowDateHeader", "calendarShowEvents", "calendarUpcomingOnly", "lockClockStyle", "lockClockSize", "lockClockWeight", "lockClockPosition", "lockClockColor", "lockDateFormat", "lockDateUppercase", "lockShowHint", "lockBlurCurtain", "shellBlur", "compact", "idleLockEnabled", "idleLockDelay", "idleSuspendEnabled", "idleSuspendDelay", "lockBeforeSuspend", "searchDisabled", "clipboardHistory", "primaryDisplay", "displays"]
 
     function set(key, value) {
         if (root.keys.indexOf(key) < 0)
             return false;
         if (key === "darkMode")
             root.darkMode = value;
-        else if (key === "nightLight")
-            root.nightLight = value;
         else if (key === "doNotDisturb")
             root.doNotDisturb = value;
         else if (key === "gameMode")
@@ -341,7 +270,7 @@ Singleton {
             return root.set(key, v) ? "ok" : "unknown key: " + key;
         }
         function get(key: string): string {
-            return root.keys.indexOf(key) < 0 ? "unknown key: " + key : JSON.stringify(key === "darkMode" ? root.darkMode : key === "nightLight" ? root.nightLight : key === "doNotDisturb" ? root.doNotDisturb : key === "gameMode" ? root.gameMode : key === "bigYahoo" ? root.bigYahoo : store[key]);
+            return root.keys.indexOf(key) < 0 ? "unknown key: " + key : JSON.stringify(key === "darkMode" ? root.darkMode : key === "doNotDisturb" ? root.doNotDisturb : key === "gameMode" ? root.gameMode : key === "bigYahoo" ? root.bigYahoo : store[key]);
         }
         function list(): string {
             return root.keys.join("\n");
@@ -350,9 +279,6 @@ Singleton {
 
     function setDarkMode(on) {
         root.darkMode = on;
-    }
-    function setNightLight(on) {
-        root.nightLight = on;
     }
     function setAirplaneMode(on) {
         root.airplaneMode = on;
@@ -368,9 +294,6 @@ Singleton {
     }
     function toggleDarkMode() {
         root.darkMode = !root.darkMode;
-    }
-    function toggleNightLight() {
-        root.nightLight = !root.nightLight;
     }
     function toggleAirplaneMode() {
         root.airplaneMode = !root.airplaneMode;
@@ -388,7 +311,6 @@ Singleton {
     property bool _loaded: false
     property bool _saveFailed: false
     property bool _rfkillWorks: false
-    property string _nightLightBackend: ""
 
     // ───────── Persistenz ─────────
 
@@ -416,7 +338,6 @@ Singleton {
         onLoaded: {
             root._loaded = true;
             root.darkMode = store.darkMode;
-            root.nightLight = store.nightLight;
             root.airplaneMode = store.airplaneMode;
             root.doNotDisturb = store.doNotDisturb;
             root.gameMode = store.gameMode;
@@ -433,18 +354,13 @@ Singleton {
         adapter: JsonAdapter {
             id: store
             property bool darkMode: true
-            property bool nightLight: false
             property bool airplaneMode: false
             property bool doNotDisturb: false
             property bool gameMode: false
             property bool bigYahoo: false
-            property int nightLightTemperature: 2700
-            property string nightLightSchedule: "automatic"
-            property real nightLightFrom: 20.0
-            property real nightLightTo: 6.0
             property string primaryDisplay: ""
             property var displays: ({})
-            property var quickToggles: ["network", "bluetooth", "profile", "performance", "gamemode", "nightLight", "dark", "airplane", "dnd", "caffeine", "keyboard", "bigyahoo"]
+            property var quickToggles: ["network", "bluetooth", "profile", "performance", "gamemode", "dark", "airplane", "dnd", "caffeine", "keyboard", "bigyahoo"]
             property bool useMatugen: true
             property string matugenScheme: "scheme-tonal-spot"
             property string fontFamily: ""
@@ -454,24 +370,15 @@ Singleton {
             property var barLayout: ({})
             property string barClockFormat: "dateTime"
             property string barWorkspaceStyle: "dots"
-            property bool updatesAutoCheck: true
-            property int updatesCheckHours: 3
-            property bool barVitalsCpu: true
-            property bool barVitalsMemory: true
-            property bool barVitalsTemp: true
-            property bool barVitalsNet: false
-            property int barVisualizerBars: 12
             property bool barAppShowIcon: true
             property bool barAppShowName: true
             property bool barShowNetwork: true
             property bool barShowBluetooth: true
             property bool barShowVolume: true
             property bool transparentBar: true
+            property bool barPanelsFollowItems: true
             property bool showPrivacyIndicators: true
             property bool showStatusIndicators: true
-            property bool a11yLargeText: false
-            property bool a11yReduceMotion: false
-            property bool a11yScreenReader: false
             property bool overviewLiveWindows: true
             property int dockIconSize: 48
             property bool dockPersistent: false
@@ -482,19 +389,10 @@ Singleton {
             property string wallpaperDark: ""
             property var wallpaperHistory: []
             property var defaultApps: ({})
-            property var worldClocks: []
-            property var weatherLocation: ({})
             property string calendarLayout: "auto"
             property bool calendarShowDateHeader: true
             property bool calendarShowEvents: true
-            property bool calendarShowWorldClocks: true
-            property bool calendarShowWeather: true
-            property string calendarWeatherStyle: "summary"
             property bool calendarUpcomingOnly: true
-            property bool calendarAnalogClocks: true
-            property int calendarCompactClocksAbove: 4
-            property int calendarPageClocksAbove: 6
-            property string weatherUnit: "celsius"
             property string lockClockStyle: "inline"
             property string lockClockSize: "l"
             property string lockClockWeight: "extra"
@@ -517,7 +415,6 @@ Singleton {
     }
 
     onDarkModeChanged: store.darkMode = darkMode
-    onNightLightChanged: store.nightLight = nightLight
     onDoNotDisturbChanged: store.doNotDisturb = doNotDisturb
     onGameModeChanged: store.gameMode = gameMode
     onBigYahooChanged: store.bigYahoo = bigYahoo
@@ -527,84 +424,6 @@ Singleton {
             rfkillSet.command = ["rfkill", airplaneMode ? "block" : "unblock", "all"];
             rfkillSet.running = true;
         }
-    }
-
-    // ───────── Nachtlicht ─────────
-    // hyprsunset/wlsunset halten die Farbtemperatur, solange der Prozess läuft; Beenden stellt sie zurück.
-    // Zeitplan wie in GNOME (Displays › Nachtlicht): „automatic“ (Sonnenunter- bis -aufgang) oder „manual“.
-    // Ohne Standortdaten dienen die gespeicherten Zeiten als Fenster; die Temperatur gilt, solange es aktiv ist.
-
-    property int _nightTick: 0
-
-    Timer {
-        interval: 30000
-        running: true
-        repeat: true
-        onTriggered: root._nightTick++
-    }
-
-    readonly property real _nowHours: {
-        void root._nightTick;
-        const d = new Date();
-        return d.getHours() + d.getMinutes() / 60;
-    }
-
-    function _inWindow(h, from, to) {
-        if (from === to)
-            return true;
-        return from < to ? (h >= from && h < to) : (h >= from || h < to);
-    }
-
-    // Sonnenuntergang/-aufgang als lokale Stunde (NOAA-Näherung) am Wetterort; null bei Polartag/-nacht
-    function _sunTimes(date, lat, lon) {
-        const rad = Math.PI / 180;
-        const start = new Date(date.getFullYear(), 0, 0);
-        const day = Math.floor((date - start) / 86400000);
-        const g = 2 * Math.PI / 365 * (day - 1);
-        const eqTime = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
-        const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
-        const cosH = Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl);
-        if (cosH > 1 || cosH < -1)
-            return { "polar": cosH > 1 ? "night" : "day" };
-        const ha = Math.acos(cosH) / rad;
-        const tz = -date.getTimezoneOffset() / 60;
-        const noon = 12 - lon / 15 - eqTime / 60 + tz;
-        return { "rise": noon - ha / 15, "set": noon + ha / 15 };
-    }
-
-    // Beginn/Ende der Nachtlicht-Zeit als Stundenbruch, je nach Zeitplan
-    readonly property var _nightWindow: {
-        void root._nightTick;
-        if (root.nightLightSchedule === "manual")
-            return { "from": root.nightLightFrom, "to": root.nightLightTo };
-        const loc = root.weatherLocation;
-        const lat = loc && loc.latitude !== undefined ? loc.latitude : 52.52;
-        const lon = loc && loc.longitude !== undefined ? loc.longitude : 13.41;
-        const t = root._sunTimes(new Date(), lat, lon);
-        if (t.polar)
-            return t.polar === "night" ? { "from": 0, "to": 0 } : { "from": 12, "to": 12.0001 };
-        const wrap = h => ((h % 24) + 24) % 24;
-        return { "from": wrap(t.set), "to": wrap(t.rise) };
-    }
-
-    // Nachtlicht ist eingeschaltet und (laut Zeitplan) gerade aktiv
-    readonly property bool nightLightActive: {
-        if (!root.nightLight || !root.nightLightAvailable)
-            return false;
-        return root._inWindow(root._nowHours, root._nightWindow.from, root._nightWindow.to);
-    }
-
-    Process {
-        running: true
-        command: ["sh", "-c", "command -v hyprsunset >/dev/null && echo hyprsunset || { command -v wlsunset >/dev/null && echo wlsunset; }; true"]
-        stdout: StdioCollector {
-            onStreamFinished: root._nightLightBackend = text.trim()
-        }
-    }
-
-    Process {
-        running: root.nightLightActive
-        command: root._nightLightBackend === "hyprsunset" ? ["hyprsunset", "--temperature", String(root.nightLightTemperature)] : ["wlsunset", "-t", String(root.nightLightTemperature), "-T", String(root.nightLightTemperature + 1), "-S", "23:59", "-s", "00:00", "-d", "1"]
     }
 
     // ───────── Flugmodus (rfkill) ─────────

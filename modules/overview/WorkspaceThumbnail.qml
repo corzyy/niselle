@@ -26,6 +26,8 @@ Item {
     property real cornerRadius: Theme.radiusThumbnail
     // Hintergrundbild aus dem gemeinsamen Cache laden (gleicher Schlüssel wie WindowPicker), ohne Verzögerung
     property bool sharedWallpaper: false
+    // Fensteraufnahmen der Fenstervorschauen (CaptureRegistry): die Vorschau zeigt diese mit, statt selbst aufzunehmen
+    property var captures: null
 
     signal activated
     signal windowDropped(var toplevel)
@@ -96,7 +98,8 @@ Item {
             Repeater {
                 model: root.showWindows && root.info.workspace ? root.info.workspace.toplevels : null
 
-                // Fenster: Fläche als Grund, darüber ein einzelnes Standbild (blendet ein, sobald es da ist).
+                // Fenster: Fläche als Grund, darüber die Aufnahme der Fenstervorschau (dieselbe Aufnahme, kein zweiter
+                // Stream je Fenster), in Vorschaugröße gerendert
                 Rectangle {
                     id: win
 
@@ -104,6 +107,7 @@ Item {
 
                     readonly property var at: modelData.lastIpcObject?.at ?? [0, 0]
                     readonly property var size: modelData.lastIpcObject?.size ?? [0, 0]
+                    readonly property Item capture: root.captures ? root.captures.itemFor(modelData.address) : null
 
                     x: (at[0] - root.screen.x) * root.viewScale
                     y: (at[1] - root.screen.y) * root.viewScale
@@ -112,23 +116,40 @@ Item {
                     radius: Math.max(1, Math.min(3, width * 0.1, height * 0.1))
                     color: Theme.thumbnailBg
 
-                    ScreencopyView {
+                    // Nicht `live`: die Quelle (Fenstervorschau) ändert beim Öffnen und beim App-Grid in jedem Frame ihre
+                    // Größe, und jede Miniatur würde dann in jedem Frame neu gerendert. Neu gerendert wird nur, wenn ein neues
+                    // Bild da sein kann: erste Aufnahme, neue Standbilder (refreshCaptures) und, mit Live-Fenstern, im Takt.
+                    ShaderEffectSource {
+                        id: mirror
                         anchors.fill: parent
-                        captureSource: OverviewService.captureArmed ? (win.modelData.wayland ?? null) : null
-                        // Live wie die Fenster-Kacheln (Einstellungen › Erscheinungsbild)
-                        live: SettingsService.overviewLiveWindows
-                        paintCursor: false
+                        sourceItem: win.capture
+                        hideSource: false
+                        live: false
                         // Etwa doppelte Vorschaugröße genügt für scharfe Miniaturen
-                        constraintSize: Qt.size(Math.max(1, Math.ceil(win.width * 2)), Math.max(1, Math.ceil(win.height * 2)))
-                        opacity: hasContent ? 1 : 0
-
-                        Behavior on opacity {
-                            enabled: !Theme.gameMode
-                            NumberAnimation {
-                                duration: Theme.motionFast
-                                easing.type: Theme.easeOut
-                            }
+                        textureSize: Qt.size(Math.max(1, Math.ceil(win.width * 2)), Math.max(1, Math.ceil(win.height * 2)))
+                        visible: !!win.capture && win.capture.hasContent
+                        onSourceItemChanged: scheduleUpdate()
+                        onTextureSizeChanged: scheduleUpdate()
+                        onVisibleChanged: if (visible) scheduleUpdate()
+                    }
+                    Connections {
+                        target: OverviewService
+                        // Neue Standbilder treffen kurz nach der Anforderung ein
+                        function onRefreshCaptures(activeOnly) {
+                            mirrorRefresh.restart();
                         }
+                    }
+                    Timer {
+                        id: mirrorRefresh
+                        interval: 120
+                        onTriggered: mirror.scheduleUpdate()
+                    }
+                    // Live-Fenster: Miniaturen im ruhigen Takt nachziehen (reichen für Vorschaugröße)
+                    Timer {
+                        interval: 250
+                        repeat: true
+                        running: SettingsService.overviewLiveWindows && OverviewService.captureArmed && !OverviewService.animating
+                        onTriggered: mirror.scheduleUpdate()
                     }
                 }
             }

@@ -43,6 +43,15 @@ PanelWindow {
     readonly property real screenWidth: root.screen ? root.screen.width : root.width
     readonly property real screenHeight: root.screen ? root.screen.height : root.height
 
+    // Eine Flächenliste und eine Aufnahme je Fenster für Fensterbereich und Arbeitsflächen-Leiste dieses Monitors
+    WorkspaceModel {
+        id: screenWorkspaces
+        screen: root.screen
+    }
+    CaptureRegistry {
+        id: captureRegistry
+    }
+
     // Einmal geöffnetes App-Grid bleibt geladen (instant beim nächsten Mal)
     property bool appGridWarm: false
 
@@ -92,8 +101,12 @@ PanelWindow {
 
     // Die Layer-Fläche bleibt eingebunden (leer, ohne Inhalt), solange die Übersicht zu ist. Das Anlegen und Einbinden
     // der Fläche beim Öffnen dauerte rund 200 ms plus einen ersten, schweren Frame von rund 100 ms: erst danach kam das
-    // erste Bild, und die Animation war bis dahin schon verbraucht. Nicht bei Vollbild-Fenstern auf diesem Monitor und
-    // im Gamemode: eine Ebene über dem Spiel oder Video verhindert dort das direkte Ausgeben (Scanout).
+    // erste Bild, und die Animation war bis dahin schon verbraucht. Das gilt für alle Monitore, denn alle Fenster der
+    // Shell teilen sich einen UI-Thread: auch ein Nebenmonitor mit Vollbild-Video verzögerte die Übersicht auf dem
+    // primären.
+    // Ausgeblendet wird sie nur noch im Gamemode und bei Vollbild-Fenstern auf diesem Monitor, wenn Hyprland dort direkt
+    // ausgibt (Scanout), reißen lässt oder VRR nutzt (OverviewService.scanoutSensitive): eine Ebene über dem Spiel oder
+    // Video verhindert das. Ohne diese Optionen kostet die leere Ebene darüber nichts Spürbares.
     readonly property var monitor: screen ? Hyprland.monitorFor(screen) : null
     readonly property bool fullscreenActive: {
         void WorkspaceService.geometryRevision;
@@ -101,7 +114,7 @@ PanelWindow {
         return !!monitor?.activeWorkspace?.lastIpcObject?.hasfullscreen;
     }
     readonly property bool open: OverviewService.visible
-    visible: open || (!Theme.gameMode && !fullscreenActive)
+    visible: open || (!Theme.gameMode && !(OverviewService.scanoutSensitive && fullscreenActive))
     // Der Streifen der Top Bar nimmt keine Mausereignisse: sie gehen an die Leiste darunter (oder darüber, bei Vollbild).
     // Geschlossen bleibt nur ein Pixel in der unteren rechten Ecke: eine leere Maske würde als „keine Maske“ gelten und
     // die ganze Fläche finge die Maus.
@@ -124,8 +137,11 @@ PanelWindow {
         anchors.fill: parent
         anchors.topMargin: root.workTop
         clip: true
-        visible: Theme.blur && !Theme.gameMode && opacity > 0
-        opacity: root.progress
+        // Nicht an der Deckkraft: ein Wechsel von `visible` beim Öffnen legte die Unschärfe-Ebene neu an.
+        // Deckt doppelt so schnell wie der Fortschritt: um die schrumpfende Arbeitsfläche sollen die echten Fenster
+        // darunter nur kurz durchscheinen (Hyprland verwischt hinter der Übersicht nicht mehr, siehe BlurService).
+        visible: Theme.blur && !Theme.gameMode
+        opacity: Math.min(1, root.progress * 2)
 
         Image {
             y: -root.workTop
@@ -180,7 +196,10 @@ PanelWindow {
         property bool superArmed: false
 
         anchors.fill: parent
-        visible: root.open
+        // Geschlossen nur durchsichtig, nicht unsichtbar und nicht gesperrt: Wechsel von `visible` oder `enabled` laufen
+        // durch den ganzen Baum (alle Seiten, Vorschauen, Dash, App-Grid) und kosteten das erste Bild der Animation.
+        // Eingaben erreichen die geschlossene Übersicht ohnehin nicht (Maske: 1 px, kein Tastaturfokus).
+        opacity: root.open ? 1 : 0
         focus: OverviewService.shown
 
         Keys.onPressed: event => {
@@ -215,11 +234,13 @@ PanelWindow {
             z: OverviewService.appsProgress > 0 ? 5 : 0
             // Wechsel zum App-Grid blendet die Fenster aus (nur primär); die Suche liegt als Overlay darüber
             opacity: root.primary ? 1 - Math.max(0, Math.min(1, (OverviewService.appsProgress - 0.6) / 0.4)) : 1
-            enabled: opacity > 0.5 && OverviewService.searchProgress < 0.5
+            // Nicht an der Deckkraft festmachen: ein Wechsel von `enabled` läuft durch alle Kinder (hier: alle Seiten
+            // und Vorschauen) und kostete mitten in der Animation einen ganzen Frame
+            enabled: OverviewService.appsProgress < 0.5 && OverviewService.searchProgress < 0.5
 
             // Fensterkoordinaten statt Slot-Koordinaten: die Fenster gleiten von ihrer echten Position in die Vorschau.
             // Immer geladen (Pre-Warm): der Aufbau kostet beim Öffnen keine Zeit. Aufgenommen wird trotzdem nur,
-            // solange die Übersicht sichtbar ist (WindowPreview/WorkspaceThumbnail prüfen OverviewService.visible).
+            // solange die Übersicht sichtbar ist; danach bleibt das letzte Standbild je Fenster stehen (WindowPreview).
             // Beschnitten am Streifen der Top Bar: bei progress 0 deckt der Hintergrund sonst den ganzen Bildschirm
             // und damit die Leiste ab (sie liegt in der Top-Ebene unter der Übersicht).
             Item {
@@ -245,6 +266,8 @@ PanelWindow {
                         dragLayer: dragOverlay
                         windowWidth: root.screenWidth
                         windowHeight: root.screenHeight
+                        wsModel: screenWorkspaces
+                        captures: captureRegistry
                     }
                 }
             }
@@ -254,10 +277,12 @@ PanelWindow {
         // Nur auf dem primären Monitor.
         OverviewSlot {
             id: appsSlot
-            x: root.hiddenBox.x + (root.pickerBox.x - root.hiddenBox.x) * root.progress
-            y: root.hiddenBox.y + (root.pickerBox.y - root.hiddenBox.y) * root.progress
-            width: root.hiddenBox.width + (root.pickerBox.width - root.hiddenBox.width) * root.progress
-            height: root.hiddenBox.height + (root.pickerBox.height - root.hiddenBox.height) * root.progress
+            // Ohne App-Grid (unsichtbar) nicht dem Fortschritt folgen: sonst liefen Slot und skaliertes Grid in jedem Frame mit
+            readonly property real p: OverviewService.appsProgress > 0 || OverviewService.appsShown ? root.progress : 1
+            x: root.hiddenBox.x + (root.pickerBox.x - root.hiddenBox.x) * p
+            y: root.hiddenBox.y + (root.pickerBox.y - root.hiddenBox.y) * p
+            width: root.hiddenBox.width + (root.pickerBox.width - root.hiddenBox.width) * p
+            height: root.hiddenBox.height + (root.pickerBox.height - root.hiddenBox.height) * p
             opacity: Math.min(1, OverviewService.appsProgress * 2.5)
             visible: root.primary && OverviewService.appsProgress > 0
             enabled: root.primary && OverviewService.appsProgress > 0.5 && OverviewService.searchProgress < 0.5
@@ -316,7 +341,9 @@ PanelWindow {
             y: root.thumbnailsY - root.workTop - (1 - root.progress) * (root.thumbnailsY + height)
             width: parent.width
             opacity: root.progress
-            enabled: opacity > 0.5 && OverviewService.searchProgress < 0.5
+            // Nicht an der Deckkraft (= Fortschritt): der Wechsel von `enabled` bei 0.5 lief mitten in der Öffnungs-
+            // animation durch die ganze Leiste
+            enabled: OverviewService.searchProgress < 0.5
 
             // Immer geladen (Pre-Warm); die Aufnahmen laufen nur bei sichtbarer Übersicht.
             Loader {
@@ -326,6 +353,8 @@ PanelWindow {
                 sourceComponent: WorkspaceThumbnails {
                     screen: root.screen
                     workHeight: root.workHeight
+                    wsModel: screenWorkspaces
+                    captures: captureRegistry
                 }
             }
         }
@@ -362,17 +391,13 @@ PanelWindow {
             anchors.fill: parent
             z: 20
 
-            // Eigener, gefederter Fortschritt des Panels: folgt dem Ziel 0/1 (nicht dem rohen
-            // Overlay-Fortschritt), damit sich das Panel weich aufschwingt, statt linear mit dem
-            // Scrim zu skalieren. Das Überschwingen lässt es kurz über die Endgröße hinauswachsen.
+            // Minimal: das Panel blendet ohne Feder/Bounce und ohne Aufwachsen ein
             property real panelSpringProgress: OverviewService.searchActive ? 1 : 0
             Behavior on panelSpringProgress {
                 enabled: !Theme.gameMode
                 NumberAnimation {
                     duration: OverviewService.searchActive ? Theme.motionMedium : Theme.motionFast
-                    // Überschwingen nur beim Aufgehen; beim Schließen wäre der Fortschritt kurz negativ
-                    easing.type: OverviewService.searchActive ? Theme.easeSpring : Theme.easeOut
-                    easing.overshoot: Theme.springOvershoot
+                    easing.type: Theme.easeOut
                 }
             }
 
@@ -409,12 +434,7 @@ PanelWindow {
                     height: Math.min(maxHeight, searchResults.total > 0 ? searchResults.wantedHeight : Theme.searchOverlayMinHeight)
                     color: Theme.glass(Theme.systemOverlayBg)
                     radius: Theme.searchOverlayRadius
-                    shadowBlur: Theme.shadowPopoverBlur * 4
-                    shadowOffsetY: Theme.shadowPopoverY * 2
                     opacity: searchOverlay.panelSpringProgress
-                    // Wächst aus dem Suchfeld oben in der Mitte
-                    transformOrigin: Item.Top
-                    scale: Theme.searchOverlayStartScale + (1 - Theme.searchOverlayStartScale) * searchOverlay.panelSpringProgress
 
                     Behavior on height {
                         enabled: !Theme.gameMode && OverviewService.searchProgress >= 1

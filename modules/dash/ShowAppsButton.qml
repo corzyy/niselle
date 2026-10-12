@@ -25,7 +25,8 @@ Item {
     // Mitte des Knopfs in Fensterkoordinaten. Über den Übersichts-Fortschritt neu ausgewertet, damit die
     // Position beim Ein-/Ausblenden des Dash mitwandert; das App-Grid wächst von hier aus auf.
     readonly property point windowCenter: {
-        void OverviewService.progress;
+        // Dem Öffnen der Übersicht nur folgen, wenn das App-Grid beteiligt ist (sonst in jedem Frame umsonst)
+        void (OverviewService.appsShown || OverviewService.appsProgress > 0 ? OverviewService.progress : 0);
         void OverviewService.appsProgress;
         return mapToItem(null, width / 2, height / 2);
     }

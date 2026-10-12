@@ -39,24 +39,6 @@ Singleton {
                             "action": "hl.dsp.exec_cmd(\"~/.local/bin/niselle restart 2>/dev/null || niselle restart\")"
                         },
                         {
-                            "id": "switcherNext",
-                            "title": "Switch Applications",
-                            "keys": "ALT + Tab",
-                            "action": "hl.dsp.exec_cmd(\"niselle switcher next\")"
-                        },
-                        {
-                            "id": "switcherPrev",
-                            "title": "Switch Applications (Backward)",
-                            "keys": "ALT + SHIFT + Tab",
-                            "action": "hl.dsp.exec_cmd(\"niselle switcher prev\")"
-                        },
-                        {
-                            "id": "switcherWindow",
-                            "title": "Switch Windows of an Application",
-                            "keys": "ALT + grave",
-                            "action": "hl.dsp.exec_cmd(\"niselle switcher window\")"
-                        },
-                        {
                             "id": "clipboard",
                             "title": "Clipboard History",
                             "keys": "SUPER + V",

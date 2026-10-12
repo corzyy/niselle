@@ -4,7 +4,7 @@ import qs.services
 import qs.components
 import ".."
 
-// System: Datum und Uhrzeit, Standardanwendungen sowie „Animationen reduzieren“.
+// System: Datum und Uhrzeit sowie Standardanwendungen.
 SettingsPage {
     id: root
 
@@ -36,30 +36,6 @@ SettingsPage {
                 text: "Matugen Install"
                 enabled: !MatugenInstallService.running
                 onClicked: MatugenInstallService.start()
-            }
-        }
-    }
-
-    PrefGroup {
-        ActionRow {
-            title: "Update Shell"
-            subtitle: ShellUpdateService.running ? "Updating …" : (ShellUpdateService.state === "failed" ? ShellUpdateService.message : (ShellUpdateService.state === "done" ? ShellUpdateService.message : "Pull the latest commit from GitHub and restart"))
-            icon: "software-update-available-symbolic"
-            Button {
-                text: ShellUpdateService.running ? "Updating …" : "Update"
-                enabled: !ShellUpdateService.running
-                primary: true
-                onClicked: ShellUpdateService.start()
-            }
-        }
-    }
-
-    PrefGroup {
-        ActionRow {
-            title: "Reduce Animations"
-            ToggleSwitch {
-                checked: SettingsService.a11yReduceMotion
-                onToggled: SettingsService.set("a11yReduceMotion", checked)
             }
         }
     }

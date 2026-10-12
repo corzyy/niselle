@@ -7,9 +7,9 @@ import qs.components
 import qs.services
 
 // Datumsmenü (DateMenuButton) [dateMenu.js]: Popover unter der Uhr, mittig am Panel, 6px Abstand [boxpointer.js:515-566].
-// In #calendarArea: Monatskalender mit Weltuhren, links davon (zweispaltig) Datum, Wetter und Termine, einspaltig stehen Termine und Wetter darunter. Medien und Benachrichtigungen
-// liegen in den Quick-Settings. Beim Öffnen ist wieder heute gewählt und Termine, Weltuhren
-// und Wetter werden aktualisiert [dateMenu.js:911-919, WeatherSection.vfunc_map].
+// In #calendarArea: Monatskalender; links davon (zweispaltig) Datum und Termine, einspaltig stehen die Termine darunter.
+// Medien und Benachrichtigungen liegen in den Quick-Settings. Beim Öffnen ist wieder heute gewählt und die Termine
+// werden aktualisiert [dateMenu.js:911-919].
 Scope {
     id: root
 
@@ -36,9 +36,8 @@ Scope {
         popup.close();
     }
 
-    // Zweispaltig (Datum, Wetter und Termine links, Kalender und Weltuhren rechts): im Modus „auto“, sobald Termine
+    // Zweispaltig (Datum und Termine links, Kalender rechts): im Modus „auto“, sobald Termine
     // sichtbar sind [GNOME-Mockup calendar-popover]
-    readonly property bool hasClocks: WorldClocksService.available && SettingsService.calendarShowWorldClocks
     readonly property bool split: {
         const layout = SettingsService.calendarLayout;
         if (layout === "split")
@@ -73,16 +72,31 @@ Scope {
         onDateChanged: root.today = date
     }
 
+    // Anker aus der Leiste (Theme.barAnchor("clock")): folgt dem Uhr-Element, sonst fest mittig unter der Leiste
+    BarAnchor {
+        id: shellAnchor
+
+        moduleId: "clock"
+        panelWidth: popup.implicitWidth - 2 * popup.margin
+        screenWidth: root.barWindow.width
+        margin: Theme.popoverRise
+        fallbackX: (root.barWindow.width - (popup.implicitWidth - 2 * popup.margin)) / 2
+    }
+
     PopupMenu {
         id: popup
 
+        readonly property bool follows: SettingsService.barPanelsFollowItems && shellAnchor.valid
+
         anchor.window: root.barWindow
-        anchor.rect.x: root.barWindow.width / 2
-        anchor.rect.y: root.barWindow.height + Theme.popoverRise - margin - 1
+        anchor.rect.x: popup.follows ? shellAnchor.panelCenterX : root.barWindow.width / 2
+        anchor.rect.y: root.barWindow.height + Theme.popoverRise - popup.margin - 1
         anchor.rect.width: 1
         anchor.rect.height: 1
         anchor.edges: Edges.Bottom
         anchor.gravity: Edges.Bottom
+        // Nicht nachschieben: die Position ist in BarAnchor schon an den Bildschirmrand geklemmt; ein
+        // PopupAdjustment.SlideX würde das Fenster samt Schattenrand klemmen und einen zu großen Rand lassen.
         anchor.adjustment: PopupAdjustment.None
 
         // Klick außerhalb schließt über den Fokus-Grab. NISELLE_QS_NOGRAB=1 schaltet ihn ab (Screenshots per IPC ohne Klick).
@@ -100,8 +114,6 @@ Scope {
                 root.today = now;
                 root.selected = now;
                 EventsService.refresh();
-                WorldClocksService.refresh();
-                WeatherService.update();
             } else {
                 root.closedAt = Date.now();
             }
@@ -121,7 +133,7 @@ Scope {
                 Layout.fillHeight: true
                 Layout.preferredWidth: Theme.calendarSideWidth
                 implicitWidth: Theme.calendarSideWidth
-                implicitHeight: root.hasClocks ? 0 : Math.min(sideColumn.implicitHeight, popup.maxContentHeight)
+                implicitHeight: Math.min(sideColumn.implicitHeight, popup.maxContentHeight)
 
                 ColumnLayout {
                     id: sideColumn
@@ -135,11 +147,6 @@ Scope {
                         date: root.selected
                         isToday: root.sameDay(root.selected, root.today)
                         onClicked: root.selected = new Date()
-                    }
-                    WeatherSection {
-                        Layout.fillWidth: true
-                        plain: true
-                        onLaunch: root.close()
                     }
                     FadeScroll {
                         Layout.fillWidth: true
@@ -201,22 +208,12 @@ Scope {
                         width: displays.width
                         spacing: Theme.calendarColumnSpacing
 
-                        // Einspaltig stehen auch die Termine hier; zweispaltig nur die Weltuhren
+                        // Einspaltig stehen die Termine hier
                         EventsSection {
                             Layout.fillWidth: true
                             visible: !root.split && EventsService.available && SettingsService.calendarShowEvents
                             date: root.selected
                             now: root.now
-                            onLaunch: root.close()
-                        }
-                        WorldClocksSection {
-                            Layout.fillWidth: true
-                            active: popup.open
-                            onLaunch: root.close()
-                        }
-                        WeatherSection {
-                            Layout.fillWidth: true
-                            visible: !root.split && WeatherService.available && SettingsService.calendarShowWeather
                             onLaunch: root.close()
                         }
                     }

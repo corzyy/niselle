@@ -80,15 +80,6 @@ Item {
             Layout.fillHeight: true
             implicitWidth: 2 * root.barHeight
             activeFocusOnTab: true
-            // Beim Anfassen wächst die Leiste leicht
-            scale: root.pressed && !Theme.gameMode ? 1.02 : 1
-            Behavior on scale {
-                enabled: !Theme.gameMode
-                NumberAnimation {
-                    duration: Theme.durationPress
-                    easing.type: Theme.easeOut
-                }
-            }
 
             Rectangle {
                 anchors.fill: parent
@@ -141,14 +132,6 @@ Item {
                     anchors.centerIn: parent
                     name: root.icon
                     color: Theme.accentFg
-                    scale: root.pressed && !Theme.gameMode ? 0.88 : 1
-                    Behavior on scale {
-                        enabled: !Theme.gameMode
-                        NumberAnimation {
-                            duration: Theme.motionFast
-                            easing.type: Theme.easeSpring
-                        }
-                    }
                 }
                 MouseArea {
                     anchors.fill: parent

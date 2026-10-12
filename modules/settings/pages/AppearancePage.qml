@@ -206,10 +206,6 @@ SettingsPage {
                 spacing: 12
 
                 Button {
-                    text: "Get New"
-                    onClicked: root.navigate("appearance/wallpapers")
-                }
-                Button {
                     visible: root.wallpaperFiles.length > root.recentWallpapers
                     text: root.showAllWallpapers ? "Less" : "More"
                     onClicked: root.showAllWallpapers = !root.showAllWallpapers
@@ -224,6 +220,7 @@ SettingsPage {
             icon: "preferences-color-symbolic"
             suffixIcon: "go-next-symbolic"
             activatable: true
+            dense: true
             onActivated: root.navigate("appearance/colours")
         }
         ActionRow {
@@ -231,6 +228,7 @@ SettingsPage {
             icon: "preferences-desktop-font-symbolic"
             suffixIcon: "go-next-symbolic"
             activatable: true
+            dense: true
             onActivated: root.navigate("appearance/font")
         }
         ActionRow {
@@ -238,6 +236,7 @@ SettingsPage {
             icon: "preferences-desktop-appearance-symbolic"
             suffixIcon: "go-next-symbolic"
             activatable: true
+            dense: true
             onActivated: root.navigate("appearance/windows")
         }
         ActionRow {
@@ -245,6 +244,7 @@ SettingsPage {
             icon: "view-list-symbolic"
             suffixIcon: "go-next-symbolic"
             activatable: true
+            dense: true
             onActivated: root.navigate("appearance/menubar")
         }
         ActionRow {
@@ -252,6 +252,7 @@ SettingsPage {
             icon: "view-app-grid-symbolic"
             suffixIcon: "go-next-symbolic"
             activatable: true
+            dense: true
             onActivated: root.navigate("appearance/dock")
         }
     }

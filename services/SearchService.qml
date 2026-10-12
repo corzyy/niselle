@@ -286,11 +286,6 @@ Singleton {
             "keywords": "do not disturb dnd notifications nicht stören"
         });
         l.push({
-            "id": "nightLight",
-            "name": SettingsService.nightLight ? "Turn Night Light Off" : "Turn Night Light On",
-            "keywords": "night light nachtlicht warm blue light"
-        });
-        l.push({
             "id": "dark",
             "name": SettingsService.darkMode ? "Switch to Light Style" : "Switch to Dark Style",
             "keywords": "dark light style theme mode dunkel hell"
@@ -310,7 +305,6 @@ Singleton {
             "poweroff": "system-shutdown-symbolic",
             "caffeine": Quickshell.shellPath("assets/icons/caffeine-symbolic.svg"),
             "dnd": "notifications-disabled-symbolic",
-            "nightLight": "night-light-symbolic",
             "dark": Quickshell.shellPath("assets/icons/dark-mode-symbolic.svg"),
             "screenshot": "applets-screenshooter-symbolic"
         })
@@ -360,9 +354,6 @@ Singleton {
             break;
         case "dnd":
             SettingsService.toggleDoNotDisturb();
-            break;
-        case "nightLight":
-            SettingsService.toggleNightLight();
             break;
         case "dark":
             SettingsService.toggleDarkMode();

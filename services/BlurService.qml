@@ -18,7 +18,10 @@ Singleton {
     // Gamemode schaltet den Compositor-Blur ab (GameModeService), die Regel bleibt dann aus
     readonly property bool wanted: SettingsService.shellBlur && !SettingsService.gameMode
 
-    readonly property string namespaces: "^niselle-(topbar|dock|notifications|osd|switcher|clipboard|dialog|overview|search|folder)$"
+    // Ohne `overview`: die Übersicht zeichnet ihren unscharfen Hintergrund selbst (deckend, einmal gerendert). Ein
+    // Compositor-Blur hinter der bildschirmgroßen Ebene lief in jedem Frame der Öffnungsanimation über den ganzen
+    // Monitor und halbierte dabei die Bildrate (144 → ~70 Bilder/s), ohne bei offener Übersicht sichtbar zu sein.
+    readonly property string namespaces: "^niselle-(topbar|dock|notifications|osd|clipboard|dialog|search|folder)$"
 
     // Wurde die Regel in dieser Sitzung schon angelegt?
     property bool created: false

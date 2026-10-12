@@ -20,6 +20,8 @@ Item {
     property bool activatable: false
     // Pfeil „>“ bzw. Symbol am Ende (z. B. "adw-external-link-symbolic")
     property string suffixIcon: ""
+    // Schmale Zeile für reine Navigationslisten (einzeilig, 40px)
+    property bool dense: false
 
     default property alias trailing: trailingRow.data
 
@@ -28,7 +30,7 @@ Item {
 
     Layout.fillWidth: true
     width: parent ? parent.width : implicitWidth
-    implicitHeight: Math.max(Theme.compact ? 48 : 60, textColumn.implicitHeight + 2 * (Theme.compact ? 6 : 10) + (textColumn.visibleChildren.length > 1 ? 6 : 0))
+    implicitHeight: Math.max(dense ? 40 : Theme.compact ? 48 : 60, textColumn.implicitHeight + 2 * (dense ? 4 : Theme.compact ? 6 : 10) + (textColumn.visibleChildren.length > 1 ? 6 : 0))
 
     // Trennlinie zur vorigen Zeile
     Rectangle {

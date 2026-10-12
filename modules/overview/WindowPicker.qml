@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import Quickshell.Hyprland
 import qs
 import qs.services
@@ -25,6 +26,9 @@ Item {
     // App-Grid wird geöffnet: Fenster schrumpfen in die aktive Arbeitsflächen-Vorschau oben
     required property real appsProgress
     required property bool primary
+    // Gemeinsame Flächenliste (Overview.qml) und Aufnahmen je Fenster (CaptureRegistry)
+    required property var wsModel
+    required property var captures
 
     // Ziel-Rechteck der Schrumpf-Animation; 0 auf Nebenmonitoren (dort gibt es keine Leiste)
     readonly property rect flyTarget: OverviewService.activeThumbnailRect
@@ -53,13 +57,7 @@ Item {
         return Qt.rect(x + (availW - w) / 2, y + (availH - h) / 2, w, h);
     }
 
-    // Stabile Flächenliste mit der gleitenden Mittelposition. Weicher Auslauf (OutCubic) statt der sehr steil startenden
-    // OutQuint-Kurve: mit dem Mausrad wirkt ein Wechsel sonst abrupt. Längere Dauer lässt es ruhiger gleiten
-    // (Leiste und Seiten nutzen dieselbe Kurve, siehe WorkspaceModel).
-    WorkspaceModel {
-        id: wsModel
-        screen: root.screen
-    }
+    // Stabile Flächenliste mit der gleitenden Mittelposition (WorkspaceModel, mit der Leiste geteilt)
     readonly property real neighborGap: Math.max(Theme.workspaceSideInset, Math.round(workspaceBox.width * 0.04))
     readonly property real slideStep: workspaceBox.width + neighborGap
     Component.onCompleted: Hyprland.refreshToplevels()
@@ -103,14 +101,65 @@ Item {
         return Qt.rect(finalWorkspaceBox.x + pad, finalWorkspaceBox.y + pad, Math.max(0, finalWorkspaceBox.width - 2 * pad), Math.max(0, finalWorkspaceBox.height - 2 * pad));
     }
 
+    // ───────── Gemeinsamer Arbeitsflächen-Hintergrund ─────────
+    // Das Hintergrundbild mit abgerundeten Ecken wird einmal in Endgröße (finalWorkspaceBox) als Textur gerendert und nur
+    // bei Änderungen neu gezeichnet. Jede Seite zeigt diese Textur als einfaches Rechteck (ShaderEffect ohne eigenen
+    // Shader), statt selbst zwei bildschirmgroße Ebenen (Bild und Maske) zu rendern.
+    // [workspace.js:942-1021 WorkspaceBackground, BACKGROUND_CORNER_RADIUS_PIXELS]
+    readonly property string wallpaperSource: WallpaperService.sourceFor(screen ? screen.name : "")
+    readonly property Item wallpaperTexture: wallpaperSource !== "" ? wallpaperRounded : null
+
+    Item {
+        id: wallpaperPlain
+        visible: false
+        width: Math.max(1, Math.round(root.finalWorkspaceBox.width))
+        height: Math.max(1, Math.round(root.finalWorkspaceBox.height))
+        layer.enabled: true
+
+        Image {
+            anchors.fill: parent
+            source: root.wallpaperSource
+            fillMode: Image.PreserveAspectCrop
+            // Gleicher Cache-Schlüssel wie das vorgeladene Bild in Overview.qml; asynchron, damit kein Decode blockiert
+            asynchronous: true
+            cache: true
+        }
+    }
+    Item {
+        id: wallpaperMask
+        visible: false
+        width: wallpaperPlain.width
+        height: wallpaperPlain.height
+        layer.enabled: true
+
+        Rectangle {
+            anchors.fill: parent
+            radius: Theme.workspaceCornerRadius
+        }
+    }
+    MultiEffect {
+        id: wallpaperRounded
+        visible: false
+        width: wallpaperPlain.width
+        height: wallpaperPlain.height
+        source: wallpaperPlain
+        autoPaddingEnabled: false
+        maskEnabled: true
+        maskSource: wallpaperMask
+        maskThresholdMin: 0.5
+        maskSpreadAtMin: 1
+        layer.enabled: true
+        layer.smooth: true
+    }
+
     // ───────── Arbeitsflächen ─────────
     // Eine Seite je Fläche; Klick auf eine Nachbarfläche wechselt dorthin (WorkspacePage)
     Repeater {
-        model: wsModel.model
+        model: root.wsModel.model
 
         WorkspacePage {
             picker: root
-            keyed: wsModel
+            keyed: root.wsModel
         }
     }
 }

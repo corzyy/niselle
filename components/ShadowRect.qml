@@ -12,7 +12,7 @@ Item {
     property real radius: 0
     property alias border: body.border
     property real padding: 0
-    // Glanzkante: Haarlinie am oberen Rand, läuft zu den Ecken aus
+    // Glanzkante ist abgeschaltet (minimal); bleibt für die API erhalten
     property bool highlight: false
 
     // Schatten in px; shadowBlur 0 oder transparente Farbe schaltet ihn ab
@@ -45,20 +45,6 @@ Item {
         shadowBlur: Math.min(1, root.shadowBlur / blurMax)
         shadowHorizontalOffset: root.shadowOffsetX
         shadowVerticalOffset: root.shadowOffsetY
-    }
-
-    Rectangle {
-        visible: root.highlight && !Theme.gameMode
-        x: root.radius * 0.6
-        y: body.border.width
-        width: Math.max(0, root.width - 2 * x)
-        height: 1
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0; color: "transparent" }
-            GradientStop { position: 0.5; color: Theme.highlightEdge }
-            GradientStop { position: 1; color: "transparent" }
-        }
     }
 
     Item {

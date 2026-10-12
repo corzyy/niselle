@@ -33,6 +33,19 @@ SettingsPage {
     }
 
     PrefGroup {
+        title: "Panels"
+
+        ActionRow {
+            title: "Attach to Items"
+            subtitle: "Open panels directly under their menu bar item and move them with it"
+            ToggleSwitch {
+                checked: SettingsService.barPanelsFollowItems
+                onToggled: SettingsService.set("barPanelsFollowItems", checked)
+            }
+        }
+    }
+
+    PrefGroup {
         title: "Clock"
 
         SegmentedRow {
@@ -74,92 +87,6 @@ SettingsPage {
             ]
             value: SettingsService.barWorkspaceStyle
             onPicked: v => SettingsService.set("barWorkspaceStyle", v)
-        }
-    }
-
-    PrefGroup {
-        title: "Vitals"
-        description: "Values shown in the menu bar. Clicking the item shows all of them."
-
-        ActionRow {
-            title: "Processor"
-            subtitle: "CPU load"
-            ToggleSwitch {
-                checked: SettingsService.barVitalsCpu
-                onToggled: SettingsService.set("barVitalsCpu", checked)
-            }
-        }
-        ActionRow {
-            title: "Memory"
-            subtitle: "RAM in use"
-            ToggleSwitch {
-                checked: SettingsService.barVitalsMemory
-                onToggled: SettingsService.set("barVitalsMemory", checked)
-            }
-        }
-        ActionRow {
-            title: "Temperature"
-            subtitle: "CPU package, if a sensor is found"
-            ToggleSwitch {
-                checked: SettingsService.barVitalsTemp
-                onToggled: SettingsService.set("barVitalsTemp", checked)
-            }
-        }
-        ActionRow {
-            title: "Network Speed"
-            subtitle: "Download and upload across all interfaces"
-            ToggleSwitch {
-                checked: SettingsService.barVitalsNet
-                onToggled: SettingsService.set("barVitalsNet", checked)
-            }
-        }
-    }
-
-    PrefGroup {
-        title: "Updates"
-        description: "The Updates item stays hidden until updates are available. Installing asks for your password through polkit."
-
-        ActionRow {
-            title: "Check Automatically"
-            subtitle: "Look for new updates in the background (dnf)"
-            ToggleSwitch {
-                checked: SettingsService.updatesAutoCheck
-                onToggled: SettingsService.set("updatesAutoCheck", checked)
-            }
-        }
-        ChoiceRow {
-            title: "Check Every"
-            enabled: SettingsService.updatesAutoCheck
-            choices: [1, 3, 6, 12, 24].map(h => ({
-                        "value": h,
-                        "label": h + (h === 1 ? " hour" : " hours")
-                    }))
-            value: SettingsService.updatesCheckHours
-            onPicked: v => SettingsService.set("updatesCheckHours", v)
-        }
-        ActionRow {
-            title: "Check Now"
-            subtitle: UpdateService.checking ? "Checking …" : UpdateService.count + " available"
-            enabled: !UpdateService.checking && !UpdateService.installing
-            Button {
-                text: "Check"
-                onClicked: UpdateService.check()
-            }
-        }
-    }
-
-    PrefGroup {
-        title: "Audio Visualizer"
-
-        SegmentedRow {
-            title: "Bars"
-            subtitle: "Shown while media is playing; needs parec"
-            choices: [8, 12, 16].map(n => ({
-                        "value": n,
-                        "label": String(n)
-                    }))
-            value: SettingsService.barVisualizerBars
-            onPicked: v => SettingsService.set("barVisualizerBars", v)
         }
     }
 
@@ -227,7 +154,7 @@ SettingsPage {
         }
         ActionRow {
             title: "System Status"
-            subtitle: "Night light, Thunderbolt, USB tethering, VPN and airplane mode"
+            subtitle: "Thunderbolt, USB tethering, VPN and airplane mode"
             ToggleSwitch {
                 checked: SettingsService.showStatusIndicators
                 onToggled: SettingsService.set("showStatusIndicators", checked)

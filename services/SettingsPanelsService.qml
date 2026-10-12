@@ -80,11 +80,9 @@ Singleton {
 
     readonly property var subpageTitles: ({
             "network/saved": "Saved Wi-Fi Networks",
-            "displays/nightlight": "Night Light",
             "appearance/windows": "Windows",
             "appearance/colours": "Colours",
             "appearance/font": "Font",
-            "appearance/wallpapers": "Get New Wallpapers",
             "appearance/menubar": "Menu Bar",
             "appearance/dock": "Dock",
             "system/defaultapps": "Default Apps",
@@ -95,14 +93,12 @@ Singleton {
             "network/saved": "SavedNetworksPage",
             "bluetooth": "BluetoothPage",
             "displays": "DisplaysPage",
-            "displays/nightlight": "NightLightPage",
             "sound": "SoundPage",
             "power": "PowerPage",
             "appearance": "AppearancePage",
             "appearance/windows": "WindowsPage",
             "appearance/colours": "ColoursPage",
             "appearance/font": "FontPage",
-            "appearance/wallpapers": "WallhavenPage",
             "appearance/menubar": "MenuBarPage",
             "appearance/dock": "DockPage",
             "mouse": "MousePage",
@@ -125,16 +121,6 @@ Singleton {
             "icon": "network-wireless-symbolic",
             "panel": "network/saved",
             "description": "Network"
-        },
-        {
-            "id": "settings:displays/nightlight",
-            "name": "Night Light",
-            "genericName": "",
-            "keywords": "night light nightlight temperature warm color schedule sunset sunrise",
-            "comment": "",
-            "icon": "night-light-symbolic",
-            "panel": "displays/nightlight",
-            "description": "Displays"
         },
         {
             "id": "settings:appearance/font",
@@ -164,16 +150,6 @@ Singleton {
             "comment": "",
             "icon": "preferences-desktop-appearance-symbolic",
             "panel": "appearance/windows",
-            "description": "Appearance"
-        },
-        {
-            "id": "settings:appearance/wallpapers",
-            "name": "Get New Wallpapers",
-            "genericName": "",
-            "keywords": "wallpaper wallhaven get new download image background browse",
-            "comment": "",
-            "icon": "preferences-desktop-wallpaper-symbolic",
-            "panel": "appearance/wallpapers",
             "description": "Appearance"
         },
         {
@@ -230,7 +206,7 @@ Singleton {
             "mouse": "mouse pointer cursor speed touchpad",
             "keyboard": "keyboard layout shortcuts repeat",
             "about": "about system information version hardware model",
-            "system": "system date time default apps animations motion accessibility"
+            "system": "system date time default apps"
         })
 
     // Flache, durchsuchbare Liste { id, name, genericName, keywords, comment, icon, panel, description }.

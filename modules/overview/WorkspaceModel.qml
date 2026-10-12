@@ -32,8 +32,18 @@ Item {
     readonly property int count: list.length
 
     // Die aktive Fläche; ein kurzzeitiges "keine aktive" (-1 während des Wechsels) wird ignoriert,
-    // damit Gleitposition und Nachbarn nicht springen
-    readonly property int rawActiveIndex: list.findIndex(w => w.active)
+    // damit Gleitposition und Nachbarn nicht springen. Eine angeforderte, noch unbestätigte Fläche
+    // (WorkspaceService.switchTo) gilt sofort als aktiv: das Karussell gleitet ohne IPC-Umlauf los.
+    readonly property int pendingId: WorkspaceService.pendingFor(screen)
+    readonly property int rawActiveIndex: {
+        const real = list.findIndex(w => w.active);
+        if (pendingId >= 0 && (real < 0 || list[real].id !== pendingId)) {
+            const pending = list.findIndex(w => w.id === pendingId);
+            if (pending >= 0)
+                return pending;
+        }
+        return real;
+    }
     property int activeIndex: 0
     onRawActiveIndexChanged: {
         if (rawActiveIndex >= 0)
@@ -96,9 +106,27 @@ Item {
             info[list[i].id] = list[i];
             slots[list[i].id] = i;
         }
-        // Zuerst die Karten, damit Delegates beim Anlegen/Aktualisieren ihre Daten finden
-        root.infoMap = Object.assign({}, root.infoMap, info);
-        root.slotMap = Object.assign({}, root.slotMap, slots);
+        // Zuerst die Karten, damit Delegates beim Anlegen/Aktualisieren ihre Daten finden. Unveränderte Einträge
+        // behalten ihr altes Objekt, und die Karten werden nur bei einer echten Änderung ersetzt: jede neue Karte
+        // wertet alle Seiten und Vorschauen neu aus.
+        let infoChanged = false;
+        const nextInfo = Object.assign({}, root.infoMap);
+        for (const id in info) {
+            const prev = nextInfo[id];
+            if (!root._sameInfo(prev, info[id])) {
+                nextInfo[id] = info[id];
+                infoChanged = true;
+            }
+        }
+        if (infoChanged)
+            root.infoMap = nextInfo;
+        let slotsChanged = false;
+        for (const id in slots) {
+            if (root.slotMap[id] !== slots[id])
+                slotsChanged = true;
+        }
+        if (slotsChanged)
+            root.slotMap = Object.assign({}, root.slotMap, slots);
 
         // Entfernte Flächen als `gone` markieren, zurückgekehrte wiederbeleben
         let anyGone = false;
@@ -134,6 +162,18 @@ Item {
 
         if (anyGone)
             purgeTimer.restart();
+    }
+
+    function _sameInfo(a, b) {
+        if (!a || !b)
+            return false;
+        if (a.id !== b.id || a.index !== b.index || a.workspace !== b.workspace || a.active !== b.active || a.urgent !== b.urgent || a.empty !== b.empty || a.windows.length !== b.windows.length)
+            return false;
+        for (let i = 0; i < a.windows.length; i++) {
+            if (a.windows[i] !== b.windows[i])
+                return false;
+        }
+        return true;
     }
 
     function _purge() {

@@ -10,7 +10,7 @@ im `PATH` liegt), empfohlen (Companion, nicht Teil von Niselle).
 | Werkzeug | Paket | Wofür in Niselle |
 |---|---|---|
 | Quickshell (`qs`/`quickshell`) | `quickshell` | Laufzeit der Shell (`bin/niselle`, `shell.qml`) |
-| Hyprland + `hyprctl` | `hyprland` | Compositor; Fenster, Monitore, Geräte, Cursorposition (`DisplayService`, `SwitcherService`, `ScreenshotService`, `OsdService`, `KeyboardService`) |
+| Hyprland + `hyprctl` | `hyprland` | Compositor; Fenster, Monitore, Geräte, Cursorposition (`DisplayService`, `ScreenshotService`, `OsdService`, `KeyboardService`) |
 | Qt 6 | `qt6-qtbase`, `qt6-qtdeclarative`, `qt6-qtsvg`, `qt6-qtimageformats`, `qt6-qtwayland` | QML/Qt-Basis, SVG-Icons, Bildformate, Layer-Shell |
 | bash | `bash` | Steuerskript `bin/niselle` |
 | systemd | `systemd` | `busctl`, `systemd-inhibit` (Koffein), logind (Sperre/Standby), `timedatectl`, `hostnamectl`, `systemd-detect-virt` |
@@ -40,6 +40,7 @@ still aus; sind sie da, aktiviert es sich von selbst.
 | Befehl | Paket | Aktiviert |
 |---|---|---|
 | `awww` | `awww` | Hintergrundbild (`WallpaperService`, Wallhaven, Appearance) |
+| `cc` | `gcc` | Animationen mit der Bildrate des schnellsten Monitors statt 60 Hz: `bin/niselle` baut beim Start `native/anim-refresh.c` (siehe CHANGELOG 2026-10-12) |
 | `matugen` | `matugen` | Material-You-Farbpalette aus dem Wallpaper (`MatugenService`) |
 | `cliphist` | `cliphist` | Verlauf (`ClipboardService`, Zwischenablage-Fenster Super+V) |
 | `wl-copy` / `wl-paste` | `wl-clipboard` | Kopieren/Einfügen + Verlaufs-Hook |
@@ -53,9 +54,6 @@ still aus; sind sie da, aktiviert es sich von selbst.
 | `ddcutil` | `ddcutil` | Helligkeit externer Monitore (DDC/CI) |
 | `rfkill` | `rfkill` | Funkschalter (WLAN/Bluetooth-Sperre) |
 | `khal` | `khal` | Kalendertermine im Datum-Menü (`EventsService`) |
-| `orca` | `orca` | Bildschirmleser (`AccessibilityService`) |
-| `hyprsunset` | `hyprsunset` | Nachtlicht (bevorzugt) |
-| `wlsunset` | `wlsunset` | Nachtlicht (Fallback, wenn hyprsunset fehlt) |
 | `boltctl` | `bolt` | Thunderbolt-Geräteschutz (`PrivacyService`) |
 | `tinysparql` | `tinysparql` (+ `localsearch`) | Dateisuche in der Übersicht |
 | `playerctl` | `playerctl` | MPRIS-Steuerung per CLI (Niselle nutzt sonst D-Bus direkt) |

@@ -54,21 +54,114 @@ Singleton {
     // beim Schließen wiederhergestellt werden
     property int _openWorkspaceId: -1
 
-    // Fenster-Standbilder (ScreencopyView) erst nach der Öffnungsanimation anfordern: eine Screencopy
-    // während der Animation ließ die Übersicht ruckeln und stocken. Das Bild bleibt solange sichtbar,
-    // wie die Übersicht offen ist (auch beim Schließen) und wird erst beim vollständigen Ausblenden
-    // freigegeben (siehe onVisibleChanged).
+    // Fenster-Standbilder (ScreencopyView) bleiben auch bei geschlossener Übersicht erhalten: beim Öffnen ist
+    // sofort das zuletzt aufgenommene Bild da (wie die Fenster-Klone in GNOME), statt einer leeren Kachel.
+    // `refreshCaptures(activeOnly)` fordert neue Bilder an: beim Öffnen sofort für die Fenster der aktiven Flächen,
+    // die übrigen nach der Öffnungsanimation (viele Aufnahmen während der Animation ließen sie ruckeln).
+    // `captureArmed` gibt nach der Animation den Live-Stream frei (Einstellung overviewLiveWindows).
     property bool captureArmed: false
+    signal refreshCaptures(bool activeOnly)
     Timer {
         id: armTimer
         interval: Theme.gameMode ? 0 : Theme.durationOverview
-        onTriggered: if (root.shown) root.captureArmed = true
+        onTriggered: {
+            if (!root.shown)
+                return;
+            root.captureArmed = true;
+            root.refreshCaptures(false);
+        }
     }
     onVisibleChanged: {
         if (!root.visible) {
             armTimer.stop();
             root.captureArmed = false;
+            root._restoreWorkspaceAnimations();
         }
+    }
+
+    // Hyprland gibt Vollbild-Fenster direkt aus (direct_scanout), lässt sie reißen (allow_tearing) oder nutzt VRR.
+    // Dann darf über einem Vollbild-Fenster keine (leere) Ebene der Übersicht liegen, sonst greift das nicht; die
+    // Übersicht wird dort bei geschlossenem Zustand ausgeblendet und muss beim Öffnen erst angelegt werden.
+    // Bis die Werte gelesen sind, gilt die vorsichtige Annahme.
+    property bool scanoutSensitive: true
+    Process {
+        running: true
+        command: ["sh", "-c", "for o in render:direct_scanout general:allow_tearing misc:vrr; do hyprctl getoption $o -j; echo; done"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let sensitive = false;
+                for (const line of text.split("\n")) {
+                    if (line.trim() === "")
+                        continue;
+                    try {
+                        const o = JSON.parse(line);
+                        if ((o.int ?? 0) !== 0 || o.bool === true)
+                            sensitive = true;
+                    } catch (e) {
+                        sensitive = true;
+                    }
+                }
+                root.scanoutSensitive = sensitive;
+            }
+        }
+    }
+
+    // ───────── Arbeitsflächen-Animation von Hyprland ─────────
+    // Solange die Übersicht offen ist, gleitet sie selbst zwischen den Flächen; Hyprland würde den echten Wechsel
+    // darunter zusätzlich animieren (unsichtbar, kostet aber GPU-Zeit). Beim Öffnen werden die aktuellen Werte gelesen
+    // (`hyprctl animations -j`) und die Animation abgeschaltet, nach dem vollständigen Schließen exakt zurückgesetzt.
+    // Die gelesenen Werte liegen in einer Datei: wird die Shell bei offener Übersicht neu geladen oder beendet, stellt
+    // der nächste Start die Animation wieder her.
+    readonly property var _workspaceLeaves: ["workspaces", "workspacesIn", "workspacesOut"]
+    readonly property var _savedAnimations: animStore.saved
+    FileView {
+        path: Quickshell.env("HOME") + "/.local/state/niselle/workspace-animations.json"
+        blockLoading: true
+        onAdapterUpdated: writeAdapter()
+        onLoaded: {
+            if (!root.shown)
+                root._restoreWorkspaceAnimations();
+        }
+        adapter: JsonAdapter {
+            id: animStore
+            property var saved: []
+        }
+    }
+    Process {
+        id: animQuery
+        command: ["hyprctl", "animations", "-j"]
+        stdout: StdioCollector {
+            onStreamFinished: root._disableWorkspaceAnimations(text)
+        }
+    }
+    function _disableWorkspaceAnimations(text) {
+        if (!root.shown || (root._savedAnimations && root._savedAnimations.length > 0))
+            return;
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            return;
+        }
+        const list = (Array.isArray(data) && Array.isArray(data[0])) ? data[0] : [];
+        const saved = list.filter(a => root._workspaceLeaves.indexOf(a.name) >= 0 && a.enabled);
+        if (saved.length === 0)
+            return;
+        animStore.saved = saved;
+        if (Hyprland.usingLua)
+            Quickshell.execDetached(["hyprctl", "eval", saved.map(a => 'hl.animation({ leaf = "' + a.name + '", enabled = false })').join("; ")]);
+        else
+            Quickshell.execDetached(["hyprctl", "--batch", saved.map(a => "keyword animation " + a.name + ",0").join(" ; ")]);
+    }
+    function _restoreWorkspaceAnimations() {
+        const saved = root._savedAnimations;
+        if (!saved || saved.length === 0)
+            return;
+        animStore.saved = [];
+        if (Hyprland.usingLua)
+            Quickshell.execDetached(["hyprctl", "eval", saved.map(a => 'hl.animation({ leaf = "' + a.name + '", enabled = true, speed = ' + a.speed + ', bezier = "' + a.bezier + '"' + (a.style ? ', style = "' + a.style + '"' : "") + " })").join("; ")]);
+        else
+            Quickshell.execDetached(["hyprctl", "--batch", saved.map(a => "keyword animation " + a.name + ",1," + a.speed + "," + a.bezier + (a.style ? "," + a.style : "")).join(" ; ")]);
     }
 
     function _primaryWorkspaceId() {
@@ -76,7 +169,8 @@ Singleton {
         return mon && mon.activeWorkspace ? mon.activeWorkspace.id : -1;
     }
 
-    // Stellt nach dem Schließen die Fläche wieder her, die Hyprland beim Freigeben des Fokus zurücksetzt
+    // Rückfall: stellt nach dem Schließen die Fläche wieder her, falls Hyprland sie beim Freigeben des Fokus doch
+    // zurückgesetzt hat (hide() fokussiert dafür vorab ein Fenster der Fläche; leere Flächen brauchen dies weiterhin)
     Timer {
         id: restoreTimer
         interval: 60
@@ -84,12 +178,27 @@ Singleton {
             if (root.shown)
                 return;
             for (const w of root._restoreWorkspaces) {
+                if (root._primaryWorkspaceId() === w.id)
+                    continue;
                 const classic = "workspace " + w.id;
                 const lua = 'hl.dsp.focus({ workspace = ' + w.id + ' })';
                 Hyprland.dispatch(Hyprland.usingLua ? lua : classic);
             }
             root._restoreWorkspaces = [];
         }
+    }
+
+    // Zuletzt fokussiertes Fenster einer Fläche (Hyprland-IPC `lastwindow`), sonst das erste Fenster darauf
+    function _lastWindowOf(id) {
+        const ws = Hyprland.workspaces.values.find(w => w.id === id);
+        if (!ws)
+            return "";
+        const wins = ws.toplevels.values;
+        const last = ws.lastIpcObject?.lastwindow ?? "";
+        const lastClean = last.replace(/^0x/, "");
+        if (last !== "" && last !== "0x0" && wins.some(t => t.address.replace(/^0x/, "") === lastClean))
+            return last;
+        return wins.length > 0 ? wins[0].address : "";
     }
 
     // Mitte der geöffneten Ordner-Kachel (Fensterkoordinaten): der Dialog wächst von dort auf
@@ -122,8 +231,8 @@ Singleton {
     function show(withApps) {
         if (root.shown)
             return;
-        root.shown = true;
         root.activatedAt = root.changedAt = Date.now();
+        root.shown = true;
         // Fenstergeometrie frisch holen, damit die Arbeitsflächen-Vorschauen das echte Layout zeigen
         Hyprland.refreshToplevels();
         root._openWorkspaceId = root._primaryWorkspaceId();
@@ -135,9 +244,13 @@ Singleton {
             root.appsShown = true;
         }
         root._animate(1);
-        // Standbilder erst nach der Öffnungsanimation anfordern (siehe captureArmed)
+        // Gespeicherte Standbilder zeigen sofort; neue Bilder für die aktiven Flächen gleich, die übrigen und den
+        // Live-Stream erst nach der Öffnungsanimation (siehe captureArmed)
         root.captureArmed = false;
+        root.refreshCaptures(true);
         armTimer.restart();
+        if (!Theme.gameMode && (!root._savedAnimations || root._savedAnimations.length === 0))
+            animQuery.running = true;
     }
     // Übersicht mit vorgegebenem Suchtext öffnen (z. B. „clip “ für den Zwischenablage-Verlauf)
     function openSearch(text) {
@@ -156,12 +269,23 @@ Singleton {
         // Nur der primäre Monitor hält den Tastaturfokus und setzt seine Fläche beim Schließen zurück.
         // Andere Monitore hier nicht anfassen: ein "workspace"-Dispatch auf einen fremden Monitor
         // fokussiert ihn und zieht den Mauszeiger dorthin.
-        const current = root._primaryWorkspaceId();
+        // Eine gerade angeforderte, noch unbestätigte Fläche zählt schon (schnell scrollen und sofort schließen)
+        const pending = WorkspaceService.pendingFor(root.primaryScreen);
+        const current = pending > 0 ? pending : root._primaryWorkspaceId();
         root._restoreWorkspaces = (current > 0 && current !== root._openWorkspaceId)
             ? [{
                     monitor: Theme.primaryScreenName,
                     id: current
                 }] : [];
+        // Ein Fenster der neuen Fläche fokussieren, bevor der Tastaturfokus der Übersicht frei wird: Hyprland kehrt dann
+        // zu diesem Fenster zurück, statt zur alten Fläche zu springen und erst nach dem Rückfall-Timer (sichtbares Flackern)
+        // wieder herzukommen.
+        // Nicht, wenn gerade ein Fenster gewählt wurde (Klick auf eine Vorschau, Dash, Suche): das hat Vorrang.
+        if (root._restoreWorkspaces.length > 0 && Date.now() - WorkspaceService.lastFocusRequest > 500) {
+            const address = root._lastWindowOf(current);
+            if (address !== "")
+                WorkspaceService.focusAddress(address);
+        }
         root.shown = false;
         root.appsShown = false;
         root.openFolderId = "";
@@ -281,7 +405,10 @@ Singleton {
         appid: "niselle"
         name: "overview"
         description: "Übersicht ein-/ausblenden"
+        // Ein Bind mit `release = true` (der einzelne Super-Taste) meldet nur das Loslassen, ein normaler Bind nur das
+        // Drücken. Beide lösen aus; kommen beide, verwirft die Entprellung in toggleByShortcut das zweite.
         onPressed: root.toggleByShortcut()
+        onReleased: root.toggleByShortcut()
     }
 
     // Steuerung von außen (Tastenkürzel, Tests): quickshell ipc call overview toggle|open|close

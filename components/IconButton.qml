@@ -30,15 +30,6 @@ Item {
     implicitHeight: iconSize + 2 * padding
     activeFocusOnTab: true
 
-    scale: pressed && enabled && !Theme.gameMode ? Theme.pressScale : 1
-    Behavior on scale {
-        enabled: !Theme.gameMode
-        NumberAnimation {
-            duration: Theme.durationPress
-            easing.type: Theme.easeOut
-        }
-    }
-
     Rectangle {
         anchors.fill: parent
         radius: Theme.radiusPill

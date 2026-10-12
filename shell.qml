@@ -1,7 +1,6 @@
 import Quickshell
 import QtQuick
 import qs
-import qs.dev
 import qs.services
 import qs.modules.topbar
 import qs.modules.overview
@@ -13,7 +12,6 @@ import qs.modules.settings
 import qs.modules.lock
 import qs.modules.polkit
 import qs.modules.screenshot
-import qs.modules.switcher
 import qs.modules.clipboard
 import qs.modules.matugeninstall
 
@@ -45,11 +43,9 @@ ShellRoot {
         BlurService.available;
         // GameModeService laden, damit Hyprland-Blur und -Animationen folgen (sonst bliebe das Singleton ungenutzt)
         GameModeService.available;
-        AccessibilityService.available;
         // Leerlauf-Sperre/-Standby und Koffein
         IdleService.caffeine;
         ClipboardService.available;
-        UpdateService.supported;
     }
 
     // Farben aus Matugen (Palette wird von `matugen` erzeugt, siehe MatugenService)
@@ -63,8 +59,7 @@ ShellRoot {
     Binding {
         target: Theme
         property: "gameMode"
-        // Weniger Bewegung (Barrierefreiheit) schaltet dieselben Animationen ab
-        value: SettingsService.gameMode || SettingsService.a11yReduceMotion
+        value: SettingsService.gameMode
     }
 
     // Schrift aus den Einstellungen (Appearance › Font)
@@ -77,13 +72,6 @@ ShellRoot {
         target: Theme
         property: "fontMonoOverride"
         value: SettingsService.fontFamilyMono
-    }
-
-    // Größere Schrift (Barrierefreiheit)
-    Binding {
-        target: Theme
-        property: "textScale"
-        value: SettingsService.a11yLargeText ? 1.25 : 1
     }
 
     // Leiste nur auf dem primären Monitor (Theme.primaryScreenName), nicht auf Zweitmonitoren
@@ -166,16 +154,6 @@ ShellRoot {
         }
     }
 
-    // Alt+Tab-Umschalter, nur auf dem primären Monitor sichtbar (niselle switcher next|prev|window)
-    Variants {
-        model: Quickshell.screens
-
-        Switcher {
-            required property var modelData
-            screen: modelData
-        }
-    }
-
     // Zwischenablage-Verlauf am Mauszeiger (niselle clipboard, Super+V)
     Variants {
         model: Quickshell.screens
@@ -212,16 +190,4 @@ ShellRoot {
 
     // Polkit-Agent mit Authentifizierungsdialog (pkexec, Systemeinstellungen usw.)
     PolkitDialog {}
-
-    // Entwicklungshilfe: NISELLE_GALLERY=1 zeigt alle Basis-Komponenten
-    LazyLoader {
-        active: Quickshell.env("NISELLE_GALLERY") === "1"
-        component: Gallery {}
-    }
-
-    // Entwicklungshilfe: NISELLE_DEBUG=<service> zeigt das Debug-Fenster der Services
-    LazyLoader {
-        active: !!Quickshell.env("NISELLE_DEBUG")
-        component: ServiceDebug {}
-    }
 }

@@ -6,7 +6,7 @@ import qs.components
 import ".."
 
 // Anzeigen wie in GNOME Settings: Anordnungsvorschau (ziehen zum Anordnen), Anzeigeart (Erweitern/Spiegeln),
-// Primäranzeige, eine Liste der Monitore mit Unterseite je Monitor und der Einstieg ins Nachtlicht.
+// Primäranzeige und eine Liste der Monitore mit Unterseite je Monitor.
 // Änderungen laufen über einen Entwurf (DisplayService) und werden mit Leiste „Abbrechen/Übernehmen“ bestätigt.
 SettingsPage {
     id: root
@@ -191,20 +191,6 @@ SettingsPage {
         DisplaySettingsList {
             monitor: root.sourceMonitor
             allowRefresh: !root.mirror
-        }
-    }
-
-    // ───────── Nachtlicht ─────────
-    PrefGroup {
-        visible: DisplayService.loaded
-
-        ActionRow {
-            title: "Night Light"
-            subtitle: DisplayService.nightLightActive ? "On" : (SettingsService.nightLight ? "Off (outside schedule)" : "Off")
-            icon: "night-light-symbolic"
-            suffixIcon: "go-next-symbolic"
-            activatable: true
-            onActivated: root.navigate("displays/nightlight")
         }
     }
 }

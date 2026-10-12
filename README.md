@@ -14,7 +14,7 @@ Gesteuert über das Skript `bin/niselle` (Symlink: `~/.local/bin/niselle`), das 
 | `dev/` | Entwicklungshilfen (Gallery, ServiceDebug) |
 | `assets/` | Icons, Matugen-Farbvorlage |
 | `docs/sources/` | Referenzquellen aus gnome-shell/libadwaita (nur Lesematerial, siehe dortige README) |
-| `bin/niselle` | CLI: start/stop/restart/status/overview/apps/screenshot/settings/theme/config/ipc/log/doctor |
+| `bin/niselle` | CLI: start/stop/restart/status/overview/apps/screenshot/settings/theme/config/shell/ipc/log/doctor |
 
 ## Betrieb
 - Autostart: `hyprland` ruft `niselle start` (`~/.config/hypr/configs/autostart.lua`).

@@ -17,14 +17,17 @@ Item {
     // Wird von Overview.qml gesetzt: Platz, der für die Leiste zur Verfügung steht (Höhe des Arbeitsbereichs)
     required property real workHeight
 
-    // Stabiles Modell (nach Flächen-ID): Vorschauen bleiben bei Umbau erhalten, neue wachsen ein, entfernte schrumpfen weg
-    WorkspaceModel {
-        id: wsModel
-        screen: root.screen
-    }
+    // Stabiles Modell (nach Flächen-ID, mit dem Fensterbereich geteilt): Vorschauen bleiben bei Umbau erhalten,
+    // neue wachsen ein, entfernte schrumpfen weg
+    required property var wsModel
+    // Fensteraufnahmen der Fenstervorschauen (CaptureRegistry), die Leiste nimmt nicht selbst auf
+    required property var captures
 
     readonly property int count: wsModel.count
-    readonly property bool shouldShow: true
+    // Bei dynamischen Flächen erst ab mehr als zwei Flächen (eine belegte und die leere zählen nicht)
+    // [workspaceThumbnail.js: _updateShouldShow, NUM_WORKSPACES_THRESHOLD]. Beim Ziehen eines Fensters immer,
+    // damit es sich auf eine andere (oder die leere) Fläche legen lässt.
+    readonly property bool shouldShow: count > 2 || OverviewService.windowDragActive
 
     // Arbeitsbereich des Monitors (Monitor ohne Panel)
     readonly property real portholeWidth: screen.width
@@ -94,10 +97,14 @@ Item {
         const p = root.mapToItem(null, root.activeThumbX, Theme.thumbnailsPadding);
         return Qt.rect(p.x, p.y, root.thumbWidth, root.thumbFullHeight);
     }
+    // Nur gebraucht, wenn die Fenster ins App-Grid schrumpfen; sonst würde das Rechteck in jedem Frame der Öffnungs-
+    // animation neu berechnet und alle Seiten mitziehen
     Binding {
         target: OverviewService
         property: "activeThumbnailRect"
         value: root.activeRect
+        when: OverviewService.appsShown || OverviewService.appsProgress > 0
+        restoreMode: Binding.RestoreNone
     }
 
     // Inhalt wird bei fortschreitendem Aufblenden von oben her sichtbar, Höhe zählt nur für die Überdeckung
@@ -146,6 +153,7 @@ Item {
 
                 screen: root.screen
                 info: entry
+                captures: root.captures
                 viewScale: root.shownScale
                 // Das in Overview.qml vorgeladene Hintergrundbild mitbenutzen (gleicher Cache-Schlüssel),
                 // damit die Leiste beim Öffnen nicht erst neu dekodieren muss.
@@ -154,7 +162,7 @@ Item {
                 width: root.thumbWidth
                 height: root.thumbFullHeight
                 opacity: appear
-                scale: 0.7 + 0.3 * appear
+                scale: 1
                 visible: appear > 0.01
                 enabled: !gone
 

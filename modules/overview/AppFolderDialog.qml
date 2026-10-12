@@ -45,16 +45,7 @@ Item {
         }
     }
 
-    // Aufwachsen aus der Ordner-Kachel: eigener Verlauf mit leichtem Überschwingen beim Öffnen, schnelles Einziehen beim Schließen
-    property real grow: open ? 1 : 0
-    Behavior on grow {
-        enabled: !Theme.gameMode
-        NumberAnimation {
-            duration: root.open ? 460 : 220
-            easing.type: root.open ? Easing.OutBack : Easing.InCubic
-            easing.overshoot: 0.9
-        }
-    }
+    // Minimal: der Ordner blendet ein, ohne aus der Kachel aufzuwachsen
 
     // ───────── Controller-Schnittstelle für AppGridItem ─────────
 
@@ -199,13 +190,6 @@ Item {
         x: Math.round((root.windowWidth - width) / 2)
         y: Math.round((root.windowHeight + Theme.panelHeight - height) / 2)
         opacity: Math.min(1, root.fade * 2.5)
-        transform: Scale {
-            // Ursprung: Mitte der Kachel im Koordinatensystem der Fläche
-            origin.x: OverviewService.folderOrigin.x < 0 ? panel.width / 2 : OverviewService.folderOrigin.x - panel.x
-            origin.y: OverviewService.folderOrigin.y < 0 ? panel.height / 2 : OverviewService.folderOrigin.y - panel.y
-            xScale: 0.12 + 0.88 * root.grow
-            yScale: xScale
-        }
 
         // Klicks in der Fläche nicht durchreichen
         MouseArea {

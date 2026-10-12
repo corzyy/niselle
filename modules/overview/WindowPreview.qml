@@ -32,6 +32,14 @@ Item {
     // entsteht und nicht pro Frame mit der Animation neu angefordert wird.
     property real captureWidth: 0
     property real captureHeight: 0
+    // Aufnahmen des Overview-Fensters (CaptureRegistry): die Leiste zeigt diese Aufnahme mit, statt eine eigene zu machen
+    property var captures: null
+    // Live-Stream erlaubt (sichtbare Seite); sonst bleibt das zuletzt aufgenommene Standbild stehen
+    property bool streaming: false
+    // Fenster einer aktiven Fläche: neues Standbild schon beim Öffnen, nicht erst nach der Animation
+    property bool activeWorkspace: false
+    // Aufnahme aktiv; kurz aus, um einen abgebrochenen Aufnahme-Kontext neu anzulegen
+    property bool captureEnabled: true
 
     signal selected
 
@@ -47,11 +55,18 @@ Item {
     readonly property string iconSource: Quickshell.iconPath(entry?.icon || windowClass.toLowerCase(), "application-x-executable")
 
     // Symbolgröße: Anteil der kürzeren Kachelseite, nach oben begrenzt, damit ein großes Fenster
-    // (progress 0) kein riesiges Symbol zeigt.
-    readonly property real iconPx: Math.max(16, Math.min(Math.min(width, height) * 0.42, Theme.windowIconSize * 1.8))
+    // (progress 0) kein riesiges Symbol zeigt. Gerastert wird nur einmal in der Größe der Endfläche (`iconPxFinal`),
+    // während der Animation skaliert das Symbol nur: eine neue Größe ließe das Bild in jedem Frame neu rastern.
+    // Bindungen an width/height laufen in jedem Animationsframe: nur auswerten, solange Symbol bzw. Beiwerk sichtbar sind
+    function _iconPx() {
+        return Math.max(16, Math.min(Math.min(width, height) * 0.42, Theme.windowIconSize * 1.8));
+    }
+    readonly property real iconPxFinal: captureWidth > 0 && captureHeight > 0 ? Math.max(16, Math.min(Math.min(captureWidth, captureHeight) * 0.42, Theme.windowIconSize * 1.8)) : Theme.windowIconSize
 
     // Vergrößerung beim Überfahren: (größte Seite + 2 × 5 px) / größte Seite [windowPreview.js:331-335]
     readonly property real activeScale: {
+        if (!shown)
+            return 1;
         const orig = Math.max(width, height);
         return orig > 0 ? (orig + 2 * Theme.windowActiveSizeInc) / orig : 1;
     }
@@ -72,8 +87,7 @@ Item {
             enabled: !Theme.gameMode
             NumberAnimation {
                 duration: Theme.motionFast
-                easing.type: Theme.easeSpring
-                easing.overshoot: Theme.springOvershoot
+                easing.type: Theme.easeOut
             }
         }
 
@@ -86,17 +100,16 @@ Item {
             border.color: "transparent"
         }
 
-        // Einzelnes Standbild des Fensters (live: false) über dem Kachel-Grund. Es blendet erst ein,
-        // wenn ein Bild da ist — der Grund darunter deckt in der Zwischenzeit, so entsteht beim Öffnen
-        // kein leerer Frame (der Grund ist sofort da, das Bild folgt weich).
+        // Standbild des Fensters über dem Kachel-Grund. Die Aufnahme bleibt auch bei geschlossener Übersicht
+        // bestehen: beim Öffnen ist sofort das letzte Bild da (GNOME zeigt ab dem ersten Frame Fenster-Klone),
+        // OverviewService.refreshCaptures fordert dann ein neues an. Nur die allererste Aufnahme blendet ein.
         ScreencopyView {
             id: shot
             anchors.fill: parent
-            captureSource: OverviewService.captureArmed ? (root.toplevel?.wayland ?? null) : null
-            // Live-Stream der Fenster (Einstellungen › Erscheinungsbild) statt eines einzelnen Standbilds.
-            // Der Stream läuft nur, solange captureArmed gesetzt ist (Übersicht sichtbar); beim Schließen
-            // wird captureSource null und die Aufnahme endet.
-            live: SettingsService.overviewLiveWindows
+            captureSource: root.captureEnabled ? (root.toplevel?.wayland ?? null) : null
+            // Live-Stream der Fenster (Einstellungen › Erscheinungsbild) statt eines einzelnen Standbilds:
+            // erst nach der Öffnungsanimation (captureArmed) und nur auf sichtbaren Seiten.
+            live: SettingsService.overviewLiveWindows && OverviewService.captureArmed && root.streaming
             paintCursor: false
             constraintSize: Qt.size(Math.max(1, root.captureWidth), Math.max(1, root.captureHeight))
             opacity: shot.hasContent ? 1 : 0
@@ -109,6 +122,55 @@ Item {
             }
         }
 
+        // Schlägt eine Aufnahme fehl (Hyprland meldet einen Fehler, etwa beim Start der Shell oder wenn sich das Fenster
+        // während der Kopie in der Größe ändert), endet ihr Kontext still und für immer: `stopped` kommt dabei nicht
+        // zuverlässig. Deshalb wird der Kontext nach jedem Schließen neu angelegt, solange die Übersicht unsichtbar ist
+        // (kein Ruckeln): er nimmt sofort ein frisches Bild auf, und beim nächsten Öffnen ist ein aktuelles da.
+        // Fenster ohne Bild bekommen zusätzlich beim Öffnen einen neuen Kontext.
+        function restartShot() {
+            if (!root.toplevel?.wayland)
+                return;
+            root.captureEnabled = false;
+            restartCapture.restart();
+        }
+        Connections {
+            target: shot
+            function onStopped() {
+                shot.restartShot();
+            }
+        }
+        // Beim Beenden der Shell die Aufnahme freigeben, solange die Wayland-Verbindung noch steht: sonst räumt
+        // Quickshell den Aufnahme-Kontext erst nach dem Trennen ab und stürzt dabei ab (Absturzbericht bei jedem Neustart)
+        Connections {
+            target: Qt.application
+            function onAboutToQuit() {
+                restartCapture.stop();
+                root.captureEnabled = false;
+            }
+        }
+        Timer {
+            id: restartCapture
+            interval: 30
+            onTriggered: root.captureEnabled = true
+        }
+
+        Connections {
+            target: OverviewService
+            // Neues Standbild beim Öffnen; zeigt solange das vorige. Ohne Bild: Kontext neu anlegen.
+            function onRefreshCaptures(activeOnly) {
+                if ((activeOnly && !root.activeWorkspace) || shot.live || restartCapture.running)
+                    return;
+                if (!shot.hasContent)
+                    shot.restartShot();
+                else
+                    shot.captureFrame();
+            }
+            function onVisibleChanged() {
+                if (!OverviewService.visible)
+                    shot.restartShot();
+            }
+        }
+
         // App-Symbol und Titel, mittig — ÜBER dem Standbild. Sie bleiben auch nach dem Eintreffen des
         // Standbilds noch eine Haltedauer lang voll sichtbar und decken so den Wechsel zum Screenshot
         // ab; erst danach blenden sie weich aus. Ohne die Haltezeit flackerte der Übergang.
@@ -117,7 +179,8 @@ Item {
             anchors.centerIn: parent
             width: parent.width
             spacing: Math.round(root.height * 0.05)
-            visible: root.width > 24 && root.height > 24
+            // Ausgeblendet ganz unsichtbar: sonst würde die Spalte bei jeder Größenänderung neu gesetzt
+            visible: root.width > 24 && root.height > 24 && opacity > 0
 
             // Logo erst nach der Haltedauer ausblenden (nicht sofort, wenn das Bild da ist)
             property bool logoHidden: false
@@ -150,14 +213,15 @@ Item {
 
             Item {
                 width: parent.width
-                height: glyph.implicitHeight
+                height: glyph.implicitHeight * glyph.scale
 
                 Icon {
                     id: glyph
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.centerIn: parent
                     name: root.iconSource
                     symbolic: false
-                    size: root.iconPx
+                    size: root.iconPxFinal
+                    scale: tileContent.visible ? root._iconPx() / root.iconPxFinal : 1
                 }
             }
 
@@ -175,6 +239,9 @@ Item {
             }
         }
     }
+
+    Component.onCompleted: root.captures?.register(root.toplevel?.address, shot)
+    Component.onDestruction: root.captures?.unregister(root.toplevel?.address, shot)
 
     // Hover für die Kachel selbst; Klicks und Ziehen
     MouseArea {
@@ -235,8 +302,8 @@ Item {
     }
 
     // Verschiebung des Beiwerks, wenn die Kachel wächst [windowPreview.js:413-427]
-    readonly property real heightIncrease: Math.floor(height * (container.scale - 1) / 2)
-    readonly property real widthIncrease: Math.floor(width * (container.scale - 1) / 2)
+    readonly property real heightIncrease: container.scale === 1 ? 0 : Math.floor(height * (container.scale - 1) / 2)
+    readonly property real widthIncrease: container.scale === 1 ? 0 : Math.floor(width * (container.scale - 1) / 2)
 
     // Schließen-Knopf (.window-close): Mitte auf der oberen rechten Ecke
     Rectangle {
@@ -245,8 +312,9 @@ Item {
         opacity: root.shown ? 1 : 0
         width: Theme.windowCloseSize
         height: Theme.windowCloseSize
-        x: root.width - width / 2 + root.widthIncrease
-        y: -height / 2 - root.heightIncrease
+        // Nur bei sichtbarem Knopf an die Kachelgröße gebunden (die ändert sich in jedem Animationsframe)
+        x: visible ? root.width - width / 2 + root.widthIncrease : 0
+        y: visible ? -height / 2 - root.heightIncrease : 0
         radius: Theme.radiusPill
         color: closeMouse.pressed ? Theme.windowCloseBgActive : (closeMouse.containsMouse ? Theme.windowCloseBgHover : Theme.windowCloseBg)
         border.width: Theme.windowCloseBorder
