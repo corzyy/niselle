@@ -1,10 +1,6 @@
 import QtQuick
 import qs
 
-// Karte (%card / %card_flat) [_common.scss:138-171]: Radius 12, Innenabstand 12, Außenabstand 4, 1px Rand in
-// card_shadow_border_color, Schatten 0 1px 2px. `flat`: ohne Rand und Hintergrund, Hover wie ein flacher Button.
-// Klickbar (`interactive`), Zustände über Theme.buttonBg(…, style card/flat). Die Fläche liegt um `margin` eingerückt,
-// die implizite Größe enthält den Außenabstand wie die CSS-Box. Ein Kind, das `contentItem` füllt (anchors.fill).
 Item {
     id: root
 
@@ -13,9 +9,7 @@ Item {
     property real padding: Theme.cardPadding
     property real margin: Theme.cardMargin
     property real radius: Theme.radiusCard
-    // Hintergrund ohne Interaktion überschreiben (z. B. Nachrichten)
     property var color: undefined
-    // Rand und Schatten überschreiben (Nachrichtenstapel)
     property var borderColor: undefined
     property bool shadow: true
     property color shadowColor: Theme.cardShadowColor
@@ -32,7 +26,6 @@ Item {
 
     signal clicked
 
-    // Größe des Inhalts: implizite Größe des ersten Kinds (das Kind füllt `contentItem`)
     readonly property Item _child: content.children.length > 0 ? content.children[0] : null
     implicitWidth: (_child ? _child.implicitWidth : 0) + 2 * (padding + margin + Theme.cardBorderWidth)
     implicitHeight: (_child ? _child.implicitHeight : 0) + 2 * (padding + margin + Theme.cardBorderWidth)
@@ -62,7 +55,6 @@ Item {
         shadowOffsetY: root.shadowOffsetY
         highlight: !root.flat
 
-        // Stapelstufe/Hover wechseln weich (z. B. Karten beim Auf-/Zuklappen einer Benachrichtigungsgruppe)
         Behavior on color {
             enabled: !Theme.gameMode
             ColorAnimation {
@@ -85,7 +77,6 @@ Item {
             }
         }
 
-        // Fokusring [_drawing.scss:57-66]
         Rectangle {
             anchors.fill: parent
             radius: root.radius

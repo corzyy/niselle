@@ -5,7 +5,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Maus: Primärtaste, Geschwindigkeit, Beschleunigung und Scrollen (Hyprland input:* über MouseService).
 SettingsPage {
     id: root
 

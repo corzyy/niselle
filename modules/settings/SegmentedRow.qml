@@ -3,8 +3,6 @@ import QtQuick.Layouts
 import qs
 import qs.components
 
-// ActionRow mit zusammenhängenden Segmenten (AdwToggleGroup): die gewählte Option liegt erhaben.
-// `choices`: [{ value, label }]; `value` ist der gewählte Wert, `picked(value)` bei Auswahl.
 ActionRow {
     id: root
 

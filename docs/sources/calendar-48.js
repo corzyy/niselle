@@ -29,7 +29,6 @@ function sameDay(dateA, dateB) {
 }
 
 function _isWorkDay(date) {
-    /* Translators: Enter 0-6 (Sunday-Saturday) for non-work days. Examples: "0" (Sunday) "6" (Saturday) "06" (Sunday and Saturday). */
     let days = C_('calendar-no-work', '06');
     return !days.includes(date.getDay().toString());
 }
@@ -51,29 +50,17 @@ function _getEndOfDay(date) {
 
 function _getCalendarDayAbbreviation(dayNumber) {
     let abbreviations = [
-        /* Translators: Calendar grid abbreviation for Sunday.
-         *
-         * NOTE: These grid abbreviations are always shown together
-         * and in order, e.g. "S M T W T F S".
-         */
         NC_('grid sunday', 'S'),
-        /* Translators: Calendar grid abbreviation for Monday */
         NC_('grid monday', 'M'),
-        /* Translators: Calendar grid abbreviation for Tuesday */
         NC_('grid tuesday', 'T'),
-        /* Translators: Calendar grid abbreviation for Wednesday */
         NC_('grid wednesday', 'W'),
-        /* Translators: Calendar grid abbreviation for Thursday */
         NC_('grid thursday', 'T'),
-        /* Translators: Calendar grid abbreviation for Friday */
         NC_('grid friday', 'F'),
-        /* Translators: Calendar grid abbreviation for Saturday */
         NC_('grid saturday', 'S'),
     ];
     return Shell.util_translate_time_string(abbreviations[dayNumber]);
 }
 
-// Abstraction for an appointment/event in a calendar
 
 class CalendarEvent {
     constructor(id, date, end, summary) {
@@ -84,8 +71,6 @@ class CalendarEvent {
     }
 }
 
-// Interface for appointments/events - e.g. the contents of a calendar
-//
 
 export const EventSourceBase = GObject.registerClass({
     GTypeFlags: GObject.TypeFlags.ABSTRACT,
@@ -101,16 +86,10 @@ export const EventSourceBase = GObject.registerClass({
     },
     Signals: {'changed': {}},
 }, class EventSourceBase extends GObject.Object {
-    /**
-     * @returns {boolean}
-     */
     get isLoading() {
         throw new GObject.NotImplementedError(`isLoading in ${this.constructor.name}`);
     }
 
-    /**
-     * @returns {boolean}
-     */
     get hasCalendars() {
         throw new GObject.NotImplementedError(`hasCalendars in ${this.constructor.name}`);
     }
@@ -126,10 +105,6 @@ export const EventSourceBase = GObject.registerClass({
         throw new GObject.NotImplementedError(`getEvents in ${this.constructor.name}`);
     }
 
-    /**
-     * @param {Date} _day
-     * @returns {boolean}
-     */
     hasEvents(_day) {
         throw new GObject.NotImplementedError(`hasEvents in ${this.constructor.name}`);
     }
@@ -180,17 +155,7 @@ function _datesEqual(a, b) {
     return true;
 }
 
-/**
- * Checks whether an event overlaps a given interval
- *
- * @param {Date} e0 Beginning of the event
- * @param {Date} e1 End of the event
- * @param {Date} i0 Beginning of the interval
- * @param {Date} i1 End of the interval
- * @returns {boolean} Whether there was an overlap
- */
 function _eventOverlapsInterval(e0, e1, i0, i1) {
-    // This also ensures zero-length events are included
     if (e0 >= i0 && e1 < i1)
         return true;
 
@@ -202,7 +167,6 @@ function _eventOverlapsInterval(e0, e1, i0, i1) {
     return true;
 }
 
-// an implementation that reads data from a session bus service
 export const DBusEventSource = GObject.registerClass(
 class DBusEventSource extends EventSourceBase {
     _init() {
@@ -222,13 +186,6 @@ class DBusEventSource extends EventSourceBase {
             await this._dbusProxy.init_async(GLib.PRIORITY_DEFAULT, null);
             loaded = true;
         } catch (e) {
-            // Ignore timeouts and install signals as normal, because with high
-            // probability the service will appear later on, and we will get a
-            // NameOwnerChanged which will finish loading
-            //
-            // (But still _initialized to false, because the proxy does not know
-            // about the HasCalendars property and would cause an exception trying
-            // to read it)
             if (!e.matches(Gio.DBusError, Gio.DBusError.TIMED_OUT)) {
                 log(`Error loading calendars: ${e.message}`);
                 return;
@@ -311,7 +268,6 @@ class DBusEventSource extends EventSourceBase {
             const date = new Date(startTime * 1000);
             const end = new Date(endTime * 1000);
             let event = new CalendarEvent(id, date, end, summary);
-            /* It's a recurring event */
             if (!id.endsWith('\n')) {
                 const parentId = id.substring(0, id.lastIndexOf('\n') + 1);
                 if (!handledRemovals.has(parentId)) {
@@ -348,7 +304,6 @@ class DBusEventSource extends EventSourceBase {
     }
 
     _loadEvents(forceReload) {
-        // Ignore while loading
         if (!this._initialized)
             return;
 
@@ -386,7 +341,6 @@ class DBusEventSource extends EventSourceBase {
         let result = [...this._getFilteredEvents(begin, end)];
 
         result.sort((event1, event2) => {
-            // sort events by end time on ending day
             let d1 = event1.date < begin && event1.end <= end ? event1.end : event1.date;
             let d2 = event2.date < begin && event2.end <= end ? event2.end : event2.date;
             return d1.getTime() - d2.getTime();
@@ -413,25 +367,9 @@ export const Calendar = GObject.registerClass({
         this._settings.connect(`changed::${SHOW_WEEKDATE_KEY}`, this._onSettingsChange.bind(this));
         this._useWeekdate = this._settings.get_boolean(SHOW_WEEKDATE_KEY);
 
-        /**
-         * Translators: The header displaying just the month name
-         * standalone, when this is a month of the current year.
-         * "%OB" is the new format specifier introduced in glibc 2.27,
-         * in most cases you should not change it.
-         */
         this._headerFormatWithoutYear = _('%OB');
-        /**
-         * Translators: The header displaying the month name and the year
-         * number, when this is a month of a different year.  You can
-         * reorder the format specifiers or add other modifications
-         * according to the requirements of your language.
-         * "%OB" is the new format specifier introduced in glibc 2.27,
-         * in most cases you should not use the old "%B" here unless you
-         * absolutely know what you are doing.
-         */
         this._headerFormat = _('%OB %Y');
 
-        // Start off with the current date
         this._selectedDate = new Date();
 
         this._shouldDateGrabFocus = false;
@@ -458,7 +396,6 @@ export const Calendar = GObject.registerClass({
         this._update();
     }
 
-    // Sets the calendar to show a specific date
     setDate(date) {
         if (sameDay(date, this._selectedDate))
             return;
@@ -473,8 +410,6 @@ export const Calendar = GObject.registerClass({
     }
 
     updateTimeZone() {
-        // The calendar need to be rebuilt after a time zone update because
-        // the date might have changed.
         this._rebuildCalendar();
         this._update();
     }
@@ -484,7 +419,6 @@ export const Calendar = GObject.registerClass({
         let offsetCols = this._useWeekdate ? 1 : 0;
         this.destroy_all_children();
 
-        // Top line of the calendar '<| September 2009 |>'
         this._topBox = new St.BoxLayout({style_class: 'calendar-month-header'});
         layout.attach(this._topBox, 0, 0, offsetCols + 7, 1);
 
@@ -515,17 +449,10 @@ export const Calendar = GObject.registerClass({
         this._topBox.add_child(this._forwardButton);
         this._forwardButton.connect('clicked', this._onNextMonthButtonClicked.bind(this));
 
-        // Add weekday labels...
-        //
-        // We need to figure out the abbreviated localized names for the days of the week;
-        // we do this by just getting the next 7 days starting from right now and then putting
-        // them in the right cell in the table. It doesn't matter if we add them in order
         let iter = new Date(this._selectedDate);
-        iter.setSeconds(0); // Leap second protection. Hah!
+        iter.setSeconds(0);
         iter.setHours(12);
         for (let i = 0; i < 7; i++) {
-            // Could use formatDateWithCFormatString(iter, '%a') but that normally gives three characters
-            // and we want, ideally, a single character for e.g. S M T W T F S
             let customDayAbbrev = _getCalendarDayAbbreviation(iter.getDay());
             let label = new St.Label({
                 style_class: 'calendar-day-heading',
@@ -542,7 +469,6 @@ export const Calendar = GObject.registerClass({
             iter.setDate(iter.getDate() + 1);
         }
 
-        // All the children after this are days, and get removed when we update the calendar
         this._firstDayIndex = this.get_n_children();
     }
 
@@ -616,30 +542,12 @@ export const Calendar = GObject.registerClass({
     _rebuildCalendar() {
         let now = new Date();
 
-        // Remove everything but the topBox and the weekday labels
         let children = this.get_children();
         for (let i = this._firstDayIndex; i < children.length; i++)
             children[i].destroy();
 
         this._buttons = [];
 
-        // Start at the beginning of the week before the start of the month
-        //
-        // We want to show always 6 weeks (to keep the calendar menu at the same
-        // height if there are no events), so we pad it according to the following
-        // policy:
-        //
-        // 1 - If a month has 6 weeks, we place no padding (example: Dec 2012)
-        // 2 - If a month has 5 weeks and it starts on week start, we pad one week
-        //     before it (example: Apr 2012)
-        // 3 - If a month has 5 weeks and it starts on any other day, we pad one week
-        //     after it (example: Nov 2012)
-        // 4 - If a month has 4 weeks, we pad one week before and one after it
-        //     (example: Feb 2010)
-        //
-        // Actually computing the number of weeks is complex, but we know that the
-        // problematic categories (2 and 4) always start on week start, and that
-        // all months at the end have 6 weeks.
         let beginDate = new Date(
             this._selectedDate.getFullYear(), this._selectedDate.getMonth(), 1);
 
@@ -655,11 +563,9 @@ export const Calendar = GObject.registerClass({
         let layout = this.layout_manager;
         let iter = new Date(beginDate);
         let row = 2;
-        // nRows here means 6 weeks + one header + one navbar
         let nRows = 8;
         while (row < nRows) {
             let button = new St.Button({
-                // xgettext:no-javascript-format
                 label: formatDateWithCFormatString(iter, C_('date day number format', '%d')),
                 can_focus: true,
             });
@@ -683,7 +589,6 @@ export const Calendar = GObject.registerClass({
             else
                 styleClass += ' calendar-weekend';
 
-            // Hack used in lieu of border-collapse - see gnome-shell.css
             if (row === 2)
                 styleClass = `calendar-day-top ${styleClass}`;
 
@@ -731,8 +636,6 @@ export const Calendar = GObject.registerClass({
                 row++;
         }
 
-        // Signal to the event source that we are interested in events
-        // only from this date range
         this._eventSource.requestRange(beginDate, iter);
     }
 

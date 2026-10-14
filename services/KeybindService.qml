@@ -5,21 +5,12 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
-// Tastenkürzel von Hyprland, anpassbar wie GNOMEs Einstellungen → Tastatur → Tastenkürzel.
-// Lua-Binds lassen sich nicht per `hyprctl binds` auslesen (nur `__lua`); der Katalog spiegelt daher
-// ~/.config/hypr/configs/binds.lua (Standardwerte + Lua-Aktion). Änderungen:
-//   • gelten sofort (`hyprctl eval`: hl.unbind + hl.bind),
-//   • liegen in Quickshell.statePath("keybinds.json") (id → Kombination, "" = abgeschaltet),
-//   • werden nach ~/.config/hypr/configs/niselle-keybinds.lua geschrieben, das hyprland.lua nach binds lädt
-//     und so die Standardwerte bei jedem Neuladen überschreibt.
-// Kombinationen im Hyprland-Format: "SUPER + SHIFT + Print".
 Singleton {
     id: root
 
     readonly property bool available: Hyprland.monitors.values.length > 0
     readonly property bool usingLua: Hyprland.usingLua
 
-    // Katalog: id, group, title, keys (Standard) und – wenn änderbar – action/opts (Lua). Ohne action: nur Anzeige.
     readonly property var categories: [
         {
             "title": "Niselle",
@@ -274,7 +265,6 @@ Singleton {
         }
     ]
 
-    // id → Eintrag (editierbar: mit action)
     readonly property var entries: {
         const m = {};
         for (const c of categories)
@@ -284,7 +274,6 @@ Singleton {
         return m;
     }
 
-    // id → Kombination; fehlt = Standard, "" = abgeschaltet
     readonly property var overrides: store.overrides ?? ({})
     readonly property bool anyOverride: Object.keys(overrides).length > 0
 
@@ -296,12 +285,10 @@ Singleton {
         return root.overrides[id] !== undefined;
     }
 
-    // Wirksame Kombination ("" = abgeschaltet)
     function combo(id) {
         return root.overrides[id] ?? root.entries[id]?.keys ?? "";
     }
 
-    // Vergleichsform: Modifikatoren sortiert und großgeschrieben, Taste kleingeschrieben
     function normalize(combo) {
         const parts = combo.split("+").map(p => p.trim()).filter(p => p);
         if (parts.length === 0)
@@ -310,7 +297,6 @@ Singleton {
         return parts.map(p => p.toUpperCase()).sort().concat([key]).join("+");
     }
 
-    // Titel des Eintrags, der `combo` bereits belegt (außer `id`); "" = frei
     function conflict(id, combo) {
         const n = root.normalize(combo);
         if (n === "")
@@ -325,7 +311,6 @@ Singleton {
         return "";
     }
 
-    // id des belegenden Eintrags (für „Ersetzen“); "" = frei
     function conflictId(id, combo) {
         const n = root.normalize(combo);
         for (const other of Object.keys(root.entries))
@@ -334,7 +319,6 @@ Singleton {
         return "";
     }
 
-    // Kombination setzen ("" = abschalten). Ein belegender Eintrag verliert sein Kürzel.
     function set(id, combo) {
         const e = root.entries[id];
         if (!e || !e.action)
@@ -362,7 +346,6 @@ Singleton {
         root._commit({});
     }
 
-    // ───────── Anzeige ─────────
 
     readonly property var keyLabels: ({
             "SUPER": "Super",
@@ -393,7 +376,6 @@ Singleton {
             "XF86AudioPrev": "Previous"
         })
 
-    // "SUPER + SHIFT + left" → ["Super", "Shift", "←"]
     function labels(combo) {
         return combo.split("+").map(p => p.trim()).filter(p => p).map(p => {
             if (root.keyLabels[p])
@@ -404,9 +386,7 @@ Singleton {
         });
     }
 
-    // ───────── Tastenerfassung ─────────
 
-    // Qt-Taste → Hyprland-Name; "" = Modifikator/unbekannt
     readonly property var specialKeys: ({
             [Qt.Key_Left]: "left",
             [Qt.Key_Right]: "right",
@@ -447,8 +427,6 @@ Singleton {
             [Qt.Key_MediaPrevious]: "XF86AudioPrev"
         })
 
-    // Hyprland-Kombination aus einem Tastendruck, oder "" solange nur Modifikatoren gedrückt sind.
-    // Qt liefert mit Shift das Zeichen (Shift+1 → "!"); unbekannte Tasten gehen daher als Tastencode (`code:N`).
     function fromEvent(key, modifiers, scanCode) {
         if ([Qt.Key_Shift, Qt.Key_Control, Qt.Key_Alt, Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R, Qt.Key_AltGr, Qt.Key_CapsLock, Qt.Key_NumLock].indexOf(key) >= 0)
             return "";
@@ -477,7 +455,6 @@ Singleton {
         return mods.concat([name]).join(" + ");
     }
 
-    // Ohne Modifikator nur Tasten, die man nicht tippt (F-Tasten, Print, XF86 …)
     function usable(combo) {
         const parts = combo.split("+").map(p => p.trim());
         if (parts.length > 1)
@@ -485,7 +462,6 @@ Singleton {
         return /^(F\d+|Print|Insert|Delete|Home|End|Prior|Next|XF86.*)$/.test(parts[0]);
     }
 
-    // Während der Erfassung ruhen alle Kürzel, damit z. B. Super+T nicht das Terminal öffnet
     function captureBegin() {
         captureGuard.restart();
         root._run("hl.define_submap(\"niselle_capture\", \"reset\", function() hl.bind(\"SUPER + SUPER_L + F24\", hl.dsp.exec_cmd(\"true\")) end)\nhl.dispatch(hl.dsp.submap(\"niselle_capture\"))");
@@ -496,7 +472,6 @@ Singleton {
         root._run("hl.dispatch(hl.dsp.submap(\"reset\"))");
     }
 
-    // ───────── Anwenden ─────────
 
     function _bind(e, combo) {
         return "hl.bind(" + JSON.stringify(combo) + ", " + e.action + (e.opts ? ", " + e.opts : "") + ")";
@@ -510,15 +485,11 @@ Singleton {
             runner._next();
     }
 
-    // Hyprland lädt die Konfiguration beim Schreiben von niselle-keybinds.lua selbst neu und wirft dabei alle
-    // per `hyprctl eval` gesetzten Binds weg – ein Eval daneben würde Standard-Binds doppeln. Daher nur die Datei
-    // schreiben und danach (falls Auto-Reload aus ist) ausdrücklich neu laden.
     function _commit(next) {
         store.overrides = next;
         luaFile.setText(root._generate(next));
     }
 
-    // Inhalt von niselle-keybinds.lua: Standard abbinden, Überschreibung binden
     function _generate(overrides) {
         const lines = ["-- Generated by Niselle (Settings → Keyboard). Do not edit; use the settings page.", "local programs = require(\"configs/programs\")", ""];
         for (const id of Object.keys(overrides)) {
@@ -536,7 +507,6 @@ Singleton {
         return lines.join("\n");
     }
 
-    // Notbremse: bleibt die Erfassung aus irgendeinem Grund offen, sonst wären alle Kürzel (auch Super) tot
     Timer {
         id: captureGuard
         interval: 30000
@@ -559,7 +529,6 @@ Singleton {
             _next()
     }
 
-    // Neuladen setzt Hyprland auf niselle-keybinds.lua zurück (dort stehen die Überschreibungen schon)
 
     Process {
         id: reloader

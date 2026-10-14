@@ -4,17 +4,10 @@ import qs
 import qs.services
 import qs.components
 
-// App-Eintrag im Dash: DashIcon + Laufpunkte [dash.js:21-45, 505-524, appDisplay.js:2915-3095].
-// Die Klickfläche reicht über die ganze Dash-Höhe (der Button wird über die Kachel hinaus gestreckt, die Kachel sitzt mittig
-// über dem unteren Rand-Abstand) [_dash.scss:49-70].
-//
-// Linksklick startet oder fokussiert, Mittelklick und Strg+Klick öffnen ein neues Fenster (nur laufende Apps),
-// Rechtsklick und Menütaste öffnen das Menü. Ziehen löst ein Ablegen (Schlüssel "niselle-app") im Dash aus.
 Item {
     id: root
 
     required property var dash
-    // "app": Desktop-Eintrag (appId = Eintrags-ID), "win": Fenster ohne Eintrag (appId = Fensterklasse in Kleinbuchstaben)
     required property string kind
     required property string appId
 
@@ -26,11 +19,9 @@ Item {
     readonly property string iconSource: Quickshell.iconPath(entry?.icon || appId, "application-x-executable")
 
     readonly property bool menuOpen: dash.menu.open && dash.menu.target === root
-    // Tooltip wie AppIcon.shouldShowTooltip(): Zeiger darüber, Menü zu [appDisplay.js:3091]
     readonly property bool wantsLabel: mouse.containsMouse && !menuOpen && !ghost.Drag.active
     onWantsLabelChanged: dash.syncLabel(root)
 
-    // Start-Animation: Icon hüpft, bis ein Fenster da ist (mindestens/höchstens eine feste Zahl Sprünge)
     property real bounce: 0
     property bool launching: false
     property int cycles: 0
@@ -124,7 +115,6 @@ Item {
         }
     }
 
-    // Laufpunkte: ein Punkt je Fenster; der unterste Rand liegt dash_padding über dem Rand der Klickfläche [_dash.scss:77]
     Row {
         visible: root.windows.length > 0
         spacing: Theme.dashDotSpacing
@@ -187,7 +177,6 @@ Item {
         }
     }
 
-    // Gezogenes Icon: in Dash-Icongröße mittig am Zeiger [dash.js:DashIcon.getDragActor]
     Item {
         id: ghost
         parent: root.dash.dragLayer
@@ -196,7 +185,6 @@ Item {
         height: root.dash.iconSize
         transformOrigin: Item.Center
 
-        // Auf eine Arbeitsflächen-Vorschau abgelegt: das Icon fliegt in die Vorschau, schrumpft und blendet aus
         property bool flying: false
         function flyTo(center) {
             flyX.to = center.x - width / 2;
@@ -246,7 +234,6 @@ Item {
             }
         }
 
-        // Von DropArea/Dash gelesen
         property var entry: root.entry
         property bool favorite: root.favorite
 

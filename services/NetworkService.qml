@@ -5,24 +5,16 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Networking
 
-// Netzwerk über NetworkManager: WLAN an/aus, Netzwerkliste, aktives Netz, Signalstärke, Ethernet, VPN.
-// Gespeicherte WLAN-Profile und verdeckte Netze laufen ebenfalls über `nmcli`.
-// WLAN/Ethernet kommen aus Quickshell.Networking (DBus-Signale). VPN-Verbindungen kennt dieses Modul nicht,
-// sie kommen per `nmcli` und werden bei Ereignissen von `nmcli monitor` neu eingelesen.
-// Signalstärke ist 0..1.
 Singleton {
     id: root
 
     readonly property bool available: Networking.backend === NetworkBackendType.NetworkManager
 
-    // ───────── WLAN ─────────
 
     readonly property var wifiDevice: Networking.devices.values.find(d => d.type === DeviceType.Wifi) ?? null
     readonly property bool hasWifi: wifiDevice !== null
-    // Funkschalter (Software); hardwareGesperrt: wifiHardwareEnabled false
     readonly property bool wifiEnabled: Networking.wifiEnabled
     readonly property bool wifiHardwareEnabled: Networking.wifiHardwareEnabled
-    // Sichtbare Netze, je Name eines (das stärkste, verbundene zuerst), nach Signal absteigend
     readonly property var wifiNetworks: {
         if (!wifiDevice || !wifiEnabled)
             return [];
@@ -37,27 +29,21 @@ Singleton {
     readonly property var activeWifi: wifiNetworks.find(n => n.connected) ?? null
     readonly property var connectingWifi: wifiNetworks.find(n => n.state === ConnectionState.Connecting) ?? null
     readonly property real signalStrength: activeWifi ? activeWifi.signalStrength : 0
-    // Netz wird gerade gesucht: Spiegel des Geräte-Scanners. Angefordert wird die Suche über setScanning().
     readonly property bool scanning: wifiDevice ? wifiDevice.scannerEnabled : false
-    // Angeforderter Suchzustand; auf das Gerät angewandt, sobald es verfügbar ist
     property bool _scanRequested: false
     onWifiDeviceChanged: _applyScanRequest()
 
-    // ───────── Ethernet ─────────
 
     readonly property var wiredDevice: Networking.devices.values.find(d => d.type === DeviceType.Wired) ?? null
     readonly property bool hasEthernet: wiredDevice !== null
     readonly property bool ethernetConnected: wiredDevice ? wiredDevice.connected : false
     readonly property string ethernetName: wiredDevice && wiredDevice.network ? wiredDevice.network.name : ""
-    // Kabel aktiv: verbunden oder im Aufbau (getrennt = vom Benutzer ausgeschaltet)
     readonly property bool ethernetEnabled: wiredDevice ? wiredDevice.state === ConnectionState.Connected || wiredDevice.state === ConnectionState.Connecting : false
 
-    // ───────── Allgemein ─────────
 
     readonly property int connectivity: Networking.connectivity
     readonly property bool online: ethernetConnected || activeWifi !== null
 
-    // Symbolname der Panel-Anzeige wie in GNOME (network.js, signalToIcon): >80 excellent, >55 good, >30 ok, >5 weak
     readonly property string iconName: {
         if (!available)
             return "network-offline-symbolic";
@@ -91,8 +77,6 @@ Singleton {
     function toggleWifi() {
         setWifiEnabled(!wifiEnabled);
     }
-    // Suche anfordern bzw. freigeben. Mehrere Oberflächen (Quick-Settings-Menü, Netzwerk-Einstellungen) können sie
-    // gleichzeitig brauchen: `owner` ist ihr Schlüssel, die Suche läuft, solange mindestens einer sie verlangt.
     property var _scanOwners: ({})
     function setScanning(on, owner) {
         const key = owner || "default";
@@ -110,8 +94,6 @@ Singleton {
             wifiDevice.scannerEnabled = _scanRequested;
     }
 
-    // Ethernet an/aus. `nmcli device disconnect` verhindert das automatische Wiederverbinden,
-    // bis der Benutzer wieder verbindet (polkit network-control, kein Passwort nötig).
     function setEthernetEnabled(on) {
         if (!wiredDevice)
             return;
@@ -122,7 +104,6 @@ Singleton {
         setEthernetEnabled(!ethernetEnabled);
     }
 
-    // Mit gespeichertem Profil verbinden (network.known) oder, bei unbekanntem Netz, mit Passwort
     function connectWifi(network, psk) {
         if (!network)
             return;
@@ -140,12 +121,9 @@ Singleton {
             network.forget();
     }
 
-    // Verbindung eines Netzes ist fehlgeschlagen (reason: ConnectionFailReason)
     signal connectionFailed(string name, int reason)
 
-    // ───────── Gespeicherte und verdeckte Netze ─────────
 
-    // Gespeicherte WLAN-Profile, auch außer Reichweite: [{ name, uuid, autoconnect, active }]
     property var savedWifi: []
 
     signal hiddenConnectFailed(string ssid, string message)
@@ -162,7 +140,6 @@ Singleton {
         savedModify.command = ["nmcli", "connection", "delete", "uuid", profile.uuid];
         savedModify.running = true;
     }
-    // Mit verdecktem Netz verbinden; Passwort (leer = offen) geht über stdin, nicht über die Argumente
     function connectHidden(ssid, psk) {
         hiddenConnect.ssid = ssid;
         hiddenConnect.psk = psk;
@@ -224,9 +201,7 @@ Singleton {
         }
     }
 
-    // ───────── VPN ─────────
 
-    // [{ name, uuid, type, active }]
     property var vpnConnections: []
     readonly property bool hasVpn: vpnConnections.length > 0
     readonly property var activeVpn: vpnConnections.find(v => v.active) ?? null
@@ -248,7 +223,6 @@ Singleton {
         vpnList.running = true;
     }
 
-    // Aufteilen an nicht maskierten Doppelpunkten (nmcli -t maskiert ":" als "\:")
     function _splitTerse(line) {
         return line.split(/(?<!\\):/).map(s => s.replace(/\\(.)/g, "$1"));
     }
@@ -289,16 +263,13 @@ Singleton {
         }
     }
 
-    // ───────── USB-Tethering ─────────
 
-    // Aktive Verbindung über ein USB-Gerät (Tethering über rndis/cdc_ether/ipheth)
     property bool usbTetherConnected: false
 
     function refreshDevices() {
         deviceList.running = true;
     }
 
-    // Geräte mit Zustand „connected“; Ethernet-Geräte unter /sys/devices/…/usb… sind USB-Tethering
     Process {
         id: deviceList
         command: ["sh", "-c", 'nmcli -t -f DEVICE,TYPE,STATE device | while IFS=: read -r d t s; do case $t in ethernet) case $s in connected*) readlink -f "/sys/class/net/$d" | grep -q /usb && echo "usb connected";; esac;; esac; done']
@@ -310,13 +281,11 @@ Singleton {
         }
     }
 
-    // Ethernet an-/ausschalten
     Process {
         id: ethernetCmd
         onExited: root.refreshDevices()
     }
 
-    // Eine Zeile pro Änderung im NetworkManager → VPN-Liste gebündelt neu lesen
     Process {
         running: true
         command: ["nmcli", "monitor"]
@@ -335,7 +304,6 @@ Singleton {
         }
     }
 
-    // Fehlermeldungen einzelner Netze weiterreichen
     Instantiator {
         model: root.wifiDevice ? root.wifiDevice.networks : null
         delegate: Connections {

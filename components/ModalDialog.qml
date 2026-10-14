@@ -4,11 +4,6 @@ import Quickshell
 import Quickshell.Wayland
 import qs
 
-// Modaler Dialog (ModalDialog, .modal-dialog) [_dialogs.scss:1-21, 85-130]: dunkelt den Bildschirm ab, Karte mit
-// Radius 18, Padding 24, Titel (title-2, zentriert), Beschreibung, eigener Inhalt, Knopfreihe. Nimmt die Tastatur
-// exklusiv. Esc bricht ab.
-//
-// buttons: [{ id, text, primary }]; primary = Standardknopf (Akzent), wird mit Enter ausgelöst.
 PanelWindow {
     id: root
 
@@ -17,7 +12,6 @@ PanelWindow {
     property string description: ""
     property var buttons: []
     property real dialogWidth: 0
-    // Knopf mit dieser id ist gesperrt
     property var disabledButtons: []
 
     default property alias content: contentColumn.data
@@ -25,13 +19,11 @@ PanelWindow {
     signal buttonClicked(string id)
     signal canceled
 
-    // Einblenden / Ausblenden
     property real shade: 0
 
     function _primary() {
         return buttons.find(b => b.primary) ?? null;
     }
-    // Wackeln (Util.wiggle), z. B. bei falschem Passwort
     function wiggle() {
         if (!Theme.gameMode)
             wiggleAnimation.restart();
@@ -65,7 +57,6 @@ PanelWindow {
         }
     }
 
-    // Abdunklung; fängt alle Klicks ab (modal)
     Rectangle {
         anchors.fill: parent
         color: Theme.dialogShade
@@ -114,7 +105,6 @@ PanelWindow {
                 anchors.margins: Theme.dialogPadding
                 spacing: Theme.dialogSpacing
 
-                // .modal-dialog-content-box
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.topMargin: Theme.dialogContentPaddingTop
@@ -152,7 +142,6 @@ PanelWindow {
                     }
                 }
 
-                // .modal-dialog-button-box
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.topMargin: Theme.dialogButtonBoxPaddingTop

@@ -4,37 +4,22 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Ordner und Seitenlayout des App-Grids. Gespeichert in Quickshell.statePath("appgrid.json"):
-//   folderOrder  Ordner-IDs in Reihenfolge
-//   folders      { id: { name, apps, categories, excluded } }
-//   pages        Seiten mit Eintrags-IDs in Reihenfolge
-// Änderungen wirken sofort und werden danach in die Datei geschrieben; Änderungen an der Datei von außen werden übernommen.
-//
-// Begriffe: Eintrag = App (ID mit .desktop) oder Ordner (Ordner-ID). Das Grid zeigt Ordner und Apps, die weder Favorit
-// (Dash) noch in einem Ordner sind [appDisplay.js: _loadApps].
 Singleton {
     id: root
 
-    // folder-children in Reihenfolge
     property var folderOrder: []
-    // { id: { name, apps: [], categories: [], excluded: [] } }
     property var folders: ({})
-    // Gespeichertes Layout: Seiten mit Eintrags-IDs in Reihenfolge
     property var storedPages: []
 
-    // Platzhalter-ID für ein fremdes Icon, das gerade über das Grid gezogen wird
     readonly property string placeholderId: "\u0000placeholder"
 
-    // Ein Eintrag je ID: { id, kind: "app"|"folder", name, entry, apps: [Eintrag] }
     readonly property var model: root._buildModel()
-    // Gespeicherte Seiten, gefiltert auf vorhandene Einträge; `unplaced`: Einträge ohne Platz, nach Name sortiert
     readonly property var layout: root._buildLayout()
 
     function item(id) {
         return root.model.byId[id] ?? null;
     }
 
-    // ───────── Aufbau ─────────
 
     function _desktopId(entry) {
         return entry.id.endsWith(".desktop") ? entry.id : entry.id + ".desktop";
@@ -44,7 +29,6 @@ Singleton {
         return f ? (f.name || id) : "";
     }
 
-    // Apps eines Ordners: apps-Liste in Reihenfolge, dann Apps mit passender Kategorie (nach Name) [appDisplay.js: FolderView._loadApps]
     function _folderMembers(f, appsById, sortedIds) {
         const out = [];
         const seen = {};
@@ -91,7 +75,6 @@ Singleton {
             if (!f)
                 continue;
             const members = root._folderMembers(f, appsById, sortedIds);
-            // Leere Ordner erscheinen nicht [appDisplay.js:1544-1548]
             if (members.length === 0)
                 continue;
             for (const m of members)
@@ -133,7 +116,6 @@ Singleton {
         const placed = {};
         const pages = [];
         for (const page of root.storedPages) {
-            // Nacheinander prüfen: dieselbe ID kann auch innerhalb einer Seite doppelt stehen
             const ids = page.filter(id => {
                 if (!byId[id] || placed[id])
                     return false;
@@ -150,7 +132,6 @@ Singleton {
         };
     }
 
-    // ───────── Änderungen ─────────
 
     function savePages(pages) {
         const clean = pages.map(p => p.filter(id => id !== root.placeholderId)).filter(p => p.length > 0);
@@ -163,7 +144,6 @@ Singleton {
         return hex(8) + "-" + hex(4) + "-4" + hex(3) + "-a" + hex(3) + "-" + hex(12);
     }
 
-    // Neuen Ordner aus zwei Apps anlegen; `pages` ist das Layout danach (der Ordner steht an Stelle von `at`)
     function createFolder(appA, appB, name) {
         const id = root._newFolderId();
         const f = {
@@ -190,7 +170,6 @@ Singleton {
         });
     }
 
-    // App aus dem Ordner nehmen; der letzte entfernt den Ordner [appDisplay.js: FolderView.removeApp]
     function removeAppFromFolder(folderId, appId) {
         const f = root.folders[folderId];
         if (!f)
@@ -203,7 +182,6 @@ Singleton {
         const patch = {
             "apps": apps
         };
-        // Kategorie-Ordner führen entfernte Apps zusätzlich als ausgeschlossen
         if (f.categories.length > 0 && f.excluded.indexOf(appId) < 0)
             patch.excluded = f.excluded.concat([appId]);
         root._setFolder(folderId, patch);
@@ -241,7 +219,6 @@ Singleton {
         root._save();
     }
 
-    // ───────── Datei ─────────
 
     function _save() {
         store.folderOrder = root.folderOrder;

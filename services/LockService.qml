@@ -6,22 +6,16 @@ import Quickshell.Io
 import Quickshell.Services.Pam
 import qs
 
-// Sperrbildschirm-Zustand: gesperrt ja/nein, Stufe (Vorhang mit Uhr oder Entsperr-Dialog) und die Anmeldung per PAM.
-// Gesperrt wird per `niselle lock` (IPC) oder durch `loginctl lock-session` (logind-Signal „Lock“, auch von hypridle).
-// NISELLE_LOCK_DEBUG=1: statt der echten Sitzungssperre ein normales Vollbildfenster (zum Entwickeln; `ipc call lock unlock` geht dann).
 Singleton {
     id: root
 
     readonly property bool debug: Quickshell.env("NISELLE_LOCK_DEBUG") === "1"
 
     property bool locked: false
-    // false: Vorhang (Hintergrund, Uhr), true: unscharfer Hintergrund mit Entsperr-Dialog
     property bool dialogShown: false
     property string password: ""
-    // PAM läuft gerade
     readonly property bool busy: pam.active
     property string errorMessage: ""
-    // Zählt hoch, wenn die Anmeldung fehlschlägt (löst das Wackeln des Eingabefelds aus)
     property int failures: 0
 
     readonly property string userName: Quickshell.env("USER") || ""
@@ -56,7 +50,6 @@ Singleton {
         root.errorMessage = "";
     }
 
-    // Passwort prüfen
     function submit() {
         if (pam.active || root.password === "")
             return;
@@ -71,12 +64,10 @@ Singleton {
         function lock(): void {
             root.lock();
         }
-        // Entsperr-Dialog statt Vorhang zeigen (wie ein Tastendruck)
         function dialog(): void {
             if (root.locked)
                 root.showDialog();
         }
-        // Nur im Debug-Modus; die echte Sperre lässt sich ausschließlich per Passwort lösen
         function unlock(): void {
             if (root.debug)
                 root._unlocked();
@@ -86,7 +77,6 @@ Singleton {
     PamContext {
         id: pam
 
-        // Passwort, das auf die nächste Eingabeaufforderung wartet
         property string pending: ""
 
         config: "login"
@@ -117,7 +107,6 @@ Singleton {
         }
     }
 
-    // logind-Signal „Lock“ der Sitzung (loginctl lock-session, Sperrtaste, Leerlauf-Daemon)
     Process {
         running: true
         command: ["stdbuf", "-oL", "dbus-monitor", "--system", "type='signal',interface='org.freedesktop.login1.Session',member='Lock'"]
@@ -129,7 +118,6 @@ Singleton {
         }
     }
 
-    // Vollständiger Name aus dem Passwortverzeichnis (GECOS)
     Process {
         running: root.userName !== ""
         command: ["getent", "passwd", root.userName]

@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import qs
 import qs.components
 
-// ActionRow mit Zahl und −/+ am Zeilenende (AdwSpinRow).
 ActionRow {
     id: root
 

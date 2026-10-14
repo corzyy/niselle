@@ -4,12 +4,9 @@ import Quickshell.Wayland
 import qs
 import qs.services
 
-// Heiße Ecke oben links [layout.js HotCorner]: Mauszeiger in der Ecke schaltet die Übersicht.
-// Wie in GNOME hat nur ein Monitor eine Ecke, an dessen oberer linker Ecke kein anderer Monitor anschließt.
 PanelWindow {
     id: root
 
-    // Kein Monitor links oder oberhalb der Ecke
     readonly property bool hasCorner: {
         const s = root.screen;
         if (!s)
@@ -38,7 +35,6 @@ PanelWindow {
     WlrLayershell.namespace: "niselle-hot-corner"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-    // Zeitpunkt (ms), zu dem die Übersicht zuletzt verschwunden ist
     property double hiddenAt: Date.now()
 
     Connections {
@@ -49,7 +45,6 @@ PanelWindow {
         }
     }
 
-    // Auslösen nur, wenn der Zeiger die Ecke wirklich betritt, nicht wenn die Übersicht unter ihm verschwindet
     HoverHandler {
         onHoveredChanged: {
             if (hovered && Date.now() - root.hiddenAt > Theme.hotCornerRetriggerDelay)

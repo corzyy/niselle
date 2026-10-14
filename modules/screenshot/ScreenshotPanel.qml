@@ -4,9 +4,6 @@ import qs
 import qs.components
 import qs.services
 
-// Bedienfeld des Bildschirmfoto-Overlays (.screenshot-ui-panel): oben die Modusknöpfe Bereich/Bildschirm/Fenster
-// (Symbol 32 px über der Beschriftung), darunter links der Foto/Aufnahme-Schalter, in der Mitte der Auslöser (weißer Kreis
-// im Ring, bei Aufnahme rot) und rechts der Mauszeiger-Schalter. Werte aus gnome-shell-dark.css.
 Rectangle {
     id: root
 
@@ -22,7 +19,6 @@ Rectangle {
     border.width: 1
     border.color: Theme.osdOuterBorders
 
-    // Klicks auf dem Feld dürfen darunter nichts auslösen
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.AllButtons
@@ -34,7 +30,6 @@ Rectangle {
         y: 18
         spacing: 12
 
-        // Modusknöpfe
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 6
@@ -107,12 +102,10 @@ Rectangle {
             }
         }
 
-        // Untere Zeile: Foto/Aufnahme links, Auslöser mittig, Mauszeiger rechts
         Item {
             width: parent.width
             height: 48
 
-            // .screenshot-ui-shot-cast-container
             Rectangle {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
@@ -174,7 +167,6 @@ Rectangle {
                 }
             }
 
-            // .screenshot-ui-capture-button: 32 px Kreis, 4 px Abstand, 4 px Ring
             Item {
                 id: capture
                 anchors.centerIn: parent
@@ -219,7 +211,6 @@ Rectangle {
                 }
             }
 
-            // Mauszeiger im Bild
             IconButton {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter

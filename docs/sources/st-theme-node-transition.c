@@ -1,23 +1,3 @@
-/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
-/*
- * st-theme-node-transition.c: Theme node transitions for StWidget.
- *
- * Copyright 2010 Florian Müllner
- * Copyright 2010 Adel Gadllah
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
- * more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include <math.h>
 
@@ -114,10 +94,6 @@ st_theme_node_transition_new (ClutterActor          *actor,
   return transition;
 }
 
-/**
- * st_theme_node_transition_get_new_paint_state: (skip)
- *
- */
 StThemeNodePaintState *
 st_theme_node_transition_get_new_paint_state (StThemeNodeTransition *transition)
 {
@@ -138,17 +114,6 @@ st_theme_node_transition_update (StThemeNodeTransition *transition,
   old_node = (direction == CLUTTER_TIMELINE_FORWARD) ? transition->old_theme_node
                                                      : transition->new_theme_node;
 
-  /* If the update is the reversal of the current transition,
-   * we reverse the timeline.
-   * Otherwise, we should initiate a new transition from the
-   * current state to the new one; this is hard to do if the
-   * transition is in an intermediate state, so we just cancel
-   * the ongoing transition in that case.
-   * Note that reversing a timeline before any time elapsed
-   * results in the timeline's time position being set to the
-   * full duration - this is not what we want, so we cancel the
-   * transition as well in that case.
-   */
   if (st_theme_node_equal (new_node, old_node))
     {
       {
@@ -247,7 +212,6 @@ setup_framebuffers (StThemeNodeTransition *transition,
   guint width, height;
   GError *catch_error = NULL;
 
-  /* template pipeline to avoid unnecessary shader compilation */
   static CoglPipeline *pipeline_template = NULL;
 
   width  = ceilf ((transition->offscreen_box.x2 - transition->offscreen_box.x1) * resource_scale);
@@ -379,7 +343,7 @@ st_theme_node_transition_paint (StThemeNodeTransition *transition,
                                                      allocation,
                                                      resource_scale);
 
-      if (transition->needs_setup) /* setting up framebuffers failed */
+      if (transition->needs_setup)
         return;
     }
 

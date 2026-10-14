@@ -5,7 +5,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Notifications: Nicht stören (blendet Banner aus, die Mitteilungen landen weiter im Datumsmenü) und Aufräumen.
 SettingsPage {
     id: root
 

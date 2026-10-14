@@ -1,14 +1,10 @@
 import QtQuick
 import qs
 
-// Seitenpunkte des App-Grids [pageIndicators.js, _app-grid.scss:120-132]: ein Punkt je Seite, der aktuelle voll, die übrigen
-// auf 2/3 verkleinert und halb transparent (Zeiger darüber: voll sichtbar, gedrückt: auf 1/2). Zwischen zwei Seiten
-// (Wischen) blendet `currentPosition` stufenlos über. Erst ab zwei Seiten sichtbar.
 Item {
     id: root
 
     property int nPages: 0
-    // Seite als Kommazahl, z. B. 1.5 mitten im Wechsel von Seite 1 zu 2
     property real currentPosition: 0
 
     signal pageActivated(int page)
@@ -29,7 +25,6 @@ Item {
                 id: indicator
 
                 required property int index
-                // Nähe zur aktuellen Position: 1 auf der Seite, 0 ab einer Seite Abstand
                 readonly property real progress: Math.max(1 - Math.abs(root.currentPosition - index), 0)
                 readonly property real inactiveScale: mouse.pressed ? Theme.pageIndicatorInactiveScalePressed : Theme.pageIndicatorInactiveScale
                 readonly property real inactiveOpacity: mouse.containsMouse ? Theme.pageIndicatorInactiveOpacityHover : Theme.pageIndicatorInactiveOpacity

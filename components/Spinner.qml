@@ -1,15 +1,12 @@
 import QtQuick
 import qs
 
-// Ladekreis (St-Spinner, 16px): drehendes process-working-Symbol. Die Shell animiert ein Sprite, hier dreht sich
-// das symbolische Icon gleichmäßig.
 Item {
     id: root
 
     property bool running: false
     property color color: Theme.fgColor
     property real size: Theme.iconSize
-    // Ausgeblendet, wenn er nicht läuft (hideOnStop)
     property bool hideOnStop: true
 
     implicitWidth: size

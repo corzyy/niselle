@@ -2,24 +2,16 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// .popup-menu-item [_popovers.scss:36-55, _common.scss:130-136, _drawing.scss:386-395, menuitem()]:
-// radius 12, padding 9/12, spacing 6, Übergang 100 ms; hover/selected/checked = flat-hover, active beim Drücken.
-// Ornament-Variante (.popup-ornamented-menu-item): linkes Padding 6 + 16px-Ornamentfläche [_popovers.scss:57-60, 108-111].
 Item {
     id: root
 
     property string text: ""
     property string icon: ""
-    // Kleines Zusatz-Icon neben dem Icon (z. B. Schloss bei verschlüsselten WLANs)
     property string badgeIcon: ""
-    // Ornament-Spalte reservieren; ornamentChecked zeigt das Häkchen
     property bool ornamented: false
     property bool ornamentChecked: false
-    // Hintergrund der Zeile (Untermenüs nutzen subMenuBg)
     property color bg: Theme.menuItemBg
-    // Menü nach Aktivierung schließen
     property bool closeOnActivate: true
-    // Tastaturauswahl (:selected)
     property bool selected: false
 
     readonly property bool hovered: mouse.containsMouse
@@ -97,7 +89,6 @@ Item {
             }
         }
 
-        // Icon mit optionalem kleinem Zusatz-Icon unten rechts (.wireless-secure-icon, halbe Größe, ohne Abstand)
         RowLayout {
             visible: root.icon !== ""
             spacing: 0

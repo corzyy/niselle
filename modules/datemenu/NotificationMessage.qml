@@ -4,15 +4,12 @@ import Quickshell.Services.Notifications
 import qs
 import qs.services
 
-// Nachricht zu einer Benachrichtigung [messageList.js NotificationMessage]. Die Benachrichtigung wird gemerkt, solange sie
-// lebt; verschwindet sie (Schließen), zeigt die Karte beim Verkleinern weiter die letzten Werte.
 Message {
     id: root
 
     required property var notification
     property var now: new Date()
 
-    // Letzte bekannte Werte
     property string _title: ""
     property string _body: ""
     property string _appName: ""

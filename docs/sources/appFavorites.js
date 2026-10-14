@@ -7,7 +7,6 @@ class AppFavorites extends Signals.EventEmitter {
     constructor() {
         super();
 
-        // Filter the apps through the user’s parental controls.
         this._parentalControlsManager = ParentalControlsManager.getDefault();
         this._parentalControlsManager.connect('app-filter-changed',
             () => this._updateFavorites());
@@ -153,9 +152,6 @@ class AppFavorites extends Signals.EventEmitter {
 
 var appFavoritesInstance = null;
 
-/**
- * @returns {AppFavorites}
- */
 export function getAppFavorites() {
     if (appFavoritesInstance == null)
         appFavoritesInstance = new AppFavorites();

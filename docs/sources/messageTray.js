@@ -24,8 +24,6 @@ const LONGER_HIDE_TIMEOUT = 600;
 const MAX_NOTIFICATIONS_IN_QUEUE = 3;
 const MAX_NOTIFICATIONS_PER_SOURCE = 10;
 
-// We delay hiding of the tray if the mouse is within MOUSE_LEFT_ACTOR_THRESHOLD
-// range from the point where it left the tray.
 const MOUSE_LEFT_ACTOR_THRESHOLD = 20;
 
 const IDLE_TIME = 1000;
@@ -37,14 +35,6 @@ export const State = {
     HIDING:  3,
 };
 
-// These reasons are useful when we destroy the notifications received through
-// the notification daemon. We use EXPIRED for notifications that we dismiss
-// and the user did not interact with, DISMISSED for all other notifications
-// that were destroyed as a result of a user action, SOURCE_CLOSED for the
-// notifications that were requested to be destroyed by the associated source,
-// and REPLACED for notifications that were destroyed as a consequence of a
-// newer version having replaced them.
-/** @enum {number} */
 export const NotificationDestroyedReason = {
     EXPIRED: 1,
     DISMISSED: 2,
@@ -52,10 +42,6 @@ export const NotificationDestroyedReason = {
     REPLACED: 4,
 };
 
-// Message tray has its custom Urgency enumeration. LOW, NORMAL and CRITICAL
-// urgency values map to the corresponding values for the notifications received
-// through the notification daemon.
-/** @enum {number} */
 export const Urgency = {
     LOW: 0,
     NORMAL: 1,
@@ -63,13 +49,6 @@ export const Urgency = {
     CRITICAL: 3,
 };
 
-// The privacy of the details of a notification. USER is for notifications which
-// contain private information to the originating user account (for example,
-// details of an e-mail they’ve received). SYSTEM is for notifications which
-// contain information private to the physical system (for example, battery
-// status) and hence the same for every user. This affects whether the content
-// of a notification is shown on the lock screen.
-/** @enum {number} */
 export const PrivacyScope = {
     USER: 0,
     SYSTEM: 1,
@@ -134,11 +113,6 @@ class FocusGrabber {
     }
 }
 
-// NotificationPolicy:
-// An object that holds all bits of configurable policy related to a notification
-// source, such as whether to play sound or honour the critical bit.
-//
-// A notification without a policy object will inherit the default one.
 export const NotificationPolicy = GObject.registerClass({
     GTypeFlags: GObject.TypeFlags.ABSTRACT,
     Properties: {
@@ -161,17 +135,7 @@ export const NotificationPolicy = GObject.registerClass({
             GObject.ParamFlags.READABLE, false),
     },
 }, class NotificationPolicy extends GObject.Object {
-    /**
-     * Create a new policy for app.
-     *
-     * This will be a NotificationApplicationPolicy for valid apps,
-     * or a NotificationGenericPolicy otherwise.
-     *
-     * @param {Shell.App=} app
-     * @returns {NotificationPolicy}
-     */
     static newForApp(app) {
-        // fallback to generic policy
         if (!app?.get_app_info())
             return new NotificationGenericPolicy();
 
@@ -179,8 +143,6 @@ export const NotificationPolicy = GObject.registerClass({
         return new NotificationApplicationPolicy(id);
     }
 
-    // Do nothing for the default policy. These methods are only useful for the
-    // GSettings policy.
     store() { }
 
     destroy() {
@@ -283,8 +245,6 @@ export const NotificationApplicationPolicy = GObject.registerClass({
     }
 
     _canonicalizeId(id) {
-        // Keys are restricted to lowercase alphanumeric characters and dash,
-        // and two dashes cannot be in succession
         return id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
     }
 
@@ -361,11 +321,8 @@ export class Notification extends GObject.Object {
         if (!this.datetime)
             this.datetime = GLib.DateTime.new_now_local();
 
-        // Automatically update the datetime property when the notification
-        // is updated.
         this.connect('notify', (o, pspec) => {
             if (pspec.name === 'acknowledged') {
-                // Don't update datetime property
             } else if (pspec.name === 'datetime') {
                 if (this._updateDatetimeId)
                     GLib.source_remove(this._updateDatetimeId);
@@ -425,17 +382,10 @@ export class Notification extends GObject.Object {
         this.notify('urgency');
     }
 
-    // addAction:
-    // @label: the label for the action's button
-    // @callback: the callback for the action
     addAction(label, callback) {
         const action = new Action(label, () => {
             callback();
 
-            // We don't hide a resident notification when the user invokes one of its actions,
-            // because it is common for such notifications to update themselves with new
-            // information based on the action. We'd like to display the updated information
-            // in place, rather than pop-up a new notification.
             if (this.resident)
                 return;
 
@@ -477,14 +427,9 @@ export class Notification extends GObject.Object {
 
         this.emit('activated');
 
-        // Avoid double destruction after activation
         if (this._destroyed)
             return;
 
-        // We don't hide a resident notification when the user invokes one of its actions,
-        // because it is common for such notifications to update themselves with new
-        // information based on the action. We'd like to display the updated information
-        // in place, rather than pop-up a new notification.
         if (this.resident)
             return;
 
@@ -589,7 +534,6 @@ export const Source = GObject.registerClass({
         notification.connect('notify::acknowledged', () => {
             this.countUpdated();
 
-            // If acknowledged was set to false try to show the notification again
             if (!notification.acknowledged)
                 this.emit('notification-request-banner', notification);
         });
@@ -614,7 +558,6 @@ export const Source = GObject.registerClass({
         this.run_dispose();
     }
 
-    // To be overridden by subclasses
     open() {
     }
 
@@ -661,8 +604,6 @@ GObject.registerClass({
             'datetime', null, null,
             GObject.ParamFlags.READWRITE,
             GLib.DateTime),
-        // Unfortunately we can't register new enum types in GJS
-        // See: https://gitlab.gnome.org/GNOME/gjs/-/issues/573
         'privacy-scope': GObject.ParamSpec.int(
             'privacy-scope', null, null,
             GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT,
@@ -767,15 +708,8 @@ export class MessageTray extends St.Widget {
 
         this._useLongerNotificationLeftTimeout = false;
 
-        // pointerInNotification is sort of a misnomer -- it tracks whether
-        // a message tray notification should expand. The value is
-        // partially driven by the hover state of the notification, but has
-        // a lot of complex state related to timeouts and the current
-        // state of the pointer when a notification pops up.
         this._pointerInNotification = false;
 
-        // This tracks this._bannerBin.hover and is used to fizzle
-        // out non-changing hover notifications in onNotificationHoverChanged.
         this._notificationHovered = false;
 
         this._notificationState = State.HIDDEN;
@@ -866,7 +800,6 @@ export class MessageTray extends St.Widget {
             return;
         }
 
-        // Register that we got a notification for this source
         source.policy.store();
 
         source.policy.connect('notify::enable', () => {
@@ -928,7 +861,6 @@ export class MessageTray extends St.Widget {
     }
 
     _onNotificationRequestBanner(_source, notification) {
-        // We never display a banner for already acknowledged notifications
         if (notification.acknowledged)
             return;
 
@@ -939,15 +871,8 @@ export class MessageTray extends St.Widget {
             return;
 
         if (this._notification === notification) {
-            // If a notification that is being shown is updated, we update
-            // how it is shown and extend the time until it auto-hides.
-            // If a new notification is updated while it is being hidden,
-            // we stop hiding it and show it again.
             this._updateShowingNotification();
         } else if (!this._notificationQueue.includes(notification)) {
-            // If the queue is "full", we skip banner mode and just show a small
-            // indicator in the panel; however do make an exception for CRITICAL
-            // notifications, as only banner mode allows expansion.
             const bannerCount = this._notification ? 1 : 0;
             const full = this.queueCount + bannerCount >= MAX_NOTIFICATIONS_IN_QUEUE;
             if (!full || notification.urgency === Urgency.CRITICAL) {
@@ -983,11 +908,6 @@ export class MessageTray extends St.Widget {
                     global.stage.get_actor_at_pos(Clutter.PickMode.ALL, this._showNotificationMouseX, this._showNotificationMouseY);
                 this._showNotificationMouseX = -1;
                 this._showNotificationMouseY = -1;
-                // Don't set this._pointerInNotification to true if the pointer was initially in the area where the notification
-                // popped up. That way we will not be expanding notifications that happen to pop up over the pointer
-                // automatically. Instead, the user is able to expand the notification by mousing away from it and then
-                // mousing back in. Because this is an expected action, we set the boolean flag that indicates that a longer
-                // timeout should be used before popping down the notification.
                 if (this._bannerBin.contains(actorAtShowNotificationPosition)) {
                     this._useLongerNotificationLeftTimeout = true;
                     return;
@@ -997,17 +917,10 @@ export class MessageTray extends St.Widget {
             this._pointerInNotification = true;
             this._updateState();
         } else {
-            // We record the position of the mouse the moment it leaves the tray. These coordinates are used in
-            // this._onNotificationLeftTimeout() to determine if the mouse has moved far enough during the initial timeout for us
-            // to consider that the user intended to leave the tray and therefore hide the tray. If the mouse is still
-            // close to its previous position, we extend the timeout once.
             const [x, y] = global.get_pointer();
             this._notificationLeftMouseX = x;
             this._notificationLeftMouseY = y;
 
-            // We wait just a little before hiding the message tray in case the user quickly moves the mouse back into it.
-            // We wait for a longer period if the notification popped up where the mouse pointer was already positioned.
-            // That gives the user more time to mouse away from the notification and mouse back in in order to expand it.
             const timeout = this._useLongerNotificationLeftTimeout ? LONGER_HIDE_TIMEOUT : HIDE_TIMEOUT;
             this._notificationLeftTimeoutId = GLib.timeout_add_once(GLib.PRIORITY_DEFAULT, timeout, this._onNotificationLeftTimeout.bind(this));
             GLib.Source.set_name_by_id(this._notificationLeftTimeoutId, '[gnome-shell] this._onNotificationLeftTimeout');
@@ -1016,13 +929,9 @@ export class MessageTray extends St.Widget {
 
     _onStatusChanged(status) {
         if (status === GnomeSession.PresenceStatus.BUSY) {
-            // remove notification and allow the summary to be closed now
             this._updateNotificationTimeout(0);
             this._busy = true;
         } else if (status !== GnomeSession.PresenceStatus.IDLE) {
-            // We preserve the previous value of this._busy if the status turns to IDLE
-            // so that we don't start showing notifications queued during the BUSY state
-            // as the screensaver gets activated.
             this._busy = false;
         }
 
@@ -1031,7 +940,6 @@ export class MessageTray extends St.Widget {
 
     _onNotificationLeftTimeout() {
         const [x, y] = global.get_pointer();
-        // We extend the timeout once if the mouse moved no further than MOUSE_LEFT_ACTOR_THRESHOLD to either side.
         if (this._notificationLeftMouseX > -1 &&
             y < this._notificationLeftMouseY + MOUSE_LEFT_ACTOR_THRESHOLD &&
             y > this._notificationLeftMouseY - MOUSE_LEFT_ACTOR_THRESHOLD &&
@@ -1052,25 +960,17 @@ export class MessageTray extends St.Widget {
         }
     }
 
-    // All of the logic for what happens when occurs here; the various
-    // event handlers merely update variables such as
-    // 'this._pointerInNotification', 'this._traySummoned', etc, and
-    // _updateState() figures out what (if anything) needs to be done
-    // at the present time.
     _updateState() {
         const hasMonitor = Main.layoutManager.primaryMonitor != null;
         this.visible = !this._bannerBlocked && hasMonitor && this._banner != null;
         if (this._bannerBlocked || !hasMonitor)
             return;
 
-        // If our state changes caused _updateState to be called,
-        // just exit now to prevent reentrancy issues.
         if (this._updatingState)
             return;
 
         this._updatingState = true;
 
-        // Filter out acknowledged notifications.
         let changed = false;
         this._notificationQueue = this._notificationQueue.filter(n => {
             changed ||= n.acknowledged;
@@ -1113,8 +1013,6 @@ export class MessageTray extends St.Widget {
 
         this._updatingState = false;
 
-        // Clean transient variables that are used to communicate actions
-        // to updateState()
         this._notificationExpired = false;
     }
 
@@ -1130,8 +1028,6 @@ export class MessageTray extends St.Widget {
 
         this._userActiveWhileNotificationShown = this.idleMonitor.get_idletime() <= IDLE_TIME;
         if (!this._userActiveWhileNotificationShown) {
-            // If the user isn't active, set up a watch to let us know
-            // when the user becomes active.
             this.idleMonitor.add_user_active_watch(this._onIdleMonitorBecameActive.bind(this));
         }
 
@@ -1150,16 +1046,8 @@ export class MessageTray extends St.Widget {
         this._updateShowingNotification();
 
         const [x, y] = global.get_pointer();
-        // We save the position of the mouse at the time when we started showing the notification
-        // in order to determine if the notification popped up under it. We make that check if
-        // the user starts moving the mouse and _onNotificationHoverChanged() gets called. We don't
-        // expand the notification if it just happened to pop up under the mouse unless the user
-        // explicitly mouses away from it and then mouses back in.
         this._showNotificationMouseX = x;
         this._showNotificationMouseY = y;
-        // We save the coordinates of the mouse at the time when we started showing the notification
-        // and then we update it in _notificationTimeout(). We don't pop down the notification if
-        // the mouse is moving towards it or within it.
         this._lastSeenMouseX = x;
         this._lastSeenMouseY = y;
 
@@ -1170,22 +1058,10 @@ export class MessageTray extends St.Widget {
         this._notification.acknowledged = true;
         this._notification.playSound();
 
-        // We auto-expand notifications with CRITICAL urgency, or for which the relevant setting
-        // is on in the control center.
         if (this._notification.urgency === Urgency.CRITICAL ||
             this._notification.source.policy.forceExpanded)
             this._expandBanner(true);
 
-        // We tween all notifications to full opacity. This ensures that both new notifications and
-        // notifications that might have been in the process of hiding get full opacity.
-        //
-        // We tween any notification showing in the banner mode to the appropriate height
-        // (which is banner height or expanded height, depending on the notification state)
-        // This ensures that both new notifications and notifications in the banner mode that might
-        // have been in the process of hiding are shown with the correct height.
-        //
-        // We use this._showNotificationCompleted() onComplete callback to extend the time the updated
-        // notification is being shown.
 
         this._notificationState = State.SHOWING;
         this._bannerBin.remove_all_transitions();
@@ -1232,16 +1108,9 @@ export class MessageTray extends St.Widget {
     _notificationTimeout() {
         const [x, y] = global.get_pointer();
         if (y < this._lastSeenMouseY - 10 && !this._notificationHovered) {
-            // The mouse is moving towards the notification, so don't
-            // hide it yet. (We just create a new timeout (and destroy
-            // the old one) each time because the bookkeeping is
-            // simpler.)
             this._updateNotificationTimeout(1000);
         } else if (this._useLongerNotificationLeftTimeout && !this._notificationLeftTimeoutId &&
                   (x !== this._lastSeenMouseX || y !== this._lastSeenMouseY)) {
-            // Refresh the timeout if the notification originally
-            // popped up under the pointer, and the pointer is hovering
-            // inside it.
             this._updateNotificationTimeout(1000);
         } else {
             this._notificationTimeoutId = 0;
@@ -1302,10 +1171,8 @@ export class MessageTray extends St.Widget {
     }
 
     _expandBanner(autoExpanding) {
-        // Don't animate changes in notifications that are auto-expanding.
         this._banner.expand(!autoExpanding);
 
-        // Don't focus notifications that are auto-expanding.
         if (!autoExpanding)
             this._ensureBannerFocused();
     }
@@ -1317,11 +1184,6 @@ export class MessageTray extends St.Widget {
 
 let systemNotificationSource = null;
 
-/**
- * The {Source} that should be used to send system notifications.
- *
- * @returns {Source}
- */
 export function getSystemSource() {
     if (!systemNotificationSource) {
         systemNotificationSource = new Source({

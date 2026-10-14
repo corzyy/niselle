@@ -13,24 +13,9 @@ export const PopupAnimation = {
 
 export const POPUP_ANIMATION_TIME = 150;
 
-/**
- * BoxPointer:
- *
- * An actor which displays a triangle "arrow" pointing to a given
- * side.  The .bin property is a container in which content can be
- * placed.  The arrow position may be controlled via
- * setArrowOrigin(). The arrow side might be temporarily flipped
- * depending on the box size and source position to keep the box
- * totally inside the monitor workarea if possible.
- *
- */
 export const BoxPointer = GObject.registerClass({
     Signals: {'arrow-side-changed': {}},
 }, class BoxPointer extends St.Widget {
-    /**
-     * @param {*} arrowSide side to draw the arrow on
-     * @param {*} binProperties Properties to set on contained bin
-     */
     _init(arrowSide, binProperties) {
         super._init();
 
@@ -299,8 +284,6 @@ export const BoxPointer = GObject.registerClass({
 
         const cr = area.get_context();
 
-        // Translate so that box goes from 0,0 to boxWidth,boxHeight,
-        // with the arrow poking out of that
         if (this._arrowSide === St.Side.TOP)
             cr.translate(0, rise);
         else if (this._arrowSide === St.Side.LEFT)
@@ -485,7 +468,6 @@ export const BoxPointer = GObject.registerClass({
         this._sourceExtents = sourceActor.get_transformed_extents();
         this._workArea = Main.layoutManager.getWorkAreaForMonitor(monitorIndex);
 
-        // Position correctly relative to the sourceActor
         const sourceAllocation = sourceActor.get_allocation_box();
         const sourceContentBox = sourceActor instanceof St.Widget
             ? sourceActor.get_theme_node().get_content_box(sourceAllocation)
@@ -499,9 +481,6 @@ export const BoxPointer = GObject.registerClass({
         const sourceCenterY = sourceTopLeft.y + sourceContentBox.y1 + (sourceContentBox.y2 - sourceContentBox.y1) * this._sourceAlignment;
         const [, , natWidth, natHeight] = this.get_preferred_size();
 
-        // We also want to keep it onscreen, and separated from the
-        // edge by the same distance as the main part of the box is
-        // separated from its sourceActor
         const workarea = this._workArea;
         const themeNode = this.get_theme_node();
         const borderWidth = themeNode.get_length('-arrow-border-width');
@@ -529,16 +508,6 @@ export const BoxPointer = GObject.registerClass({
             break;
         }
 
-        // Now align and position the pointing axis, making sure it fits on
-        // screen. If the arrowOrigin is so close to the edge that the arrow
-        // will not be isosceles, we try to compensate as follows:
-        //   - We skip the rounded corner and settle for a right angled arrow
-        //     as shown below. See _drawBorder for further details.
-        //     |\_____
-        //     |
-        //     |
-        //   - If the arrow was going to be acute angled, we move the position
-        //     of the box to maintain the arrow's accuracy.
 
         let arrowOrigin;
         const halfBase = Math.floor(arrowBase / 2);
@@ -599,13 +568,9 @@ export const BoxPointer = GObject.registerClass({
             parent = parent.get_parent();
         }
 
-        // Actually set the position
         allocationBox.set_origin(Math.floor(x), Math.floor(y));
     }
 
-    // @origin: Coordinate specifying middle of the arrow, along
-    // the Y axis for St.Side.LEFT, St.Side.RIGHT from the top and X axis from
-    // the left for St.Side.TOP and St.Side.BOTTOM.
     setArrowOrigin(origin) {
         if (this._arrowOrigin !== origin) {
             this._arrowOrigin = origin;
@@ -613,9 +578,6 @@ export const BoxPointer = GObject.registerClass({
         }
     }
 
-    // @actor: an actor relative to which the arrow is positioned.
-    // Differently from setPosition, this will not move the boxpointer itself,
-    // on the arrow
     setArrowActor(actor) {
         if (this._arrowActor !== actor) {
             this._arrowActor = actor;

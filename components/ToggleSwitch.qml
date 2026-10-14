@@ -1,7 +1,6 @@
 import QtQuick
 import qs
 
-// .toggle-switch [_switches.scss:1-53]: 46 × 26px, Griff 20px mit 3px Rand, Übergang 100 ms.
 Item {
     id: root
 

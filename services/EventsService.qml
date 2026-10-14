@@ -4,26 +4,17 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Termine für Kalender und Terminliste im Datumsmenü [calendar.js EventSourceBase/DBusEventSource, dateMenu.js].
-// Quelle:
-//   "khal": `khal list --json …`, neu gelesen, wenn das Menü öffnet oder sich der sichtbare Monat ändert.
-//   "":     khal fehlt; `available` bleibt false und der Terminbereich wird ausgeblendet.
-// NISELLE_DATEMENU_DEMO=1 liefert feste Beispieltermine.
 Singleton {
     id: root
 
     readonly property bool demo: Quickshell.env("NISELLE_DATEMENU_DEMO") === "1"
 
-    // Es gibt mindestens einen Kalender (hasCalendars)
     readonly property bool available: demo || backend === "khal"
     readonly property bool loading: _loading
-    // "khal" oder ""
     readonly property string backend: _backend
 
-    // [{ id, summary, start: Date, end: Date, allDay }]
     readonly property var events: demo ? _demoEvents : _events
 
-    // Sichtbaren Bereich setzen (Kalender: 6 Wochen). Holt die Termine, wenn sich der Bereich ändert oder `force`.
     function requestRange(begin, end, force) {
         if (!force && _rangeBegin && _rangeBegin.getTime() === begin.getTime() && _rangeEnd.getTime() === end.getTime())
             return;
@@ -31,13 +22,11 @@ Singleton {
         _rangeEnd = new Date(end);
         _reload();
     }
-    // Erneut lesen (Menü wird geöffnet)
     function refresh() {
         if (_rangeBegin)
             _reload();
     }
 
-    // Termine, die [begin, end) berühren, nach Beginn sortiert [calendar.js DBusEventSource.getEvents]
     function getEvents(begin, end) {
         return events.filter(e => e.start < end && (e.end > begin || (e.start.getTime() === e.end.getTime() && e.start >= begin))).sort((a, b) => a.start - b.start || a.end - b.end);
     }
@@ -58,7 +47,6 @@ Singleton {
             _khalList();
     }
 
-    // ───────── Erkennung ─────────
 
     Process {
         running: !root.demo
@@ -72,15 +60,11 @@ Singleton {
         }
     }
 
-    // Ganztägig: beginnt und endet um Mitternacht
     function _isAllDay(start, end) {
         const midnight = d => d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0;
         return midnight(start) && midnight(end) && end > start;
     }
 
-    // ───────── khal ─────────
-    // Datumsformate hängen von der khal-Konfiguration ab: `khal printformats` zeigt sie am Beispiel 21.12.2013 10:09,
-    // daraus werden Formatierer und Parser abgeleitet.
 
     property string _khalDateFormat: ""
     property string _khalDateTimeFormat: ""
@@ -99,7 +83,6 @@ Singleton {
                     else if (m[1] === "longdatetimeformat")
                         root._khalDateTimeFormat = m[2];
                 }
-                // Nur numerische Formate lassen sich sicher zurücklesen
                 if (!/2013/.test(root._khalDateFormat) || /[A-Za-z]{3,}/.test(root._khalDateTimeFormat.replace(/AM|PM/, "")))
                     root._backend = "";
                 else
@@ -116,7 +99,6 @@ Singleton {
         return _khalDateFormat.replace(/2013|12|21/g, t => t === "2013" ? String(d.getFullYear()) : t === "12" ? _pad(d.getMonth() + 1) : _pad(d.getDate()));
     }
 
-    // Beispiel "21.12.2013 10:09" → Regex mit Gruppen in der Reihenfolge des Formats
     function _khalParse(s) {
         const tokens = [["2013", "y"], ["21", "d"], ["12", "M"], ["10", "h"], ["09", "m"], ["AM", "p"]];
         let pattern = _khalDateTimeFormat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -170,7 +152,6 @@ Singleton {
                         if (!start || !end)
                             continue;
                         const allDay = String(it["all-day"]).toLowerCase() === "true";
-                        // khal nennt bei ganztägigen Terminen den letzten Tag; GNOME rechnet mit exklusivem Ende
                         if (allDay)
                             end = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
                         list.push({
@@ -188,7 +169,6 @@ Singleton {
         onExited: root._loading = false
     }
 
-    // ───────── Beispieldaten ─────────
 
     readonly property var _demoEvents: {
         const now = new Date();

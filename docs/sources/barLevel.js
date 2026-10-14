@@ -147,7 +147,6 @@ export const BarLevel = GObject.registerClass({
         if (rtl)
             [xcArcStart, xcArcEnd] = [xcArcEnd, xcArcStart];
 
-        /* background bar */
         if (!rtl)
             cr.arc(xcArcEnd, height / 2, barLevelBorderRadius, TAU * (3 / 4), TAU * (1 / 4));
         else
@@ -158,7 +157,6 @@ export const BarLevel = GObject.registerClass({
         cr.setSourceColor(this._barLevelColor);
         cr.fill();
 
-        /* normal progress bar */
         let x = 0;
         if (!rtl) {
             x = Math.min(endX, overdriveSeparatorX - overdriveSeparatorWidth / 2);
@@ -174,7 +172,6 @@ export const BarLevel = GObject.registerClass({
             cr.setSourceColor(this._barLevelActiveColor);
         cr.fill();
 
-        /* overdrive progress barLevel */
         if (!rtl)
             x = Math.min(endX, overdriveSeparatorX) + overdriveSeparatorWidth / 2;
         else
@@ -189,7 +186,6 @@ export const BarLevel = GObject.registerClass({
             cr.fill();
         }
 
-        /* end progress bar arc */
         if (this._value > 0) {
             if (this._value <= this._overdriveStart)
                 cr.setSourceColor(this._barLevelActiveColor);
@@ -208,7 +204,6 @@ export const BarLevel = GObject.registerClass({
             cr.fill();
         }
 
-        /* draw overdrive separator */
         if (overdriveActive) {
             cr.moveTo(overdriveSeparatorX - overdriveSeparatorWidth / 2, (height - this._barLevelHeight) / 2);
             cr.lineTo(overdriveSeparatorX + overdriveSeparatorWidth / 2, (height - this._barLevelHeight) / 2);

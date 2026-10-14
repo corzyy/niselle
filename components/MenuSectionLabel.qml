@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// Abschnittsbeschriftung in Untermenüs (z. B. „WLAN“, „Kabelgebunden“). Linksbündig, gedämpft.
 Item {
     id: root
 

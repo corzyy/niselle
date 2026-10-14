@@ -5,19 +5,12 @@ import qs.services
 import qs.components
 import ".."
 
-// Tastatur: Eingabequellen (Hyprland-Layouts) und Tastenkürzel wie in GNOMEs Einstellungen → Tastatur:
-// gegliedert in Niselle und Hyprland (Hyprland weiter in Anwendungen, Fenster, Arbeitsflächen, Lautstärke & Helligkeit,
-// Medien, Bildschirmfotos). Ein Klick auf eine Zeile öffnet den „Kürzel festlegen“-Dialog (Esc = abbrechen,
-// Rücktaste = abschalten). Katalog und Anwenden: KeybindService.
 SettingsPage {
     id: root
 
-    // Eintrag, dessen Kürzel gerade erfasst wird
     property string captureId: ""
-    // Erfasste Kombination und ggf. der Eintrag, den sie belegt
     property string captured: ""
     property string capturedConflict: ""
-    // Taste ohne nötigen Modifikator gedrückt
     property bool needsModifier: false
 
     readonly property var captureEntry: KeybindService.entries[captureId]
@@ -35,7 +28,6 @@ SettingsPage {
         KeybindService.captureEnd();
     }
 
-    // Nie in der Erfassungs-Submap hängen bleiben (Fenster geschlossen, Seite gewechselt, Dialog verschwunden)
     Component.onDestruction: if (captureId !== "")
         KeybindService.captureEnd()
     onVisibleChanged: if (!visible && captureId !== "")
@@ -54,7 +46,6 @@ SettingsPage {
         }
         const combo = KeybindService.fromEvent(event.key, event.modifiers, event.nativeScanCode);
         if (combo === "") {
-            // nur Modifikatoren: Vorschau der gehaltenen Modifikatoren
             const mods = [];
             if (event.modifiers & Qt.MetaModifier)
                 mods.push("SUPER");
@@ -84,7 +75,6 @@ SettingsPage {
         }
     }
 
-    // Tastenkappe wie GNOMEs Shortcut-Label (.keycap)
     component KeyCap: Rectangle {
         property string label: ""
 
@@ -105,7 +95,6 @@ SettingsPage {
         }
     }
 
-    // Eine Tastenkombination: Kappen mit „+“ dazwischen; leer = „Disabled“
     component Combo: RowLayout {
         property string combo: ""
         property color textColor: Theme.windowFg
@@ -250,7 +239,6 @@ SettingsPage {
         }
     }
 
-    // „Kürzel festlegen“ wie in GNOME: Vorschau der gedrückten Kombination, Hinweis, bei Konflikt Ersetzen
     ModalDialog {
         id: captureDialog
         open: root.captureId !== ""
@@ -280,7 +268,6 @@ SettingsPage {
             root.endCapture();
         }
 
-        // Fängt jede Taste ab (auch Return/Rücktaste), bevor der Dialog sie als Abbruch/OK wertet
         Item {
             Layout.fillWidth: true
             implicitHeight: preview.implicitHeight

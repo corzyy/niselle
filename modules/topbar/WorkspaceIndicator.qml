@@ -5,9 +5,6 @@ import qs
 import qs.services
 import qs.components
 
-// Arbeitsflächen-Pillen wie ActivitiesButton/WorkspaceIndicators [panel.js:44-283]: je Fläche ein Punkt,
-// der aktive wird breiter. Dynamische Flächen kommen vom WorkspaceService (immer eine leere am Ende).
-// Klick schaltet die Übersicht, Mausrad wechselt die Fläche.
 Pill {
     id: root
 
@@ -24,7 +21,6 @@ Pill {
     readonly property int activeIndex: Math.max(0, list.findIndex(w => w.active))
     readonly property real multiplier: Theme.workspaceDotWidthMultiplier(count)
 
-    // Gleitende Position des aktiven Punkts (Adjustment-Wert im Original), Wechsel läuft 250 ms
     property real position: activeIndex
     Behavior on position {
         enabled: !Theme.gameMode
@@ -34,7 +30,6 @@ Pill {
         }
     }
 
-    // Beim Start erscheinen die Punkte ohne Einblend-Animation
     property bool settled: false
     Timer {
         interval: 1
@@ -49,7 +44,6 @@ Pill {
 
     readonly property bool numbered: SettingsService.barWorkspaceStyle === "numbers"
 
-    // Zahlen statt Punkte: die aktive Fläche steht fett und voll deckend, die übrigen gedämpft
     Row {
         visible: root.numbered
         spacing: Theme.workspaceDotSpacing
@@ -68,7 +62,6 @@ Pill {
         }
     }
 
-    // StBoxLayout padding 0 3px [_panel:48-51]
     Item {
         visible: !root.numbered
         implicitWidth: dots.implicitWidth + Theme.basePadding
@@ -124,8 +117,6 @@ Pill {
         }
     }
 
-    // Mausrad: eine Fläche je Rastschritt, mit kurzer Sperre gegen schnelle Folgen.
-    // Das Ereignis kommt von der Pill-Klickfläche, damit die ganze Pille reagiert.
     property bool wheelBlocked: false
 
     onWheeled: (dx, dy, x, y) => {

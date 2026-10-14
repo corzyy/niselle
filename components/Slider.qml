@@ -1,31 +1,24 @@
 import QtQuick
 import qs
 
-// GNOME-Slider (St.Slider über St.BarLevel) [slider.js, barLevel.js:117-190, _slider.scss]:
-// 4px-Trog mit runden Enden, Füllung in Akzentfarbe, Griff als Kreis (Radius 8) in der Textfarbe,
-// Overdrive-Bereich in Destructive-Farbe mit 1px-Trenner. Bedienung: Ziehen, Mausrad (0.02/Raste),
-// Pfeiltasten (0.1), Einrasten an `marks` (4 %).
 Item {
     id: root
 
     property real value: 0
     property real maximumValue: 1
     property real overdriveStart: maximumValue
-    // Werte, an denen der Griff einrastet [slider.js:8, 87-94]
     property var marks: []
 
     readonly property bool pressed: mouse.pressed
     readonly property bool hovered: mouse.containsMouse
     readonly property real handleRadius: Theme.sliderHandleSize / 2
-    // Griff-Zentrum und Balkenende [slider.js:116-117, barLevel.js:123-133]
     readonly property real barRadius: Math.min(width, Theme.sliderTroughHeight) / 2
     readonly property real handleX: handleRadius + (width - 2 * handleRadius) * value / maximumValue
     readonly property real endX: maximumValue > 0 ? barRadius + (width - 2 * barRadius) * value / maximumValue : 0
     readonly property real overdriveX: barRadius + (width - 2 * barRadius) * overdriveStart / maximumValue
     readonly property bool overdriveActive: overdriveStart !== maximumValue
-    readonly property real separatorWidth: overdriveActive ? 1 : 0 // -barlevel-overdrive-separator-width [_slider.scss:15]
+    readonly property real separatorWidth: overdriveActive ? 1 : 0
 
-    // Nur bei Benutzerinteraktion
     signal moved(real value)
     signal dragStarted
     signal dragEnded
@@ -56,7 +49,6 @@ Item {
         moved(next);
     }
 
-    // Verschiebt ausgehend vom ungesnappten Wert, damit man Einrastpunkte per Rad/Taste verlassen kann [slider.js:171-182]
     function _applyDelta(delta) {
         const base = _unsnapped ?? value;
         _unsnapped = _clamp(base + delta);
@@ -84,7 +76,6 @@ Item {
             _unsnapped = null;
     }
 
-    // Trog
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         width: parent.width
@@ -93,7 +84,6 @@ Item {
         color: Theme.sliderTrough
     }
 
-    // Aktive Füllung: links rund, rechts gerade (abgeschnitten am Ende bzw. am Overdrive-Trenner)
     Item {
         anchors.verticalCenter: parent.verticalCenter
         height: Theme.sliderTroughHeight
@@ -109,7 +99,6 @@ Item {
         }
     }
 
-    // Overdrive-Bereich [barLevel.js:177-190]
     Rectangle {
         readonly property real startX: Math.min(root.endX, root.overdriveX) + root.separatorWidth / 2
         visible: root.overdriveActive && root.value > root.overdriveStart
@@ -120,7 +109,6 @@ Item {
         color: Theme.destructive
     }
 
-    // Griff
     Rectangle {
         x: root.handleX - root.handleRadius
         y: (root.height - height) / 2
@@ -130,7 +118,6 @@ Item {
         color: (root.hovered || root.pressed) ? Theme.sliderHandleHover : Theme.sliderHandle
     }
 
-    // Fokusring um den ganzen Slider (.slider-bin:focus) [_quick-settings.scss:143-147]
     Rectangle {
         anchors.fill: parent
         anchors.margins: -Theme.sliderBinPadding
@@ -157,7 +144,6 @@ Item {
         }
         onReleased: root.dragEnded()
         onWheel: w => {
-            // diskrete Rastung: eine Raste = ein Schritt [slider.js:66-73]
             root.step(w.angleDelta.y / 120);
             w.accepted = true;
         }

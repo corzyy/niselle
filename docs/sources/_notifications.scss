@@ -1,9 +1,7 @@
-/* Notifications & Message Tray */
 
 $notification_banner_height: 64px;
 $notification_banner_width: 34em;
 
-// Banner notifications
 .notification-banner {
   min-height: $notification_banner_height;
   width: $notification_banner_width;

@@ -4,7 +4,6 @@ import qs.services
 import qs.components
 import ".."
 
-// System: Datum und Uhrzeit sowie Standardanwendungen.
 SettingsPage {
     id: root
 

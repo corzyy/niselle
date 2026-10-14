@@ -4,25 +4,10 @@ import Quickshell
 import qs
 import qs.services
 
-// Uhr und Datum des Sperrbildschirms (Vorhang). Sie füllt ihren Elternteil und richtet den Block
-// selbst aus, damit Sperrbildschirm und Einstellungs-Vorschau dieselbe Darstellung teilen.
-//
-// Das Aussehen kommt aus den Lockscreen-Einstellungen (SettingsService.lock*):
-//   lockClockStyle    inline (eine Zeile) | stacked (Stunden über Minuten) | minimal | mono
-//   lockClockSize     s | m | l | xl
-//   lockClockWeight   light | regular | bold | extra
-//   lockClockPosition top | upper | center | lower
-//   lockClockColor    auto (weiß) | accent
-//   lockDateFormat    long | full | short | numeric | weekday | none
-//   lockDateUppercase
-//   lockShowHint
-// Vorbilder: Material 3 Expressive (flexible Uhr) und GNOME Screen Shield.
 Item {
     id: root
 
-    // Vorschaufenster: den Hinweis sofort zeigen, ohne Wartezeit
     property bool hintAlways: false
-    // Nur auf dem Vorhang aktiv: setzt den Hinweis zurück und startet den Timer neu
     property bool active: true
 
     readonly property color white: "#ffffff"
@@ -129,7 +114,6 @@ Item {
             autoPaddingEnabled: true
         }
 
-        // Uhr, eine Zeile
         Text {
             visible: !root.stacked
             anchors.horizontalCenter: parent.horizontalCenter
@@ -144,7 +128,6 @@ Item {
             }
         }
 
-        // Uhr, gestapelt: Stunden über Minuten (Material 3 Expressive)
         Column {
             visible: root.stacked
             anchors.horizontalCenter: parent.horizontalCenter
@@ -191,7 +174,6 @@ Item {
             }
         }
 
-        // Datum
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: root.dateText !== ""
@@ -205,7 +187,6 @@ Item {
             font.letterSpacing: SettingsService.lockDateUppercase ? 1 : 0
         }
 
-        // Hinweis, erscheint nach kurzer Untätigkeit
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: root.hintVisible

@@ -4,12 +4,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Standardanwendungen je Kategorie (Web, Mail, …). Abfrage über `gio mime` (Standard und passende Anwendungen),
-// Setzen über `xdg-mime default` für alle MIME-Typen der Kategorie (schreibt ~/.config/mimeapps.list).
 Singleton {
     id: root
 
-    // mimes[0] wird abgefragt, `xdg-mime default` setzt alle
     readonly property var categories: [
         {
             "id": "web",
@@ -67,7 +64,6 @@ Singleton {
         }
     ]
 
-    // { [categoryId]: { current: Desktop-ID oder "", candidates: [Desktop-ID] } }
     property var state: ({})
 
     function currentId(category) {
@@ -85,7 +81,6 @@ Singleton {
     function refresh() {
         if (query.running)
             return;
-        // Pro Kategorie ein Block „## id“, danach die Ausgabe von gio (LC_ALL=C: feste Überschriften)
         const script = root.categories.map(c => `echo "## ${c.id}"; LC_ALL=C gio mime ${c.mimes[0]} 2>/dev/null`).join("; ");
         query.command = ["sh", "-c", script];
         query.running = true;
@@ -116,7 +111,6 @@ Singleton {
                     cur.candidates.push(id);
             }
         }
-        // Der Standard gehört immer zur Auswahl
         for (const k in out)
             if (out[k].current && out[k].candidates.indexOf(out[k].current) < 0)
                 out[k].candidates.unshift(out[k].current);

@@ -6,41 +6,25 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import qs
 
-// Bildschirmfoto-/Aufnahme-Oberfläche wie bei GNOME (screenshotUI.js): Overlay mit Auswahl (Bereich, Bildschirm, Fenster),
-// Umschalter Foto/Aufnahme, Mauszeiger-Schalter und Auslöser. Die Oberfläche selbst zeichnet modules/screenshot; hier liegen
-// Zustand, Fensterliste (hyprctl) und die Aufnahme: Fotos macht grim (Ergebnis im XDG-Bilderordner, in der Zwischen-
-// ablage und als Benachrichtigung), Videos der Rekorder aus ScreenRecordingService. Alle Koordinaten sind globale
-// Layout-Koordinaten (wie grim -g und wf-recorder -g sie erwarten).
 Singleton {
     id: root
 
-    // grim ist installiert (Auswahl zeichnet die Shell selbst, slurp wird nicht gebraucht)
     property bool canScreenshot: false
     readonly property bool canRecord: ScreenRecordingService.canRecord
 
-    // Oberfläche sichtbar
     property bool open: false
-    // "screenshot" | "record"
     property string kind: "screenshot"
-    // "selection" | "screen" | "window"
     property string mode: "selection"
     property bool showPointer: false
-    // Monitor, auf dem das Bedienfeld liegt (der beim Öffnen fokussierte, wie bei GNOME der primäre)
     property string panelScreen: ""
-    // Gewählter Monitor im Bildschirmmodus bzw. Monitor der Bereichsauswahl
     property string activeScreen: ""
-    // Bereichsauswahl (global)
     property rect selection: Qt.rect(0, 0, 0, 0)
-    // Im Fenstermodus gewähltes Fenster: Adresse und Rechteck (global, Breite 0 = keins)
     property string windowAddress: ""
     property rect windowTarget: Qt.rect(0, 0, 0, 0)
-    // Sichtbare Fenster [{address, x, y, w, h, title}], oberstes zuerst
     property var windows: []
 
-    // Pause zwischen Schließen der Oberfläche und Aufnahme, damit das Overlay sicher aus dem Bild ist
     readonly property int hideDelay: 450
 
-    // Aufnahme gewählt, aber kein Rekorder installiert
     function warnNoRecorder() {
         Quickshell.execDetached(["notify-send", "-a", "Screenshot", "Bildschirmaufnahme nicht verfügbar", "wf-recorder oder wl-screenrec ist nicht installiert (Fedora: sudo dnf install wf-recorder)."]);
     }
@@ -79,7 +63,6 @@ Singleton {
             root.show(kind);
     }
 
-    // Vorgabe wie bei GNOME: mittig, halbe Bildschirmgröße
     function selectWindow(w) {
         root.windowAddress = w.address;
         root.windowTarget = Qt.rect(w.x, w.y, w.w, w.h);
@@ -90,7 +73,6 @@ Singleton {
         root.selection = Qt.rect(scr.x + Math.round((scr.width - w) / 2), scr.y + Math.round((scr.height - h) / 2), w, h);
     }
 
-    // Rechteck, das der Auslöser gerade erfasst (Breite 0: nichts wählbar)
     function currentTarget() {
         if (root.mode === "selection")
             return root.selection;
@@ -128,14 +110,12 @@ Singleton {
                 ScreenRecordingService.startArea(root._pendingGeom);
                 return;
             }
-            // $1 Bereich, $2 "-c" (Zeiger aufnehmen) oder leer
             const script = 'dir=$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME/Pictures"); mkdir -p "$dir" || exit 1; ' + 'file="$dir/$(date +"Screenshot from %Y-%m-%d %H-%M-%S").png"; ' + 'grim $2 -g "$1" "$file" || { notify-send -a Screenshot "Bildschirmfoto fehlgeschlagen"; exit 1; }; ' + 'command -v wl-copy >/dev/null && wl-copy --type image/png < "$file"; ' + 'notify-send -a Screenshot -i "$file" "Bildschirmfoto aufgenommen" "$file"';
             console.log("ScreenshotService: grim", root._pendingGeom);
             Quickshell.execDetached(["sh", "-c", script, "sh", root._pendingGeom, root._pendingPointer ? "-c" : ""]);
         }
     }
 
-    // Fenster der sichtbaren Arbeitsbereiche, Schwebende vor gekachelten, jeweils nach Fokusverlauf
     function refreshWindows() {
         windowsProc.running = true;
     }
@@ -178,7 +158,6 @@ Singleton {
     IpcHandler {
         target: "screenshot"
 
-        // Oberfläche öffnen: kind = "screenshot" (Standard) oder "record"
         function open(kind: string): void {
             root.show(kind);
         }
@@ -188,12 +167,10 @@ Singleton {
         function close(): void {
             root.close();
         }
-        // Modus wählen: "selection", "screen" oder "window"
         function mode(name: string): void {
             if (["selection", "screen", "window"].indexOf(name) >= 0)
                 root.mode = name;
         }
-        // Aktuelle Auswahl aufnehmen (wie der Auslöser)
         function capture(): void {
             root.captureCurrent();
         }

@@ -220,8 +220,6 @@ class ActivitiesButton extends PanelMenu.Button {
         this.set({
             name: 'panelActivities',
             accessible_role: Atk.Role.TOGGLE_BUTTON,
-            /* Translators: If there is no suitable word for "Activities"
-               in your language, you can use the word for "Overview". */
             accessible_name: _('Activities'),
         });
 
@@ -315,7 +313,6 @@ class QuickSettings extends PanelMenu.Button {
 
     async _setupIndicators() {
         if (Config.HAVE_NETWORKMANAGER) {
-            /** @type {import('./status/network.js')} */
             const NetworkStatus = await import('./status/network.js');
 
             this._network = new NetworkStatus.Indicator();
@@ -324,7 +321,6 @@ class QuickSettings extends PanelMenu.Button {
         }
 
         if (Config.HAVE_BLUETOOTH) {
-            /** @type {import('./status/bluetooth.js')} */
             const BluetoothStatus = await import('./status/bluetooth.js');
 
             this._bluetooth = new BluetoothStatus.Indicator();
@@ -349,14 +345,12 @@ class QuickSettings extends PanelMenu.Button {
         this._unsafeMode = new UnsafeModeIndicator();
         this._backgroundApps = new BackgroundAppsStatus.Indicator();
 
-        // add privacy-related indicators before any external indicators
         let pos = 0;
         this._indicators.insert_child_at_index(this._remoteAccess, pos++);
         this._indicators.insert_child_at_index(this._camera, pos++);
         this._indicators.insert_child_at_index(this._volumeInput, pos++);
         this._indicators.insert_child_at_index(this._location, pos++);
 
-        // append all other indicators
         this._indicators.add_child(this._brightness);
         this._indicators.add_child(this._thunderbolt);
         if (this._network)
@@ -373,7 +367,6 @@ class QuickSettings extends PanelMenu.Button {
         this._indicators.add_child(this._powerProfiles);
         this._indicators.add_child(this._system);
 
-        // add our quick settings items before any external ones
         const sibling = this.menu.getFirstItem();
         this._addItemsBefore(this._system.quickSettingsItems,
             sibling, N_QUICK_SETTINGS_COLUMNS);
@@ -400,7 +393,6 @@ class QuickSettings extends PanelMenu.Button {
         this._addItemsBefore(this._autoRotate.quickSettingsItems, sibling);
         this._addItemsBefore(this._unsafeMode.quickSettingsItems, sibling);
 
-        // append background apps
         this._backgroundApps.quickSettingsItems.forEach(
             item => this.menu.addItem(item, N_QUICK_SETTINGS_COLUMNS));
     }
@@ -409,19 +401,10 @@ class QuickSettings extends PanelMenu.Button {
         items.forEach(item => this.menu.insertItemBefore(item, sibling, colSpan));
     }
 
-    /**
-     * Insert indicator and quick settings items at
-     * appropriate positions
-     *
-     * @param {SystemIndicator} indicator
-     * @param {number=} colSpan
-     */
     addExternalIndicator(indicator, colSpan = 1) {
-        // Insert before first non-privacy indicator if it exists
         let sibling = this._brightness ?? null;
         this._indicators.insert_child_below(indicator, sibling);
 
-        // Insert before background apps if it exists
         sibling = this._backgroundApps?.quickSettingsItems?.at(-1) ?? null;
         this._addItemsBefore(indicator.quickSettingsItems, sibling, colSpan);
     }
@@ -525,7 +508,6 @@ export class Panel extends St.Widget {
 
         const centerWidth = centerNaturalWidth;
 
-        // get workspace area and center date entry relative to it
         const monitor = Main.layoutManager.findMonitorForActor(this);
         let centerOffset = 0;
         if (monitor) {
@@ -593,7 +575,7 @@ export class Panel extends St.Widget {
 
     _toggleMenu(indicator) {
         if (!indicator || !indicator.mapped)
-            return; // menu not supported by current session mode
+            return;
 
         const menu = indicator.menu;
         if (!indicator.reactive)
@@ -606,7 +588,7 @@ export class Panel extends St.Widget {
 
     _closeMenu(indicator) {
         if (!indicator || !indicator.mapped)
-            return; // menu not supported by current session mode
+            return;
 
         if (!indicator.reactive)
             return;
@@ -656,7 +638,6 @@ export class Panel extends St.Widget {
             Main.messageTray.bannerAlignment = Clutter.ActorAlign.START;
         else if (panel.right.includes('dateMenu'))
             Main.messageTray.bannerAlignment = Clutter.ActorAlign.END;
-        // Default to center if there is no dateMenu
         else
             Main.messageTray.bannerAlignment = Clutter.ActorAlign.CENTER;
 
@@ -682,7 +663,6 @@ export class Panel extends St.Widget {
         if (!indicator) {
             const constructor = PANEL_ITEM_IMPLEMENTATIONS[role];
             if (!constructor) {
-                // This icon is not implemented (this is a bug)
                 return null;
             }
             indicator = new constructor(this);

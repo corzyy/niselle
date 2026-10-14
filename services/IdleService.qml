@@ -6,14 +6,9 @@ import Quickshell.Io
 import Quickshell.Wayland
 import qs
 
-// Leerlauf und Koffein: sperrt und/oder schickt den Rechner nach der eingestellten Leerlaufzeit in den Standby
-// (Einstellungen › Power), per ext-idle-notify (IdleMonitor). Laufende Videos und andere Idle-Inhibitoren des
-// Compositors werden respektiert. „Koffein“ schaltet beides ab, bis es wieder ausgeschaltet wird (nicht gespeichert,
-// wie GNOMEs Sitzungs-Inhibitor). Vor dem Standby sperrt die Shell (SessionService.suspend, logind PrepareForSleep).
 Singleton {
     id: root
 
-    // Koffein: kein automatisches Sperren oder Standby
     property bool caffeine: false
 
     function setCaffeine(on) {
@@ -46,13 +41,11 @@ Singleton {
         }
     }
 
-    // Auch logind-Inhibitoren (Idle) halten, solange Koffein an ist, damit z. B. Sperrbildschirm-Daemons nicht eingreifen
     Process {
         running: root.caffeine
         command: ["systemd-inhibit", "--what=idle", "--who=Niselle", "--why=Caffeine", "--mode=block", "sleep", "infinity"]
     }
 
-    // Standby von außen (Deckel, Taste, Befehl): vorher sperren, damit nach dem Aufwachen nichts offen liegt
     property bool _sleepSignal: false
     Process {
         running: true

@@ -1,12 +1,6 @@
 import QtQuick
 import qs
 
-// Kachel eines Icons mit Titel (.overview-tile mit BaseIcon) [_app-grid.scss:21-37, iconGrid.js: BaseIcon, appDisplay.js: AppIcon]:
-// Radius 24, Padding 12, Icon und Titel mit 6 px Abstand, Titel einzeilig mit Auslassung; bei Zeiger oder Fokus klappt ein
-// zu langer Titel auf (200 ms, zurück 100 ms) und die Kachel wächst nach unten über die darunter liegenden Kacheln.
-// Icon: Themenname oder Dateipfad; eigener Inhalt (Ordnervorschau) über `customIcon`.
-//
-// Die Größe legt das Raster fest. Zustände (hovered, pressed, …) kommen vom Besitzer, der die Mausfläche hat.
 Item {
     id: root
 
@@ -14,31 +8,23 @@ Item {
     property string label: ""
     property real iconSize: Theme.appGridIconSizes[0]
     property bool showLabel: true
-    // Läuft die App (Punkt unter dem Icon)
     property bool running: false
     property bool hovered: false
     property bool pressed: false
-    // Hervorgehoben (:selected / :highlighted)
     property bool checked: false
     property bool dropTarget: false
-    // Ordner: dauerhaft gefüllter Hintergrund
     property bool raised: false
     property color bg: Theme.systemBase
     property bool expandOnHover: true
-    // Skalierung des Icons (Ordnervorschau beim Ziehen darüber)
     property real iconScale: 1
     property real labelOpacity: 1
-    // Kachel soll Tastaturfokus zeigen
     property bool focused: activeFocus
 
-    // Eigener Icon-Inhalt statt `icon` (Ordnervorschau); füllt die Icon-Fläche
     property Component customIcon: null
 
-    // Höhe einer Titelzeile und Kantenlänge, die eine Kachel dieser Icongröße mindestens braucht
     readonly property real lineHeight: probe.implicitHeight
     readonly property real naturalSize: Math.max(iconSize + 2 * Theme.overviewTilePadding, iconSize + 2 * Theme.overviewTilePadding + (showLabel ? Theme.overviewTileSpacing + lineHeight : 0))
 
-    // Titel aufgeklappt: Hover/Fokus bei abgeschnittenem Titel [appDisplay.js:1891-1928]
     readonly property bool truncated: oneLine.implicitWidth > root.width - 2 * Theme.overviewTilePadding
     readonly property bool expanded: showLabel && expandOnHover && (hovered || focused) && truncated
     readonly property real extraHeight: Math.max(0, wrapProbe.implicitHeight - probe.implicitHeight)
@@ -51,7 +37,6 @@ Item {
         font.pointSize: Theme.fontSizeBase
     }
 
-    // Titel in einer Zeile, zum Messen der Abschneidung
     Text {
         id: oneLine
         visible: false
@@ -60,7 +45,6 @@ Item {
         font.pointSize: Theme.fontSizeBase
     }
 
-    // Titel über mehrere Zeilen, für die Höhe der aufgeklappten Kachel
     Text {
         id: wrapProbe
         visible: false
@@ -82,7 +66,6 @@ Item {
         }
     }
 
-    // Die Kachel wächst über die Zelle hinaus; z hebt sie über die Nachbarn
     z: expandProgress > 0 ? 1 : 0
 
     Tile {
@@ -144,7 +127,6 @@ Item {
         font.weight: Theme.fontWeightNormal
     }
 
-    // Laufpunkt [_app-grid.scss:45-51, appDisplay.js:2951-2967, 2995-3005]
     Rectangle {
         visible: root.running
         width: Theme.dashDotSize

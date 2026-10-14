@@ -96,9 +96,6 @@ export const SearchController = GObject.registerClass({
         this.add_child(this._searchResults);
         Main.ctrlAltTabManager.addGroup(this._entry, _('Search'), 'shell-focus-search-symbolic');
 
-        // Since the entry isn't inside the results container we install this
-        // dummy widget as the last results container child so that we can
-        // include the entry in the keynav tab path
         this._focusTrap = new FocusTrap({can_focus: true});
         this._focusTrap.connect('key-focus-in', () => {
             this._entry.grab_key_focus();
@@ -119,7 +116,6 @@ export const SearchController = GObject.registerClass({
             global.stage.remove_action(this._stageKeyController);
         });
 
-        // Will be connected to the stage when active
         this._clickGesture = new Clutter.ClickGesture();
         this._clickGesture.set_recognize_on_press(true);
         this._clickGesture.connect(
@@ -154,8 +150,6 @@ export const SearchController = GObject.registerClass({
     }
 
     _onStageKeyPress() {
-        // Ignore events while anything but the overview has
-        // pushed a modal (system modals, looking glass, ...)
         if (Main.modalCount > 1)
             return Clutter.EVENT_PROPAGATE;
 
@@ -176,20 +170,11 @@ export const SearchController = GObject.registerClass({
     _searchCancelled() {
         this._setSearchActive(false);
 
-        // Leave the entry focused when it doesn't have any text;
-        // when replacing a selected search term, Clutter emits
-        // two 'text-changed' signals, one for deleting the previous
-        // text and one for the new one - the second one is handled
-        // incorrectly when we remove focus
-        // (https://bugzilla.gnome.org/show_bug.cgi?id=636341) */
         if (this._text.text !== '')
             this.reset();
     }
 
     reset() {
-        // Don't drop the key focus on Clutter's side if anything but the
-        // overview has pushed a modal (e.g. system modals when activated using
-        // the overview).
         if (Main.modalCount <= 1)
             global.stage.set_key_focus(null);
 
@@ -215,19 +200,16 @@ export const SearchController = GObject.registerClass({
 
     _onMapped() {
         if (this._entry.mapped) {
-            // Enable 'find-as-you-type'
             this._text.set_cursor_visible(true);
             this._text.set_selection(0, 0);
 
             global.stage.add_action_full(
                 'reset-search', Clutter.EventPhase.CAPTURE, this._clickGesture);
         } else {
-            // Disable 'find-as-you-type'
             global.stage.remove_action(this._clickGesture);
         }
     }
 
-    // the entry does not show the hint
     _isActivated() {
         return this._text.text === this._entry.get_text();
     }
@@ -302,32 +284,15 @@ export const SearchController = GObject.registerClass({
             this._text.text === '' &&
             !this._text.has_preedit() &&
             !Main.layoutManager.keyboardBox.contains(targetActor)) {
-            // the user clicked outside after activating the entry, but
-            // with no search term entered and no keyboard button pressed
-            // - cancel the search
             this.reset();
         }
         return false;
     }
 
-    /**
-     * addProvider:
-     *
-     * Add a search provider to the controller.
-     *
-     * @param {object} provider - a search provider implementation
-     */
     addProvider(provider) {
         this._searchResults._registerProvider(provider);
     }
 
-    /**
-     * removeProvider:
-     *
-     * Remove a search provider from the controller.
-     *
-     * @param {object} provider - a search provider implementation
-     */
     removeProvider(provider) {
         this._searchResults._unregisterProvider(provider);
     }

@@ -37,7 +37,7 @@ export const DIM_BRIGHTNESS = -0.3;
 export const DIM_TIME = 500;
 export const UNDIM_TIME = 250;
 
-const ONE_SECOND = 1000; // in ms
+const ONE_SECOND = 1000;
 
 const MIN_NUM_WORKSPACES = 2;
 
@@ -56,16 +56,12 @@ class DisplayChangeDialog extends ModalDialog.ModalDialog {
         const monitorManager = global.backend.get_monitor_manager();
         this._countDown = monitorManager.get_display_configuration_timeout();
 
-        // Translators: This string should be shorter than 30 characters
         const title = _('Keep these display settings?');
         const description = this._formatCountDown();
 
         this._content = new Dialog.MessageDialogContent({title, description});
         this.contentLayout.add_child(this._content);
 
-        /* Translators: this and the following message should be limited in length,
-           to avoid ellipsizing the labels.
-        */
         this._cancelButton = this.addButton({
             label: _('Revert Settings'),
             action: this._onFailure.bind(this),
@@ -102,7 +98,6 @@ class DisplayChangeDialog extends ModalDialog.ModalDialog {
         this._countDown--;
 
         if (this._countDown === 0) {
-            /* mutter already takes care of failing at timeout */
             this._timeoutId = 0;
             this.close();
             return GLib.SOURCE_REMOVE;
@@ -157,9 +152,6 @@ class WindowDimmer extends Clutter.BrightnessContrastEffect {
     }
 });
 
-/**
- * @param {Meta.WindowActor} actor
- */
 function getWindowDimmer(actor) {
     let effect = actor.get_effect(WINDOW_DIMMER_EFFECT_NAME);
 
@@ -170,12 +162,6 @@ function getWindowDimmer(actor) {
     return effect;
 }
 
-/*
- * When the last window closed on a workspace is a dialog or splash
- * screen, we assume that it might be an initial window shown before
- * the main window of an application, and give the app a grace period
- * where it can map another window before we remove the workspace.
- */
 const LAST_WINDOW_GRACE_TIME = 1000;
 
 class WorkspaceTracker {
@@ -228,7 +214,6 @@ class WorkspaceTracker {
             return GLib.SOURCE_REMOVE;
         }
 
-        // Update workspaces only if Dynamic Workspace Management has not been paused by some other function
         if (this._pauseWorkspaceCheck)
             return GLib.SOURCE_CONTINUE;
 
@@ -263,13 +248,11 @@ class WorkspaceTracker {
             emptyWorkspaces[workspaceIndex] = false;
         }
 
-        // If we don't have an empty workspace at the end, add one
         if (!emptyWorkspaces[emptyWorkspaces.length - 1]) {
             workspaceManager.append_new_workspace(false, global.get_current_time());
             emptyWorkspaces.push(true);
         }
 
-        // Enforce minimum number of workspaces
         while (emptyWorkspaces.length < MIN_NUM_WORKSPACES) {
             workspaceManager.append_new_workspace(false, global.get_current_time());
             emptyWorkspaces.push(true);
@@ -280,8 +263,6 @@ class WorkspaceTracker {
         const activeWorkspaceIndex = workspaceManager.get_active_workspace_index();
         emptyWorkspaces[activeWorkspaceIndex] = false;
 
-        // Delete empty workspaces except for the last one; do it from the end
-        // to avoid index changes
         for (i = lastIndex; i >= 0; i--) {
             if (workspaceManager.n_workspaces === MIN_NUM_WORKSPACES)
                 break;
@@ -317,15 +298,11 @@ class WorkspaceTracker {
     }
 
     _windowLeftMonitor(metaDisplay, monitorIndex, _metaWin) {
-        // If the window left the primary monitor, that
-        // might make that workspace empty
         if (monitorIndex === Main.layoutManager.primaryIndex)
             this._queueCheckWorkspaces();
     }
 
     _windowEnteredMonitor(metaDisplay, monitorIndex, _metaWin) {
-        // If the window entered the primary monitor, that
-        // might make that workspace non-empty
         if (monitorIndex === Main.layoutManager.primaryIndex)
             this._queueCheckWorkspaces();
     }
@@ -349,7 +326,6 @@ class WorkspaceTracker {
         if (newNumWorkspaces > oldNumWorkspaces) {
             let w;
 
-            // Assume workspaces are only added at the end
             for (w = oldNumWorkspaces; w < newNumWorkspaces; w++)
                 this._workspaces[w] = workspaceManager.get_workspace_by_index(w);
 
@@ -359,8 +335,6 @@ class WorkspaceTracker {
                     'window-removed', this._windowRemoved.bind(this), this);
             }
         } else {
-            // Assume workspaces are only removed sequentially
-            // (e.g. 2,3,4 - not 2,4,7)
             let removedIndex;
             const removedNum = oldNumWorkspaces - newNumWorkspaces;
             for (let w = 0; w < oldNumWorkspaces; w++) {
@@ -485,8 +459,6 @@ class ResizePopup extends St.Widget {
     }
 
     set(rect, displayW, displayH) {
-        /* Translators: This represents the size of a window. The first number is
-         * the width of the window and the second is the height. */
         const text = _('%d × %d').format(displayW, displayH);
         this._label.set_text(text);
 
@@ -511,7 +483,7 @@ export class WindowManager {
         this._allowedKeybindings = {};
 
         this._isWorkspacePrepended = false;
-        this._canScroll = true; // limiting scrolling speed
+        this._canScroll = true;
         this._blockCount = 0;
 
         this._shellwm.connect('kill-window-effects', (shellwm, actor) => {
@@ -946,10 +918,6 @@ export class WindowManager {
             await Shell.util_start_systemd_unit(
                 'gnome-session-x11-services-ready.target', 'fail', null);
         } catch (e) {
-            // Ignore NOT_SUPPORTED error, which indicates we are not systemd
-            // managed and gnome-session will have taken care of everything
-            // already.
-            // Note that we do log cancellation from here.
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED)) {
                 log(`Error starting X11 services: ${e.message}`);
                 status = false;
@@ -964,10 +932,6 @@ export class WindowManager {
             await Shell.util_stop_systemd_unit(
                 'gnome-session-x11-services.target', 'fail', cancellable);
         } catch (e) {
-            // Ignore NOT_SUPPORTED error, which indicates we are not systemd
-            // managed and gnome-session will have taken care of everything
-            // already.
-            // Note that we do log cancellation from here.
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED))
                 log(`Error stopping X11 services: ${e.message}`);
         }
@@ -1027,30 +991,19 @@ export class WindowManager {
 
         const windows = global.get_window_actors().map(a => a.meta_window);
 
-        // To create a new workspace, we slide all the windows on workspaces
-        // below us to the next workspace, leaving a blank workspace for us
-        // to recycle.
         windows.forEach(window => {
-            // If the window is attached to an ancestor, we don't need/want
-            // to move it
             if (window.get_transient_for() != null)
                 return;
-            // Same for OR windows
             if (window.is_override_redirect())
                 return;
-            // Sticky windows don't need moving, in fact moving would
-            // unstick them
             if (window.on_all_workspaces)
                 return;
-            // Windows on workspaces below pos don't need moving
             const index = window.get_workspace().index();
             if (index < pos)
                 return;
             window.change_workspace_by_index(index + 1, true);
         });
 
-        // If the new workspace was inserted before the active workspace,
-        // activate the workspace to which its windows went
         const activeIndex = workspaceManager.get_active_workspace_index();
         if (activeIndex >= pos) {
             const newWs = workspaceManager.get_workspace_by_index(activeIndex + 1);
@@ -1127,8 +1080,6 @@ export class WindowManager {
             window.get_client_type() === Meta.WindowClientType.X11)
             return windowType;
 
-        // wayland doesn't use the DIALOG type, but for
-        // animations we want transients to behave like ones
         return window.get_transient_for() != null
             ? Meta.WindowType.DIALOG
             : windowType;
@@ -1310,8 +1261,6 @@ export class WindowManager {
     }
 
     _prepareAnimationInfo(shellwm, actor, oldFrameRect, _change) {
-        // Position a clone of the window on top of the old position,
-        // while actor updates are frozen.
         const actorContent = actor.paint_to_content(oldFrameRect);
         const actorClone = new St.Widget({content: actorContent});
         actorClone.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
@@ -1359,7 +1308,6 @@ export class WindowManager {
 
         Main.uiGroup.add_child(actorClone);
 
-        // Now scale and fade out the clone
         actorClone.ease({
             x: targetRect.x,
             y: targetRect.y,
@@ -1373,11 +1321,9 @@ export class WindowManager {
         actor.translation_x = -targetRect.x + sourceRect.x;
         actor.translation_y = -targetRect.y + sourceRect.y;
 
-        // Now set scale the actor to size it as the clone.
         actor.scale_x = 1 / scaleX;
         actor.scale_y = 1 / scaleY;
 
-        // Scale it to its actual new size
         actor.ease({
             scale_x: 1,
             scale_y: 1,
@@ -1388,13 +1334,9 @@ export class WindowManager {
             onStopped: () => this._sizeChangeWindowDone(shellwm, actor),
         });
 
-        // ease didn't animate and cleared the info, we are done
         if (!actor.__animationInfo)
             return;
 
-        // Now unfreeze actor updates, to get it to the new size.
-        // It's important that we don't wait until the animation is completed to
-        // do this, otherwise our scale will be applied to the old texture size.
         actor.thaw();
         actor.__animationInfo.frozen = false;
     }
@@ -1651,10 +1593,6 @@ export class WindowManager {
         if (Main.actionMode === Shell.ActionMode.NONE)
             return true;
 
-        // There's little sense in implementing a keybinding in mutter and
-        // not having it work in NORMAL mode; handle this case generically
-        // so we don't have to explicitly allow all builtin keybindings in
-        // NORMAL mode.
         if (Main.actionMode === Shell.ActionMode.NORMAL &&
             binding.is_builtin())
             return false;
@@ -1729,7 +1667,6 @@ export class WindowManager {
         if (!constructor)
             return;
 
-        /* prevent a corner case where both tab and workspace switcher popups show up at once */
         if (this._workspaceSwitcherPopup != null)
             this._workspaceSwitcherPopup.destroy();
 
@@ -1795,9 +1732,6 @@ export class WindowManager {
         const rtl = Clutter.get_default_text_direction() === Clutter.TextDirection.RTL;
 
         if (action === 'move') {
-            // "Moving" a window to another workspace doesn't make sense when
-            // it cannot be unstuck, and is potentially confusing if a new
-            // workspaces is added at the start/end
             if (window.is_always_on_all_workspaces() ||
                 (Meta.prefs_get_workspaces_only_on_primary() &&
                  window.get_monitor() !== Main.layoutManager.primaryIndex))
@@ -1813,7 +1747,6 @@ export class WindowManager {
                 direction = Meta.MotionDirection.RIGHT;
             newWs = workspaceManager.get_workspace_by_index(workspaceManager.n_workspaces - 1);
         } else if (isNaN(target)) {
-            // Prepend a new workspace dynamically
             let prependTarget;
             if (vertical)
                 prependTarget = 'up';
@@ -1842,7 +1775,7 @@ export class WindowManager {
                 else
                     direction = Meta.MotionDirection.LEFT;
             } else {
-                if (vertical) // eslint-disable-line no-lonely-if
+                if (vertical)
                     direction = Meta.MotionDirection.DOWN;
                 else if (rtl)
                     direction = Meta.MotionDirection.LEFT;
@@ -1893,8 +1826,6 @@ export class WindowManager {
             return;
 
         if (!workspace.active) {
-            // This won't have any effect for "always sticky" windows
-            // (like desktop windows or docks)
 
             this._workspaceAnimation.movingWindow = window;
             window.change_workspace(workspace);

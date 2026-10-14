@@ -4,20 +4,14 @@ import qs
 import qs.components
 import qs.services
 
-// Kopfzeile der Quick-Settings (.quick-settings-system-item) [system.js:215-258, _quick-settings.scss:205-218]:
-// Akku, Bearbeiten, Einstellungen, (Abstand), Ein/Aus. Mit Akku steht der Abstand hinter dem Akku,
-// ohne Akku zwischen Einstellungen und Ein/Aus. Einträge ohne verfügbare Funktion fehlen. Sperren liegt im Ein/Aus-Menü.
 RowLayout {
     id: root
 
-    // Akku-Zeile auch ohne Akku zeigen (nur zum Prüfen des Layouts, NISELLE_QS_DEMO)
     property bool forceBattery: false
-    // Aufnahme-Knopf auch ohne Dienst zeigen (nur zur Layout-Prüfung, NISELLE_QS_DEMO)
     property bool forceScreenshot: false
 
     readonly property bool showBattery: forceBattery || PowerService.hasBattery
     readonly property bool powerMenuAvailable: SessionService.canLock || SessionService.canSuspend || SessionService.canReboot || SessionService.canPowerOff || SessionService.canLogout
-    // Bildschirmfoto/Aufnahme: Foto oder Video möglich bzw. läuft bereits
     readonly property bool screenshotAvailable: forceScreenshot || SessionService.canScreenshot || ScreenRecordingService.canRecord || ScreenRecordingService.recording
 
     signal editRequested
@@ -28,7 +22,6 @@ RowLayout {
 
     spacing: Theme.quickSystemSpacing
 
-    // Akku-Anzeige: Button-Pille mit Icon und Prozent (.power-item) [system.js:35-117]
     Item {
         id: battery
 
@@ -83,8 +76,6 @@ RowLayout {
         onClicked: root.editRequested()
     }
 
-    // Bildschirmfoto/Aufnahme (ScreenshotItem) [system.js:109-130]: runder Knopf im Kopf, öffnet die gemeinsame
-    // Oberfläche; läuft eine Aufnahme, zeigt er das Aufnahmesymbol und beendet sie
     IconButton {
         visible: root.screenshotAvailable
         icon: ScreenRecordingService.recording ? "media-record-symbolic" : "applets-screenshooter-symbolic"

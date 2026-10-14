@@ -6,16 +6,12 @@ import qs
 import qs.components
 import qs.services
 
-// On-Screen-Anzeige (.osd-window) [osdWindow.js, _osd.scss]: Pille unten mittig, 4em über dem unteren Rand, mit Icon (32px)
-// und rechts davon Beschriftung und/oder Pegelbalken. Einblenden/Ausblenden 100 ms EASE_OUT_QUAD, der Pegel läuft in 100 ms
-// zum neuen Wert, solange die Anzeige sichtbar ist. Nur auf dem primären Monitor.
 PanelWindow {
     id: root
 
     readonly property bool onThisScreen: OverviewService.isPrimary(screen)
     readonly property bool active: OsdService.shown && onThisScreen
 
-    // Zuletzt gezeigter Inhalt bleibt während des Ausblendens stehen, auch wenn der Dienst ihn schon zurücksetzt
     property string iconName: ""
     property var label: null
     property real level: -1
@@ -56,7 +52,6 @@ PanelWindow {
     color: "transparent"
     visible: active || pill.opacity > 0
 
-    // Leere Maske: Eingaben gehen durch die Anzeige hindurch
     mask: Region {}
 
     WlrLayershell.layer: WlrLayer.Overlay
@@ -120,7 +115,6 @@ PanelWindow {
                     value: root.level
                     maximumValue: root.maxLevel
 
-                    // Nur animieren, wenn schon sichtbar; sonst springt der Balken sofort auf den Wert
                     Behavior on value {
                         enabled: (pill.opacity > 0) && !Theme.gameMode
                         NumberAnimation {

@@ -6,21 +6,14 @@ import Quickshell.Io
 import Quickshell.Services.Notifications
 import qs
 
-// Benachrichtigungs-Server (org.freedesktop.Notifications) mit Gruppen nach App, Banner-Warteschlange und
-// Nicht stören. Verhalten nach messageTray.js: Banner 4 s (niedrige Dringlichkeit ohne Banner), kritische bleiben stehen und umgehen DND,
-// alle Meldungen bleiben in der Liste, bis sie verworfen werden (transiente verschwinden mit dem Banner).
 Singleton {
     id: root
 
-    // Der Server besitzt den Busnamen. false, wenn ein anderer Daemon (mako, dunst, …) ihn hält.
     property bool available: false
 
-    // ───────── Liste und Gruppen ─────────
 
-    // Alle gespeicherten Meldungen, neueste zuerst (ersetzende Meldungen aktualisieren dasselbe Objekt)
     readonly property var notifications: server.trackedNotifications.values.slice().reverse()
     readonly property int count: notifications.length
-    // [{ key, appName, appIcon, desktopEntry, notifications: [...], count }], Gruppe mit neuester Meldung zuerst
     readonly property var groups: {
         const byKey = {};
         const list = [];
@@ -45,13 +38,11 @@ Singleton {
         return list;
     }
 
-    // Empfangszeit je Meldung (Date); Quickshell liefert keinen Zeitstempel, daher beim Eintreffen gemerkt
     function timeOf(n) {
         return n ? (root._times[n.id] ?? null) : null;
     }
     property var _times: ({})
 
-    // "Gerade eben", "Vor 5 Minuten", … [dateUtils.js formatTimeSpan]
     function timeSpan(date, now) {
         if (!date)
             return "";
@@ -84,14 +75,11 @@ Singleton {
         return plural(years, "Jahr", "Jahren", "year", "years");
     }
 
-    // Schlüssel, nach dem Meldungen gruppiert werden
     function groupKey(n) {
         return n.desktopEntry || n.appName;
     }
 
-    // ───────── Nicht stören ─────────
 
-    // Gespiegelt aus SettingsService (doNotDisturb)
     property bool doNotDisturb: SettingsService.doNotDisturb
     onDoNotDisturbChanged: SettingsService.setDoNotDisturb(doNotDisturb)
 
@@ -99,20 +87,14 @@ Singleton {
         doNotDisturb = !doNotDisturb;
     }
 
-    // ───────── Banner ─────────
 
-    // Aktuell angezeigter Banner (Notification) oder null
     property var banner: null
-    // Monitor, auf dem der Banner erscheint (Name des fokussierten Monitors beim Einblenden)
     property string bannerScreen: ""
-    // Zeigt die UI den Banner unter dem Mauszeiger, läuft der Timeout nicht
     property bool bannerPaused: false
     property var _queue: []
     readonly property int queueCount: _queue.length
-    // Dauer bis zum Ausblenden, wenn der Timer das nächste Mal startet
     property int _bannerInterval: Theme.notificationTimeout
 
-    // Neue Meldung (vor dem Einreihen als Banner)
     signal received(var notification)
 
     function hideBanner() {
@@ -120,14 +102,11 @@ Singleton {
         if (!n)
             return;
         root.banner = null;
-        // Transiente Meldungen erscheinen nur als Banner und nicht in der Liste
         if (n.transient)
             n.expire();
         gap.restart();
     }
 
-    // Der Zeiger betritt/verlässt den Banner: darunter steht der Timer still, nach dem Verlassen
-    // blendet er nach LONGER_HIDE_TIMEOUT aus [messageTray.js:977-1035]
     function setBannerHovered(hovered) {
         if (!hovered)
             root._bannerInterval = Theme.notificationLeaveTimeout;
@@ -144,21 +123,17 @@ Singleton {
         root._queue = root._queue.slice(1);
     }
 
-    // Banner anfordern [messageTray.js:930-967]: niedrige Dringlichkeit nie, bei voller Warteschlange nur kritische;
-    // höhere Dringlichkeit zuerst
     function _enqueue(n) {
         if (n.urgency === NotificationUrgency.Low || root._queue.includes(n))
             return;
         const full = root._queue.length + (root.banner ? 1 : 0) >= Theme.notificationMaxQueue;
         if (full && n.urgency !== NotificationUrgency.Critical)
             return;
-        // Höhere Dringlichkeit zuerst, gleiche in Eingangsreihenfolge (sort() ist nicht stabil)
         const queue = root._queue.concat([n]);
         root._queue = queue.filter(q => q.urgency === NotificationUrgency.Critical).concat(queue.filter(q => q.urgency === NotificationUrgency.Normal), queue.filter(q => q.urgency === NotificationUrgency.Low));
         root._showNext();
     }
 
-    // Wird der angezeigte Banner aktualisiert, beginnt die Anzeigedauer neu [messageTray.js:938-942]
     function _onUpdated(n) {
         if (root.banner === n) {
             root._bannerInterval = Theme.notificationTimeout;
@@ -176,7 +151,6 @@ Singleton {
         }
     }
 
-    // ───────── Aktionen ─────────
 
     function dismiss(n) {
         if (n)
@@ -190,19 +164,16 @@ Singleton {
         for (const n of root.notifications)
             n.dismiss();
     }
-    // Aktion ausführen (schließt die Meldung, außer sie ist resident)
     function invoke(action) {
         if (action)
             action.invoke();
     }
-    // Klick auf die Meldung selbst: Standardaktion, sonst nichts
     function activateDefault(n) {
         const a = n ? n.actions.find(a => a.identifier === "default") : null;
         if (a)
             a.invoke();
         return a !== undefined && a !== null;
     }
-    // Klick auf den Banner: Standardaktion, die App in den Vordergrund, Meldung schließen (außer resident)
     function activate(n) {
         if (!n)
             return;
@@ -213,7 +184,6 @@ Singleton {
         if (root.banner === n)
             root.hideBanner();
     }
-    // Fenster der sendenden App fokussieren (Zuordnung über desktop-entry, sonst App-Name)
     function focusApp(n) {
         const id = (n.desktopEntry || "").replace(/\.desktop$/, "").toLowerCase();
         const name = (n.appName || "").toLowerCase();
@@ -249,7 +219,6 @@ Singleton {
             n.summaryChanged.connect(() => root._onUpdated(n));
             n.bodyChanged.connect(() => root._onUpdated(n));
             root.received(n);
-            // Kritische Meldungen umgehen Nicht stören [messageTray.js:938]
             if (!root.doNotDisturb || n.urgency === NotificationUrgency.Critical)
                 root._enqueue(n);
         }
@@ -262,14 +231,12 @@ Singleton {
         onTriggered: root.hideBanner()
     }
 
-    // Kurze Pause zwischen zwei Bannern [messageTray.js:21]
     Timer {
         id: gap
         interval: Theme.notificationHideTimeout
         onTriggered: root._showNext()
     }
 
-    // Busnamen prüfen: gehört er einem anderen Prozess, ist der Server hier wirkungslos
     Process {
         id: owner
         command: ["busctl", "--user", "status", "org.freedesktop.Notifications"]

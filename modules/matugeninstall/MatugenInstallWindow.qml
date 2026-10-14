@@ -5,8 +5,6 @@ import qs
 import qs.services
 import qs.components
 
-// Protokollfenster der Matugen-Installation (MatugenInstallService): zeigt Schritt für Schritt,
-// was gefunden und eingerichtet wird.
 FloatingWindow {
     id: win
 
@@ -73,7 +71,6 @@ FloatingWindow {
                 boundsBehavior: Flickable.StopAtBounds
                 clip: true
 
-                // Neue Zeilen bleiben sichtbar
                 onCountChanged: Qt.callLater(() => list.positionViewAtEnd())
 
                 delegate: Text {

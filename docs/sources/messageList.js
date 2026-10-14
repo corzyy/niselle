@@ -116,13 +116,11 @@ class URLHighlighter extends St.Label {
         this._text = text;
 
         this.clutter_text.set_markup(text);
-        /* clutter_text.text contain text without markup */
         this._urls = Util.findUrls(this.clutter_text.text);
         this._highlightUrls();
     }
 
     _highlightUrls() {
-        // text here contain markup
         const urls = Util.findUrls(this._text);
         let markup = '';
         let pos = 0;
@@ -402,8 +400,6 @@ class MessageHeader extends St.BoxLayout {
             sourceTitle,
             'text',
             GObject.BindingFlags.SYNC_CREATE,
-            // Translators: this is the string displayed in the header when a message
-            // source doesn't have a name
             (bind, value) => [true, value === null || value === '' ? _('Unknown App') : value],
             null);
         source.bind_property('icon',
@@ -560,7 +556,6 @@ export class Message extends St.Button {
             return;
         const layout = this._bodyLabel.clutter_text.get_layout();
         const canExpand = layout.is_ellipsized() || this.expanded || !!this._actionBin.child;
-        // Use opacity to not trigger a relayout
         this._header.expandButton.opacity = canExpand ? 255 : 0;
     }
 
@@ -872,7 +867,6 @@ class MediaMessage extends Message {
 
             this._policy = MessageTray.NotificationPolicy.newForApp(this._player.app);
 
-            // Register notification source
             this._policy.store();
 
             this._policy.connectObject(
@@ -907,7 +901,6 @@ export const NotificationMessageGroup = GObject.registerClass({
     constructor(source) {
         const action =  new Clutter.ClickGesture();
 
-        // A widget that covers stacked messages so that they don't receive events
         const cover = new St.Widget({
             name: 'cover',
             reactive: true,
@@ -927,10 +920,7 @@ export const NotificationMessageGroup = GObject.registerClass({
             reactive: true,
         });
 
-        // The cover is always the second child to prevent interaction
-        // with stacked messages when collapsed.
         this._cover = cover;
-        // The headerBox will always be the last child
         this._headerBox = header;
 
         this.source = source;
@@ -978,7 +968,6 @@ export const NotificationMessageGroup = GObject.registerClass({
     }
 
     get expanded() {
-        // Consider this group to be expanded when it has only one message
         return this._expanded || this._notificationToMessage.size === 1;
     }
 
@@ -1019,7 +1008,6 @@ export const NotificationMessageGroup = GObject.registerClass({
 
         this._notificationToMessage.forEach(message => message.unexpand(true));
 
-        // Give focus to the fully visible message
         if (this.focusChild?.has_key_focus())
             this.get_first_child().child.grab_key_focus();
 
@@ -1041,10 +1029,7 @@ export const NotificationMessageGroup = GObject.registerClass({
         return min;
     }
 
-    // Ensure that the cover is still below the top most message
     _ensureCoverPosition() {
-        // If the group doesn't have any messages,
-        // don't move the cover before the headerBox
         if (this.get_n_children() > 2)
             this.set_child_at_index(this._cover, 1);
     }
@@ -1052,7 +1037,6 @@ export const NotificationMessageGroup = GObject.registerClass({
     _updateStackedMessagesFade() {
         const pseudoClasses = ['second-in-stack', 'lower-in-stack'];
 
-        // The group doesn't have any messages
         if (this.get_n_children() < 3)
             return;
 
@@ -1064,7 +1048,6 @@ export const NotificationMessageGroup = GObject.registerClass({
         console.assert(header === this._headerBox,
             'Header has expected stack position');
 
-        // A message may have moved so we need to remove the classes from all messages
         const messages = [top, ...stack];
         messages.forEach(item => {
             pseudoClasses.forEach(name => {
@@ -1076,8 +1059,6 @@ export const NotificationMessageGroup = GObject.registerClass({
             const stackTop = stack.shift();
             stackTop.child.add_style_pseudo_class(pseudoClasses[0]);
 
-            // Use the same class for the third message and all messages
-            // after that, since they won't be visible anyways
             stack.forEach(item => {
                 const message = item.child;
                 message.add_style_pseudo_class(pseudoClasses[1]);
@@ -1133,7 +1114,6 @@ export const NotificationMessageGroup = GObject.registerClass({
                     this.emit('expand-toggle-requested');
             },
             'close', () => {
-                // If the group is collapsed and one notification is closed, close the entire group
                 if (!this.expanded) {
                     GObject.signal_stop_emission_by_name(message, 'close');
                     this.close();
@@ -1147,7 +1127,6 @@ export const NotificationMessageGroup = GObject.registerClass({
             }, this);
 
         let index = isUrgent ? 0 : this._nUrgent;
-        // If we add a child below the top child we need to adjust index to skip the cover child
         if (index > 0)
             index += 1;
 
@@ -1157,7 +1136,6 @@ export const NotificationMessageGroup = GObject.registerClass({
 
         item.layout_manager.scalingEnabled = this._expanded;
 
-        // The first message doesn't need to be animated since the entire group is animated
         if (this._notificationToMessage.size > 1) {
             item.ease({
                 scale_x: 1,
@@ -1206,21 +1184,16 @@ export const NotificationMessageGroup = GObject.registerClass({
     }
 
     vfunc_paint(paintContext) {
-        // Invert the paint order, so that messages are collapsed with the
-        // newest message (the first child) on top of the stack
         for (const child of this.get_children().reverse())
             child.paint(paintContext);
     }
 
     vfunc_pick(pickContext) {
-        // Invert the pick order, so that messages are collapsed with the
-        // newest message (the first child) on top of the stack
         for (const child of this.get_children().reverse())
             child.pick(pickContext);
     }
 
     vfunc_map() {
-        // Acknowledge all notifications once they are mapped
         this._notificationToMessage.forEach((_, notification) => {
             notification.acknowledged = true;
         });
@@ -1245,7 +1218,6 @@ export const NotificationMessageGroup = GObject.registerClass({
             duration: MESSAGE_ANIMATION_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
-                // If we add a child below the top child we need to adjust index to skip the cover child
                 if (index > 0)
                     index += 1;
 
@@ -1263,7 +1235,6 @@ export const NotificationMessageGroup = GObject.registerClass({
     }
 
     close() {
-        // If the group is closed, close all messages in this group
         this._notificationToMessage.forEach(message => {
             message.disconnectObject(this);
             message.close();
@@ -1306,7 +1277,6 @@ const MessageGroupExpanderLayout = GObject.registerClass({
         let [minExpanded, natExpanded] = [0, 0];
 
         container.get_children().forEach(child => {
-            // We don't need to measure the cover
             if (child === this._cover)
                 return;
 
@@ -1315,7 +1285,6 @@ const MessageGroupExpanderLayout = GObject.registerClass({
             natExpanded += natChild;
         });
 
-        // Add additional spacing after an expanded group
         minExpanded += ADDITIONAL_BOTTOM_MARGIN_EXPANDED_GROUP;
         natExpanded += ADDITIONAL_BOTTOM_MARGIN_EXPANDED_GROUP;
 
@@ -1324,7 +1293,6 @@ const MessageGroupExpanderLayout = GObject.registerClass({
 
     vfunc_get_preferred_width(container, forHeight) {
         return container.get_children().reduce((acc, child) => {
-            // We don't need to measure the cover
             if (child === this._cover)
                 return [0, 0];
 
@@ -1346,14 +1314,12 @@ const MessageGroupExpanderLayout = GObject.registerClass({
         let visibleCount = MAX_VISIBLE_STACKED_MESSAGES;
 
         for (const child of container.get_children()) {
-            // We don't need to measure the cover and the header is behind the stacked messages
             if (child === this._cover || child === this._header)
                 continue;
 
             if (!child.visible)
                 continue;
 
-            // The first message is always fully shown
             if (min === 0 || nat === 0) {
                 [min, nat] = child.get_preferred_height(forWidth);
             } else {
@@ -1392,7 +1358,6 @@ const MessageGroupExpanderLayout = GObject.registerClass({
             box.y1 += this._expansion * (box.y2 - box.y1);
         }
 
-        // The group doesn't have any messages
         if (container.get_n_children() < 3)
             return;
 
@@ -1407,7 +1372,6 @@ const MessageGroupExpanderLayout = GObject.registerClass({
 
         if (top) {
             const [min, nat_] = top.get_preferred_height(childWidth);
-            // The first message is always fully shown
             box.y2 = box.y1 + min;
             top.allocate(box);
         }
@@ -1415,14 +1379,11 @@ const MessageGroupExpanderLayout = GObject.registerClass({
         stack.forEach(child => {
             const [min, nat_] = child.get_preferred_height(childWidth);
 
-            // Reduce width of children when collapsed
             const widthOffset = (1.0 - this._expansion) * WIDTH_OFFSET_STACKED;
             box.x1 += widthOffset;
             box.x2 -= widthOffset;
 
-            // Stack children with a small reveal when collapsed
             box.y2 += heightOffset + this._expansion * (min - heightOffset);
-            // Ensure messages are not placed outside the widget
             if (box.y2 > fullY2)
                 box.y2 = fullY2;
             else
@@ -1478,9 +1439,6 @@ const MessageViewLayout = GObject.registerClass({
             this._overlay.allocate(box);
 
         const width = box.x2 - box.x1;
-        // We need to use the order in messages since the children order is
-        // the render order and the expanded group needs to be the top most child
-        // and the overlay the child below it.
         container.messages.forEach(message => {
             const child = message.get_parent();
 
@@ -1521,10 +1479,6 @@ export const MessageView = GObject.registerClass({
     _mediaSource = new Mpris.MprisSource();
 
     constructor() {
-        // Add an overlay that will be placed below the expanded group message
-        // to block interaction with other messages.
-        // Unfortunately there isn't a much better way to block
-        // interaction with widgets for this use-case.
         const overlay = new Clutter.Actor({
             reactive: true,
             name: 'overlay',
@@ -1584,8 +1538,6 @@ export const MessageView = GObject.registerClass({
         });
 
         message.connect('key-focus-in', this._onKeyFocusIn.bind(this));
-        // Make sure that the messages array is updated even when
-        // _removeMessage() isn't called.
         message.connect('destroy', () => {
             const indexLocal = this.messages.indexOf(message);
             if (indexLocal >= 0)
@@ -1662,8 +1614,6 @@ export const MessageView = GObject.registerClass({
                     nextMessage?.grab_key_focus();
                 }
 
-                // The message is removed from the messages array in the
-                // destroy signal handler
                 item.destroy();
 
                 if (wasEmpty !== this.empty)
@@ -1678,14 +1628,11 @@ export const MessageView = GObject.registerClass({
     clear() {
         const messages = this.messages.filter(msg => msg.canClose());
 
-        // If there are few messages, letting them all zoom out looks OK
         if (messages.length < 2) {
             messages.forEach(message => {
                 message.close();
             });
         } else {
-            // Otherwise we slide them out one by one, and then zoom them
-            // out "off-screen" in the end to smoothly shrink the parent
             const delay = MESSAGE_ANIMATION_TIME / Math.max(messages.length, 5);
             for (let i = 0; i < messages.length; i++) {
                 const message = messages[i];
@@ -1701,9 +1648,6 @@ export const MessageView = GObject.registerClass({
         }
     }
 
-    // When a group is expanded the user isn't allowed to scroll outside the expanded group,
-    // therefore the adjustment used by the MessageView needs to be different then the external
-    // adjustment used by the scrollbar and scrollview.
     vfunc_set_adjustments(hadjustment, vadjustment) {
         const internalAdjustment = new St.Adjustment({actor: vadjustment.actor});
 
@@ -1753,7 +1697,6 @@ export const MessageView = GObject.registerClass({
         super.vfunc_allocate(box);
 
         if (group) {
-            // Decouple the internal adjustment from the external when there is an expanded group
             this._adjBinding.set_source(null);
 
             const pageHeight = this.vadjustment.pageSize;
@@ -1762,7 +1705,6 @@ export const MessageView = GObject.registerClass({
 
             this._adjValueOffset = Math.max(0, position.y - EXPANDED_GROUP_OVERSHOT_HEIGHT);
 
-            // Limit the area the user can scroll to the expanded group with some extra space
             this._scrollViewAdjustment.freeze_notify();
             this._scrollViewAdjustment.upper =
                 Math.max(groupHeight + EXPANDED_GROUP_OVERSHOT_HEIGHT * 2, pageHeight);
@@ -1771,7 +1713,6 @@ export const MessageView = GObject.registerClass({
             this._scrollViewAdjustment.pageSize = pageHeight;
             this._scrollViewAdjustment.thaw_notify();
 
-            // Adjust the value when new messages are added before the expanded group
             if (this._adjValueOffset > prevAdjValueOffset) {
                 const offset = this.vadjustment.upper - prevUpper;
                 if (offset > 0)
@@ -1780,7 +1721,6 @@ export const MessageView = GObject.registerClass({
         } else if (this._adjBinding.source === null) {
             this._adjValueOffset = 0;
             this._adjBinding.set_source(this.vadjustment);
-            // We need to notify the 'value' property since it indirectly changed
             this.vadjustment.notify('value');
         }
 
@@ -1788,8 +1728,6 @@ export const MessageView = GObject.registerClass({
     }
 
     vfunc_style_changed() {
-        // This widget doesn't use the normal st scroll view fade effect because
-        // highlighting groups needs more control over the fade.
         const fadeOffset = this.get_theme_node().get_length('-st-vfade-offset');
         this.get_effect('highlight').fadeMargin = fadeOffset;
 
@@ -1875,7 +1813,6 @@ export const MessageView = GObject.registerClass({
         this._notificationSourceToGroup.delete(source);
     }
 
-    // Try to center the expanded group in the available space
     _scrollToExpandedGroup() {
         if (!this._expandedGroup)
             return;
@@ -1907,14 +1844,12 @@ export const MessageView = GObject.registerClass({
         this._expandedGroup = group;
         this.notify('expanded-group');
 
-        // Collapse the previously expanded group
         if (prevGroup) {
             this._unhighlightGroup(prevGroup);
             await prevGroup.collapse();
         }
 
         if (group) {
-            // Make sure that the overlay is the child below the expanded group
             this.set_child_above_sibling(group.get_parent(), null);
             this.set_child_below_sibling(this._overlay, group.get_parent());
             this._overlay.show();
@@ -1927,7 +1862,6 @@ export const MessageView = GObject.registerClass({
         }
     }
 
-    // Collapse expanded notification group
     collapse() {
         this._setExpandedGroup(null).catch(logError);
     }

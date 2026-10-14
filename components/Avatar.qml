@@ -3,7 +3,6 @@ import QtQuick.Effects
 import Quickshell
 import qs
 
-// Benutzer-Avatar (UserWidget.Avatar): rundes Bild aus ~/.face bzw. AccountsService, sonst das Standard-Symbol.
 Item {
     id: root
 

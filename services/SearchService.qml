@@ -6,23 +6,13 @@ import Quickshell.Io
 import qs
 import "calc.js" as Calc
 
-// Suche der Übersicht [searchController.js, search.js]. Das Suchfeld setzt `text`; jede Änderung aktualisiert die Ergebnisse
-// sofort (Apps, Einstellungen, Rechner, Befehle). Dateien kommen aus localsearch (tinysparql) und werden `Theme.searchDelay`
-// nach der letzten Eingabe abgefragt, damit nicht jeder Tastendruck einen Prozess startet [search.js:674-676].
-//
-// Anbieter in Anzeigereihenfolge: apps (Raster), windows, actions, settings, files, calculator, clipboard, commands (Listen mit
-// Anbieter-Kopf). Einzelne Anbieter lassen sich in den Einstellungen (Search) abschalten (SettingsService.searchDisabled).
-// Zwischenablage nur mit Vorsatz „clip“/„cb“ (z. B. „clip passwort“), damit Kopiertes nicht in jeder Suche auftaucht.
-// Ergebnis: { id, name, description, icon, symbolic, ... }; Aktivieren über activate(provider, result).
 Singleton {
     id: root
 
-    // Eingabe im Suchfeld; Suche gilt als aktiv, sobald ein Begriff vorliegt [searchController.js: getTermsForSearchString]
     property string text: ""
     readonly property var terms: root.text.trim() === "" ? [] : root.text.trim().split(/\s+/)
     readonly property bool active: root.terms.length > 0
 
-    // Ergebnislisten je Anbieter
     property var apps: []
     property var settings: []
     property var files: []
@@ -31,15 +21,12 @@ Singleton {
     property var windows: []
     property var actions: []
     property var clipboard: []
-    // Zahl weiterer Treffer, die nicht angezeigt werden
     property int filesMore: 0
     property int settingsMore: 0
 
-    // Dateisuche läuft oder ist angemeldet
     readonly property bool filesPending: filesTimer.running || filesQuery.running
     readonly property bool inProgress: root.filesPending
 
-    // Alle Anbieter in Reihenfolge, mit Kopf (Symbol, Name); `providers` enthält nur die eingeschalteten
     readonly property var allProviders: [
         {
             "id": "apps",
@@ -125,7 +112,6 @@ Singleton {
         return 0;
     }
 
-    // Erstes Ergebnis des ersten Anbieters mit Treffern: wird mit Enter aktiviert [search.js: _maybeSetInitialSelection]
     readonly property var defaultResult: {
         for (const p of root.providers) {
             const list = root.results(p.id);
@@ -147,7 +133,6 @@ Singleton {
         return fallback;
     }
 
-    // ───────── Aufbau der Ergebnisse ─────────
 
     function reset() {
         root.text = "";
@@ -155,8 +140,6 @@ Singleton {
 
     onTextChanged: root._update()
 
-    // Einstellungen der Shell: Bereiche und Unterseiten der Einstellungen-App (SettingsPanelsService).
-    // Ein Treffer öffnet das Einstellungsfenster auf der jeweiligen Seite (siehe activate()).
     readonly property var settingsIndex: AppsService.makeIndex(SettingsPanelsService.searchable)
 
     function _panelResult(panel) {
@@ -204,14 +187,12 @@ Singleton {
         root._updateWindows(q);
         root._updateActions(q);
         root._updateClipboard(q);
-        // Dateien: alte Treffer bleiben bis zur neuen Antwort stehen (kein Flackern); ein Prozess läuft jeweils nur einer
         if (root.enabled("files"))
             filesTimer.restart();
         else
             root.files = [];
     }
 
-    // ───────── Fenster ─────────
 
     function _updateWindows(q) {
         if (!root.enabled("windows")) {
@@ -242,7 +223,6 @@ Singleton {
         root.windows = out.slice(0, Theme.searchListMaxRows);
     }
 
-    // ───────── System-Aktionen ─────────
 
     readonly property var actionList: {
         const l = [];
@@ -364,7 +344,6 @@ Singleton {
         }
     }
 
-    // ───────── Zwischenablage ─────────
 
     function _updateClipboard(q) {
         const m = /^(clip|cb|clipboard)(?:\s+(.*))?$/i.exec(q);
@@ -423,7 +402,6 @@ Singleton {
         ];
     }
 
-    // Befehle: der erste Begriff ist ein ausführbares Programm im PATH, oder die Eingabe beginnt mit > bzw. !
     property var executables: ({})
     property bool executablesLoaded: false
 
@@ -443,7 +421,6 @@ Singleton {
             root.commands = [];
             return;
         }
-        // Ein einzelner Programmname, den schon eine App startet, braucht keinen zweiten Treffer
         if (!forced && cmd === program && root.apps.some(r => r.entry && (r.entry.command ?? [])[0]?.split("/").pop() === program)) {
             root.commands = [];
             return;
@@ -476,7 +453,6 @@ Singleton {
         }
     }
 
-    // ───────── Dateien (localsearch) ─────────
 
     Timer {
         id: filesTimer
@@ -495,8 +471,6 @@ Singleton {
             root.filesMore = 0;
             return;
         }
-        // Datei- und Ordnersuche über die Namen. Ordner erscheinen mit MIME `inode/directory` (Ordnersymbol).
-        // Kein fts:match: zusammen mit ORDER BY liefert der Volltextzweig auf TinySPARQL 3.11 keine Treffer.
         const nameFilter = terms.map(t => "CONTAINS(LCASE(?name), " + root._sparqlString(t) + ")").join(" && ");
         const query = "SELECT DISTINCT ?url ?mime ?name WHERE { ?f a nfo:FileDataObject ; nie:url ?url ; nfo:fileName ?name . FILTER (" + nameFilter + ") OPTIONAL { ?ie nie:isStoredAs ?f ; nie:mimeType ?mime } OPTIONAL { ?f nfo:fileLastModified ?mod } } ORDER BY DESC(?mod) LIMIT " + Theme.searchFilesQueryLimit;
         filesQuery.running = false;
@@ -505,7 +479,6 @@ Singleton {
         filesQuery.running = true;
     }
 
-    // Symbol für einen MIME-Typ: spezifisch, dann „<Hauptart>-x-generic“ wie bei GIO
     function mimeIcon(mime) {
         if (!mime)
             return "text-x-generic";
@@ -550,7 +523,6 @@ Singleton {
 
         stdout: StdioCollector {
             onStreamFinished: {
-                // Antwort einer überholten Eingabe verwerfen
                 if (filesQuery.pendingTerms !== root.text)
                     return;
                 const all = [];
@@ -559,7 +531,6 @@ Singleton {
                     if (r)
                         all.push(r);
                 }
-                // Bevorzugt Treffer, deren Name mit dem ersten Begriff beginnt, sonst bleibt die Reihenfolge (zuletzt geändert)
                 const first = root.terms[0]?.toLowerCase() ?? "";
                 const starts = all.filter(r => r.name.toLowerCase().startsWith(first));
                 const rest = all.filter(r => !r.name.toLowerCase().startsWith(first));
@@ -570,9 +541,7 @@ Singleton {
         }
     }
 
-    // ───────── Aktivieren ─────────
 
-    // Führt ein Ergebnis aus. Rückgabe: true, wenn die Übersicht danach schließen soll
     function activate(providerId, result) {
         if (!result)
             return false;
@@ -605,7 +574,6 @@ Singleton {
         return false;
     }
 
-    // Kopfzeilen-Knopf eines Anbieters (Such-Overlay): öffnet die Suche in der Dateiverwaltung. Rückgabe: Übersicht schließen
     function providerAction(providerId) {
         if (providerId !== "files")
             return false;
@@ -613,7 +581,6 @@ Singleton {
         return true;
     }
 
-    // Hervorhebung der Suchbegriffe in einer Beschreibung als StyledText [util.js: Highlighter]
     function highlight(text) {
         const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         if (!text)

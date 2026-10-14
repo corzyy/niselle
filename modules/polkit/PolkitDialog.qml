@@ -6,14 +6,10 @@ import Quickshell.Services.Polkit
 import qs
 import qs.components
 
-// Polkit-Authentifizierungsdialog (polkitAgent.js, AuthenticationDialog) [_dialogs.scss:99-159]: Titel „Authentication
-// Required“, Meldung der Aktion, Avatar und Name des Benutzers, Passwortfeld mit Spinner, Fehler-/Infozeile,
-// Abbrechen / Authenticate. Registriert sich zugleich als Polkit-Agent der Sitzung.
 Scope {
     id: root
 
     readonly property var flow: agent.flow
-    // Auf eine Antwort von PAM warten (nach dem Absenden, bis die nächste Frage oder das Ergebnis kommt)
     readonly property bool busy: flow !== null && !flow.isResponseRequired && !flow.isCompleted
     readonly property string errorText: {
         if (!flow)
@@ -24,7 +20,6 @@ Scope {
     }
     readonly property string infoText: flow && !flow.supplementaryIsError ? flow.supplementaryMessage : ""
 
-    // Wie die Shell: der eigene Benutzer, sonst root, sonst der erste
     function _unixName(identity) {
         return (identity.string ?? "").replace(/^unix-user:/, "");
     }
@@ -65,7 +60,6 @@ Scope {
         }
     }
 
-    // Vollständiger Name aus dem Passwortverzeichnis (GECOS)
     Process {
         running: root.userName !== ""
         command: ["getent", "passwd", root.userName]
@@ -118,7 +112,6 @@ Scope {
                 root.flow.cancelAuthenticationRequest();
         }
 
-        // .polkit-dialog-user-layout
         ColumnLayout {
             Layout.fillWidth: true
             Layout.bottomMargin: Theme.basePadding
@@ -141,7 +134,6 @@ Scope {
             }
         }
 
-        // .prompt-dialog-password-layout: Eintrag mit Spinner daneben; der linke Abstand hält den Eintrag mittig
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
             spacing: Theme.baseMargin
@@ -165,7 +157,6 @@ Scope {
             }
         }
 
-        // Fehler-/Infozeile; ohne Text bleibt die Höhe erhalten (.prompt-dialog-null-label), damit der Dialog nicht springt
         Rectangle {
             Layout.fillWidth: true
             Layout.topMargin: Theme.baseMargin

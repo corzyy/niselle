@@ -1,9 +1,6 @@
 import QtQuick
 import qs
 
-// Tag im Monatskalender (.calendar-day) [_calendar:73-117]: 3em rund, 2px Rand, %smaller fett, %flat_button.
-// Heute: %default_button (Akzent). Ausgewählt (:selected): flacher Aktiv-Zustand. Termine: Punkt unten
-// (calendar-today(-light).svg, auf die Zellgröße skaliert). Ziffern zweistellig ("%d").
 Item {
     id: root
 
@@ -43,7 +40,6 @@ Item {
             });
         }
 
-        // Fokusring
         Rectangle {
             anchors.fill: parent
             radius: parent.radius

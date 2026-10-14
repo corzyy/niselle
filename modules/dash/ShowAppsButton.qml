@@ -4,8 +4,6 @@ import qs
 import qs.services
 import qs.components
 
-// „Apps anzeigen“ am rechten Ende des Dash [dash.js:188-271]: 9-Punkte-Raster, Umschalter für das App-Grid.
-// Ziehen einer angehefteten App auf den Knopf löst sie vom Dash (Beschriftung „Lösen“, Knopf wird hervorgehoben).
 Item {
     id: root
 
@@ -22,10 +20,7 @@ Item {
     Keys.onReturnPressed: OverviewService.toggleApps()
     Keys.onSpacePressed: OverviewService.toggleApps()
 
-    // Mitte des Knopfs in Fensterkoordinaten. Über den Übersichts-Fortschritt neu ausgewertet, damit die
-    // Position beim Ein-/Ausblenden des Dash mitwandert; das App-Grid wächst von hier aus auf.
     readonly property point windowCenter: {
-        // Dem Öffnen der Übersicht nur folgen, wenn das App-Grid beteiligt ist (sonst in jedem Frame umsonst)
         void (OverviewService.appsShown || OverviewService.appsProgress > 0 ? OverviewService.progress : 0);
         void OverviewService.appsProgress;
         return mapToItem(null, width / 2, height / 2);
@@ -69,7 +64,6 @@ Item {
         }
     }
 
-    // Rechtsklick: Dock-Einstellungen
     PopupMenu {
         id: menu
         arrowSide: Qt.BottomEdge

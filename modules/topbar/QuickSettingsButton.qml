@@ -5,9 +5,6 @@ import qs
 import qs.services
 import qs.components
 
-// Quick-Settings-Pille mit Status-Icons [quickSettings.js, GNOME-Mockup system-status-indicators]. Reihenfolge wie im Mockup:
-// Datenschutz (Freigabe, Kamera, Mikrofon, Standort, orange), Thunderbolt, Netzwerk (USB, WLAN, VPN,
-// Flugmodus), Bluetooth, Lautstärke, Akku (ohne Akku: Ausschalten).
 Pill {
     id: root
 
@@ -32,7 +29,6 @@ Pill {
         Layout.rightMargin: Theme.panelStatusIconMargin
     }
 
-    // Datenschutz: nur Anzeigen, ohne Knopf zum Beenden (Aufnahme und Freigabe mit Knopf: CaptureIndicators)
     readonly property bool privacy: SettingsService.showPrivacyIndicators
     readonly property bool extras: SettingsService.showStatusIndicators
 
@@ -95,7 +91,6 @@ Pill {
         visible: IdleService.caffeine
     }
 
-    // Mausrad über dem Lautstärke-Icon ändert die Lautstärke [volume.js:454-465, slider.js:7]
     onWheeled: (dx, dy, x, y) => {
         if (!volumeIcon.visible)
             return;
@@ -109,7 +104,6 @@ Pill {
         AudioService.setVolume(AudioService.volume + (d > 0 ? 0.02 : -0.02));
     }
 
-    // Akku: Icon und optionale Prozentzahl ohne Abstand [_panel:150-152]
     RowLayout {
         visible: PowerService.hasBattery
         spacing: 0
@@ -133,7 +127,6 @@ Pill {
         visible: SettingsService.doNotDisturb
     }
 
-    // Ohne Akku (Desktop): Ausschalten steht am Ende der Pille
     StatusIcon {
         name: "system-shutdown-symbolic"
         visible: !PowerService.hasBattery && SessionService.canPowerOff

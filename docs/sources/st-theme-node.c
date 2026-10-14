@@ -1,27 +1,3 @@
-/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
-/*
- * st-theme-node.c: style information for one node in a tree of themed objects
- *
- * Copyright 2008-2010 Red Hat, Inc.
- * Copyright 2009 Steve Frécinaux
- * Copyright 2009, 2010 Florian Müllner
- * Copyright 2010 Adel Gadllah
- * Copyright 2010 Giovanni Campagna
- * Copyright 2011 Quentin "Sardem FF7" Glidic
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
- * more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include <stdlib.h>
 #include <string.h>
@@ -68,7 +44,6 @@ maybe_free_properties (StThemeNode *node)
       node->n_properties = 0;
     }
 
-  /* This destroys the list, not just the head of the list */
   g_clear_pointer (&node->inline_properties, cr_declaration_destroy);
 }
 
@@ -143,28 +118,6 @@ split_on_whitespace (const gchar *s)
   return (GStrv) g_ptr_array_free (arr, FALSE);
 }
 
-/**
- * st_theme_node_new:
- * @context: the context representing global state for this themed tree
- * @parent_node: (nullable): the parent node of this node
- * @theme: (nullable): a theme (stylesheet set) that overrides the
- *   theme inherited from the parent node
- * @element_type: the type of the GObject represented by this node
- *  in the tree (corresponding to an element if we were theming an XML
- *  document. %G_TYPE_NONE means this style was created for the stage
- * actor and matches a selector element name of 'stage'.
- * @element_id: (nullable): the ID to match CSS rules against
- * @element_class: (nullable): a whitespace-separated list of classes
- *   to match CSS rules against
- * @pseudo_class: (nullable): a whitespace-separated list of pseudo-classes
- *   (like 'hover' or 'visited') to match CSS rules against
- *
- * Creates a new #StThemeNode. Once created, a node is immutable. If any
- * of the attributes of the node (like the @element_class) change the node
- * and its child nodes must be destroyed and recreated.
- *
- * Returns: (transfer full): a new #StThemeNode
- */
 StThemeNode *
 st_theme_node_new (StThemeContext    *context,
                    StThemeNode       *parent_node,
@@ -202,15 +155,6 @@ st_theme_node_new (StThemeContext    *context,
   return node;
 }
 
-/**
- * st_theme_node_get_parent:
- * @node: a #StThemeNode
- *
- * Gets the parent themed element node.
- *
- * Returns: (nullable) (transfer none): the parent #StThemeNode, or %NULL if
- *  this is the root node of the tree of theme elements.
- */
 StThemeNode *
 st_theme_node_get_parent (StThemeNode *node)
 {
@@ -219,14 +163,6 @@ st_theme_node_get_parent (StThemeNode *node)
   return node->parent_node;
 }
 
-/**
- * st_theme_node_get_theme:
- * @node: a #StThemeNode
- *
- * Gets the theme stylesheet set that styles this node
- *
- * Returns: (transfer none): the theme stylesheet set
- */
 StTheme *
 st_theme_node_get_theme (StThemeNode *node)
 {
@@ -235,14 +171,6 @@ st_theme_node_get_theme (StThemeNode *node)
   return node->theme;
 }
 
-/**
- * st_theme_node_get_element_type:
- * @node: a #StThemeNode
- *
- * Get the element #GType for @node.
- *
- * Returns: the element type
- */
 GType
 st_theme_node_get_element_type (StThemeNode *node)
 {
@@ -251,14 +179,6 @@ st_theme_node_get_element_type (StThemeNode *node)
   return node->element_type;
 }
 
-/**
- * st_theme_node_get_element_id:
- * @node: a #StThemeNode
- *
- * Get the unique element ID for @node.
- *
- * Returns: (transfer none): the element's ID
- */
 const char *
 st_theme_node_get_element_id (StThemeNode *node)
 {
@@ -267,14 +187,6 @@ st_theme_node_get_element_id (StThemeNode *node)
   return node->element_id;
 }
 
-/**
- * st_theme_node_get_element_classes:
- * @node: a #StThemeNode
- *
- * Get the list of element classes for @node.
- *
- * Returns: (transfer none): the element's classes
- */
 GStrv
 st_theme_node_get_element_classes (StThemeNode *node)
 {
@@ -283,14 +195,6 @@ st_theme_node_get_element_classes (StThemeNode *node)
   return node->element_classes;
 }
 
-/**
- * st_theme_node_get_pseudo_classes:
- * @node: a #StThemeNode
- *
- * Get the list of pseudo-classes for @node (eg. `:focused`).
- *
- * Returns: (transfer none): the element's pseudo-classes
- */
 GStrv
 st_theme_node_get_pseudo_classes (StThemeNode *node)
 {
@@ -299,25 +203,6 @@ st_theme_node_get_pseudo_classes (StThemeNode *node)
   return node->pseudo_classes;
 }
 
-/**
- * st_theme_node_equal:
- * @node_a: first #StThemeNode
- * @node_b: second #StThemeNode
- *
- * Compare two #StThemeNodes. Two nodes which compare equal will match
- * the same CSS rules and have the same style properties. However, two
- * nodes that have ended up with identical style properties do not
- * necessarily compare equal.
- *
- * In detail, @node_a and @node_b are considered equal if and only if:
- *
- * - they share the same #StTheme and #StThemeContext
- * - they have the same parent
- * - they have the same element type
- * - their id, class, pseudo-class and inline-style match
- *
- * Returns: %TRUE if @node_a equals @node_b
- */
 gboolean
 st_theme_node_equal (StThemeNode *node_a, StThemeNode *node_b)
 {
@@ -376,14 +261,6 @@ st_theme_node_equal (StThemeNode *node_a, StThemeNode *node_b)
   return TRUE;
 }
 
-/**
- * st_theme_node_hash:
- * @node: a #StThemeNode
- *
- * Converts @node to a hash value.
- *
- * Returns: a hash value corresponding to @node
- */
 guint
 st_theme_node_hash (StThemeNode *node)
 {
@@ -499,10 +376,6 @@ term_is_accent_fg_color (CRTerm *term)
 static int
 color_component_from_double (double component)
 {
-  /* We want to spread the range 0-1 equally over 0..255, but
-   * 1.0 should map to 255 not 256, so we need to special-case it.
-   * See http://people.redhat.com/otaylor/pixel-converting.html
-   * for (very) detailed discussion of related issues. */
   if (component >= 1.0)
     return 255;
   else
@@ -534,11 +407,6 @@ get_color_from_rgba_term (CRTerm    *term,
 
       num = arg->content.num;
 
-      /* For simplicity, we convert a,r,g,b to [0,1.0] floats and then
-       * convert them back below. Then when we set them on a cairo content
-       * we convert them back to floats, and then cairo converts them
-       * back to integers to pass them to X, and so forth...
-       */
       if (i < 3)
         {
           if (num->type == NUM_PERCENTAGE)
@@ -673,7 +541,6 @@ get_color_from_mix_term (StThemeNode *node,
   else
     return VALUE_NOT_FOUND;
 
-  /* SCSS mix() inverts the factor for some reason */
   factor = 1 - factor;
 
   color->alpha = CLAMP (LERP (color1.alpha, color2.alpha, factor), 0, 255);
@@ -793,30 +660,21 @@ get_color_from_term (StThemeNode  *node,
     {
       return VALUE_INHERIT;
     }
-  /* Since libcroco doesn't know about rgba colors, it can't handle
-   * the transparent keyword
-   */
   else if (term_is_transparent (term))
     {
       *color = TRANSPARENT_COLOR;
       return VALUE_FOUND;
     }
-  /* St-specific extension: -st-accent-color */
   else if (term_is_accent_color (term))
     {
       st_theme_context_get_accent_color (node->context, color, NULL);
       return VALUE_FOUND;
     }
-  /* St-specific extension: -st-accent-fg-color */
   else if (term_is_accent_fg_color (term))
     {
       st_theme_context_get_accent_color (node->context, NULL, color);
       return VALUE_FOUND;
     }
-  /* rgba () colors - a CSS3 addition, are not supported by libcroco,
-   * but they are parsed as a "function", so we can emulate the
-   * functionality.
-   */
   else if (term->type == TERM_FUNCTION &&
            term->content.str &&
            term->content.str->stryng &&
@@ -825,7 +683,6 @@ get_color_from_term (StThemeNode  *node,
     {
       return get_color_from_rgba_term (term, color);
     }
-  /* St-specific extension: st-transparentize() */
   else if (term->type == TERM_FUNCTION &&
            term->content.str &&
            term->content.str->stryng &&
@@ -834,7 +691,6 @@ get_color_from_term (StThemeNode  *node,
     {
       return get_color_from_transparentize_term (node, term, color);
     }
-  /* St-specific extension: st-mix() */
   else if (term->type == TERM_FUNCTION &&
            term->content.str &&
            term->content.str->stryng &&
@@ -843,7 +699,6 @@ get_color_from_term (StThemeNode  *node,
     {
       return get_color_from_mix_term (node, term, color);
     }
-  /* St-specific extension: st-lighten() */
   else if (term->type == TERM_FUNCTION &&
            term->content.str &&
            term->content.str->stryng &&
@@ -852,7 +707,6 @@ get_color_from_term (StThemeNode  *node,
     {
       return get_color_from_lighten_term (node, term, color);
     }
-  /* St-specific extension: st-darken() */
   else if (term->type == TERM_FUNCTION &&
            term->content.str &&
            term->content.str->stryng &&
@@ -877,29 +731,6 @@ get_color_from_term (StThemeNode  *node,
   return VALUE_FOUND;
 }
 
-/**
- * st_theme_node_lookup_color:
- * @node: a #StThemeNode
- * @property_name: The name of the color property
- * @inherit: if %TRUE, if a value is not found for the property on the
- *   node, then it will be looked up on the parent node, and then on the
- *   parent's parent, and so forth. Note that if the property has a
- *   value of 'inherit' it will be inherited even if %FALSE is passed
- *   in for @inherit; this only affects the default behavior for inheritance.
- * @color: (out caller-allocates): location to store the color that was
- *   determined. If the property is not found, the value in this location
- *   will not be changed.
- *
- * Generically looks up a property containing a single color value. When
- * specific getters (like st_theme_node_get_background_color()) exist, they
- * should be used instead. They are cached, so more efficient, and have
- * handling for shortcut properties and other details of CSS.
- *
- * See also st_theme_node_get_color(), which provides a simpler API.
- *
- * Returns: %TRUE if the property was found in the properties for this
- *  theme node (or in the properties of parent nodes when inheriting.)
- */
 gboolean
 st_theme_node_lookup_color (StThemeNode  *node,
                             const char   *property_name,
@@ -941,25 +772,6 @@ st_theme_node_lookup_color (StThemeNode  *node,
   return FALSE;
 }
 
-/**
- * st_theme_node_get_color:
- * @node: a #StThemeNode
- * @property_name: The name of the color property
- * @color: (out caller-allocates): location to store the color that
- *   was determined.
- *
- * Generically looks up a property containing a single color value. When
- * specific getters (like st_theme_node_get_background_color()) exist, they
- * should be used instead. They are cached, so more efficient, and have
- * handling for shortcut properties and other details of CSS.
- *
- * If @property_name is not found, a warning will be logged and a
- * default color returned.
- *
- * See also st_theme_node_lookup_color(), which provides more options,
- * and lets you handle the case where the theme does not specify the
- * indicated color.
- */
 void
 st_theme_node_get_color (StThemeNode  *node,
                          const char   *property_name,
@@ -972,27 +784,6 @@ st_theme_node_get_color (StThemeNode  *node,
     }
 }
 
-/**
- * st_theme_node_lookup_double:
- * @node: a #StThemeNode
- * @property_name: The name of the numeric property
- * @inherit: if %TRUE, if a value is not found for the property on the
- *   node, then it will be looked up on the parent node, and then on the
- *   parent's parent, and so forth. Note that if the property has a
- *   value of 'inherit' it will be inherited even if %FALSE is passed
- *   in for @inherit; this only affects the default behavior for inheritance.
- * @value: (out): location to store the value that was determined.
- *   If the property is not found, the value in this location
- *   will not be changed.
- *
- * Generically looks up a property containing a single numeric value
- *  without units.
- *
- * See also st_theme_node_get_double(), which provides a simpler API.
- *
- * Returns: %TRUE if the property was found in the properties for this
- *  theme node (or in the properties of parent nodes when inheriting.)
- */
 gboolean
 st_theme_node_lookup_double (StThemeNode *node,
                              const char  *property_name,
@@ -1030,25 +821,6 @@ st_theme_node_lookup_double (StThemeNode *node,
   return result;
 }
 
-/**
- * st_theme_node_lookup_time:
- * @node: a #StThemeNode
- * @property_name: The name of the time property
- * @inherit: if %TRUE, if a value is not found for the property on the
- *   node, then it will be looked up on the parent node, and then on the
- *   parent's parent, and so forth. Note that if the property has a
- *   value of 'inherit' it will be inherited even if %FALSE is passed
- *   in for @inherit; this only affects the default behavior for inheritance.
- * @value: (out): location to store the value that was determined.
- *   If the property is not found, the value in this location
- *   will not be changed.
- *
- * Generically looks up a property containing a single time value,
- *  which is converted to milliseconds.
- *
- * Returns: %TRUE if the property was found in the properties for this
- *  theme node (or in the properties of parent nodes when inheriting.)
- */
 gboolean
 st_theme_node_lookup_time (StThemeNode *node,
                            const char  *property_name,
@@ -1094,21 +866,6 @@ st_theme_node_lookup_time (StThemeNode *node,
   return result;
 }
 
-/**
- * st_theme_node_get_double:
- * @node: a #StThemeNode
- * @property_name: The name of the numeric property
- *
- * Generically looks up a property containing a single numeric value
- *  without units.
- *
- * See also st_theme_node_lookup_double(), which provides more options,
- * and lets you handle the case where the theme does not specify the
- * indicated value.
- *
- * Returns: the value found. If @property_name is not
- *  found, a warning will be logged and 0 will be returned.
- */
 gdouble
 st_theme_node_get_double (StThemeNode *node,
                           const char  *property_name)
@@ -1124,26 +881,6 @@ st_theme_node_get_double (StThemeNode *node,
     }
 }
 
-/**
- * st_theme_node_lookup_url:
- * @node: a #StThemeNode
- * @property_name: The name of the string property
- * @inherit: if %TRUE, if a value is not found for the property on the
- *   node, then it will be looked up on the parent node, and then on the
- *   parent's parent, and so forth. Note that if the property has a
- *   value of 'inherit' it will be inherited even if %FALSE is passed
- *   in for @inherit; this only affects the default behavior for inheritance.
- * @file: (out) (transfer full): location to store the newly allocated value that was
- *   determined. If the property is not found, the value in this location
- *   will not be changed.
- *
- * Looks up a property containing a single URL value.
- *
- * See also st_theme_node_get_url(), which provides a simpler API.
- *
- * Returns: %TRUE if the property was found in the properties for this
- *  theme node (or in the properties of parent nodes when inheriting.)
- */
 gboolean
 st_theme_node_lookup_url (StThemeNode  *node,
                           const char   *property_name,
@@ -1189,21 +926,6 @@ st_theme_node_lookup_url (StThemeNode  *node,
   return result;
 }
 
-/**
- * st_theme_node_get_url:
- * @node: a #StThemeNode
- * @property_name: The name of the string property
- *
- * Looks up a property containing a single URL value.
- *
- * See also st_theme_node_lookup_url(), which provides more options,
- * and lets you handle the case where the theme does not specify the
- * indicated value.
- *
- * Returns: (nullable) (transfer full): the newly allocated value if found.
- *  If @property_name is not found, a warning will be logged and %NULL
- *  will be returned.
- */
 GFile *
 st_theme_node_get_url (StThemeNode *node,
                        const char  *property_name)
@@ -1288,13 +1010,6 @@ get_length_from_term (StThemeNode *node,
       }
     case NUM_LENGTH_EX:
       {
-        /* Doing better would require actually resolving the font description
-         * to a specific font, and Pango doesn't have an ex metric anyways,
-         * so we'd have to try and synthesize it by complicated means.
-         *
-         * The 0.5em is the CSS spec suggested thing to use when nothing
-         * better is available.
-         */
         type = FONT_RELATIVE;
         multiplier = 0.5;
         break;
@@ -1420,30 +1135,6 @@ get_length_internal (StThemeNode *node,
   return VALUE_NOT_FOUND;
 }
 
-/**
- * st_theme_node_lookup_length:
- * @node: a #StThemeNode
- * @property_name: The name of the length property
- * @inherit: if %TRUE, if a value is not found for the property on the
- *   node, then it will be looked up on the parent node, and then on the
- *   parent's parent, and so forth. Note that if the property has a
- *   value of 'inherit' it will be inherited even if %FALSE is passed
- *   in for @inherit; this only affects the default behavior for inheritance.
- * @length: (out): location to store the length that was determined.
- *   If the property is not found, the value in this location
- *   will not be changed. The returned length is resolved
- *   to pixels.
- *
- * Generically looks up a property containing a single length value. When
- * specific getters (like st_theme_node_get_border_width()) exist, they
- * should be used instead. They are cached, so more efficient, and have
- * handling for shortcut properties and other details of CSS.
- *
- * See also st_theme_node_get_length(), which provides a simpler API.
- *
- * Returns: %TRUE if the property was found in the properties for this
- *  theme node (or in the properties of parent nodes when inheriting.)
- */
 gboolean
 st_theme_node_lookup_length (StThemeNode *node,
                              const char  *property_name,
@@ -1468,25 +1159,6 @@ st_theme_node_lookup_length (StThemeNode *node,
   return FALSE;
 }
 
-/**
- * st_theme_node_get_length:
- * @node: a #StThemeNode
- * @property_name: The name of the length property
- *
- * Generically looks up a property containing a single length value. When
- * specific getters (like st_theme_node_get_border_width()) exist, they
- * should be used instead. They are cached, so more efficient, and have
- * handling for shortcut properties and other details of CSS.
- *
- * Unlike st_theme_node_get_color() and st_theme_node_get_double(),
- * this does not print a warning if the property is not found; it just
- * returns 0.
- *
- * See also st_theme_node_lookup_length(), which provides more options. The
- * returned value is in physical pixels, as opposed to logical pixels.
- *
- * Returns: the length, in pixels, or 0 if the property was not found.
- */
 gdouble
 st_theme_node_get_length (StThemeNode *node,
                           const char  *property_name)
@@ -1526,38 +1198,34 @@ static void
 do_border_radius (StThemeNode   *node,
                   CRDeclaration *decl)
 {
-  const char *property_name = decl->property->stryng->str + 13; /* Skip 'border-radius' */
+  const char *property_name = decl->property->stryng->str + 13;
 
   if (strcmp (property_name, "") == 0)
     {
-      /* Slight deviation ... if we don't understand some of the terms and understand others,
-       * then we set the ones we understand and ignore the others instead of ignoring the
-       * whole thing
-       */
-      if (decl->value == NULL) /* 0 values */
+      if (decl->value == NULL)
         return;
-      else if (decl->value->next == NULL) /* 1 value */
+      else if (decl->value->next == NULL)
         {
-          do_border_radius_term (node, decl->value,       TRUE, TRUE, TRUE, TRUE); /* all corners */
+          do_border_radius_term (node, decl->value,       TRUE, TRUE, TRUE, TRUE);
           return;
         }
-      else if (decl->value->next->next == NULL) /* 2 values */
+      else if (decl->value->next->next == NULL)
         {
-          do_border_radius_term (node, decl->value,       TRUE,  FALSE,  TRUE,  FALSE);  /* topleft/bottomright */
-          do_border_radius_term (node, decl->value->next, FALSE,  TRUE,   FALSE, TRUE);  /* topright/bottomleft */
+          do_border_radius_term (node, decl->value,       TRUE,  FALSE,  TRUE,  FALSE);
+          do_border_radius_term (node, decl->value->next, FALSE,  TRUE,   FALSE, TRUE);
         }
-      else if (decl->value->next->next->next == NULL) /* 3 values */
+      else if (decl->value->next->next->next == NULL)
         {
-          do_border_radius_term (node, decl->value,             TRUE,  FALSE, FALSE, FALSE); /* topleft */
-          do_border_radius_term (node, decl->value->next,       FALSE, TRUE,  FALSE, TRUE);  /* topright/bottomleft */
-          do_border_radius_term (node, decl->value->next->next, FALSE, FALSE, TRUE,  FALSE);  /* bottomright */
+          do_border_radius_term (node, decl->value,             TRUE,  FALSE, FALSE, FALSE);
+          do_border_radius_term (node, decl->value->next,       FALSE, TRUE,  FALSE, TRUE);
+          do_border_radius_term (node, decl->value->next->next, FALSE, FALSE, TRUE,  FALSE);
         }
-      else if (decl->value->next->next->next->next == NULL) /* 4 values */
+      else if (decl->value->next->next->next->next == NULL)
         {
-          do_border_radius_term (node, decl->value,                   TRUE,  FALSE, FALSE, FALSE); /* topleft */
-          do_border_radius_term (node, decl->value->next,             FALSE, TRUE,  FALSE, FALSE); /* topright */
-          do_border_radius_term (node, decl->value->next->next,       FALSE, FALSE, TRUE,  FALSE); /* bottomright */
-          do_border_radius_term (node, decl->value->next->next->next, FALSE, FALSE, FALSE, TRUE);  /* bottomleft */
+          do_border_radius_term (node, decl->value,                   TRUE,  FALSE, FALSE, FALSE);
+          do_border_radius_term (node, decl->value->next,             FALSE, TRUE,  FALSE, FALSE);
+          do_border_radius_term (node, decl->value->next->next,       FALSE, FALSE, TRUE,  FALSE);
+          do_border_radius_term (node, decl->value->next->next->next, FALSE, FALSE, FALSE, TRUE);
         }
       else
         {
@@ -1585,11 +1253,11 @@ static void
 do_border_property (StThemeNode   *node,
                     CRDeclaration *decl)
 {
-  const char *property_name = decl->property->stryng->str + 6; /* Skip 'border' */
+  const char *property_name = decl->property->stryng->str + 6;
   StSide side = (StSide)-1;
   CoglColor color;
   gboolean color_set = FALSE;
-  int width = 0; /* suppress warning */
+  int width = 0;
   gboolean width_set = FALSE;
   int j;
 
@@ -1622,7 +1290,6 @@ do_border_property (StThemeNode   *node,
 
   if (strcmp (property_name, "") == 0)
     {
-      /* Set value for width/color/style in any order */
       CRTerm *term;
 
       for (term = decl->value; term; term = term->next)
@@ -1640,7 +1307,6 @@ do_border_property (StThemeNode   *node,
                 }
               else if (strcmp (ident, "solid") == 0)
                 {
-                  /* The only thing we support */
                   continue;
                 }
               else if (strcmp (ident, "dotted") == 0 ||
@@ -1651,11 +1317,9 @@ do_border_property (StThemeNode   *node,
                        strcmp (ident, "inset") == 0 ||
                        strcmp (ident, "outset") == 0)
                 {
-                  /* Treat the same as solid */
                   continue;
                 }
 
-              /* Presumably a color, fall through */
             }
 
           if (term->type == TERM_NUMBER)
@@ -1683,7 +1347,6 @@ do_border_property (StThemeNode   *node,
         return;
 
       if (get_color_from_term (node, decl->value, &color) == VALUE_FOUND)
-        /* Ignore inherit */
         color_set = TRUE;
     }
   else if (strcmp (property_name, "-width") == 0)
@@ -1692,7 +1355,6 @@ do_border_property (StThemeNode   *node,
         return;
 
       if (get_length_from_term_int (node, decl->value, FALSE, &width) == VALUE_FOUND)
-        /* Ignore inherit */
         width_set = TRUE;
     }
 
@@ -1719,15 +1381,14 @@ static void
 do_outline_property (StThemeNode   *node,
                      CRDeclaration *decl)
 {
-  const char *property_name = decl->property->stryng->str + 7; /* Skip 'outline' */
+  const char *property_name = decl->property->stryng->str + 7;
   CoglColor color;
   gboolean color_set = FALSE;
-  int width = 0; /* suppress warning */
+  int width = 0;
   gboolean width_set = FALSE;
 
   if (strcmp (property_name, "") == 0)
     {
-      /* Set value for width/color/style in any order */
       CRTerm *term;
 
       for (term = decl->value; term; term = term->next)
@@ -1745,7 +1406,6 @@ do_outline_property (StThemeNode   *node,
                 }
               else if (strcmp (ident, "solid") == 0)
                 {
-                  /* The only thing we support */
                   continue;
                 }
               else if (strcmp (ident, "dotted") == 0 ||
@@ -1756,11 +1416,9 @@ do_outline_property (StThemeNode   *node,
                        strcmp (ident, "inset") == 0 ||
                        strcmp (ident, "outset") == 0)
                 {
-                  /* Treat the same as solid */
                   continue;
                 }
 
-              /* Presumably a color, fall through */
             }
 
           if (term->type == TERM_NUMBER)
@@ -1788,7 +1446,6 @@ do_outline_property (StThemeNode   *node,
         return;
 
       if (get_color_from_term (node, decl->value, &color) == VALUE_FOUND)
-        /* Ignore inherit */
         color_set = TRUE;
     }
   else if (strcmp (property_name, "-width") == 0)
@@ -1797,7 +1454,6 @@ do_outline_property (StThemeNode   *node,
         return;
 
       if (get_length_from_term_int (node, decl->value, FALSE, &width) == VALUE_FOUND)
-        /* Ignore inherit */
         width_set = TRUE;
     }
 
@@ -1834,38 +1490,34 @@ static void
 do_padding_property (StThemeNode   *node,
                      CRDeclaration *decl)
 {
-  const char *property_name = decl->property->stryng->str + 7; /* Skip 'padding' */
+  const char *property_name = decl->property->stryng->str + 7;
 
   if (strcmp (property_name, "") == 0)
     {
-      /* Slight deviation ... if we don't understand some of the terms and understand others,
-       * then we set the ones we understand and ignore the others instead of ignoring the
-       * whole thing
-       */
-      if (decl->value == NULL) /* 0 values */
+      if (decl->value == NULL)
         return;
-      else if (decl->value->next == NULL) /* 1 value */
+      else if (decl->value->next == NULL)
         {
-          do_padding_property_term (node, decl->value, TRUE, TRUE, TRUE, TRUE); /* left/right/top/bottom */
+          do_padding_property_term (node, decl->value, TRUE, TRUE, TRUE, TRUE);
           return;
         }
-      else if (decl->value->next->next == NULL) /* 2 values */
+      else if (decl->value->next->next == NULL)
         {
-          do_padding_property_term (node, decl->value,       FALSE, FALSE, TRUE,  TRUE);  /* top/bottom */
-          do_padding_property_term (node, decl->value->next, TRUE, TRUE,   FALSE, FALSE); /* left/right */
+          do_padding_property_term (node, decl->value,       FALSE, FALSE, TRUE,  TRUE);
+          do_padding_property_term (node, decl->value->next, TRUE, TRUE,   FALSE, FALSE);
         }
-      else if (decl->value->next->next->next == NULL) /* 3 values */
+      else if (decl->value->next->next->next == NULL)
         {
-          do_padding_property_term (node, decl->value,             FALSE, FALSE, TRUE,  FALSE); /* top */
-          do_padding_property_term (node, decl->value->next,       TRUE,  TRUE,  FALSE, FALSE); /* left/right */
-          do_padding_property_term (node, decl->value->next->next, FALSE, FALSE, FALSE, TRUE);  /* bottom */
+          do_padding_property_term (node, decl->value,             FALSE, FALSE, TRUE,  FALSE);
+          do_padding_property_term (node, decl->value->next,       TRUE,  TRUE,  FALSE, FALSE);
+          do_padding_property_term (node, decl->value->next->next, FALSE, FALSE, FALSE, TRUE);
         }
-      else if (decl->value->next->next->next->next == NULL) /* 4 values */
+      else if (decl->value->next->next->next->next == NULL)
         {
-          do_padding_property_term (node, decl->value,                   FALSE, FALSE, TRUE,  FALSE); /* top */
-          do_padding_property_term (node, decl->value->next,             FALSE, TRUE,  FALSE, FALSE); /* right */
-          do_padding_property_term (node, decl->value->next->next,       FALSE, FALSE, FALSE, TRUE);  /* bottom */
-          do_padding_property_term (node, decl->value->next->next->next, TRUE,  FALSE, FALSE, FALSE); /* left */
+          do_padding_property_term (node, decl->value,                   FALSE, FALSE, TRUE,  FALSE);
+          do_padding_property_term (node, decl->value->next,             FALSE, TRUE,  FALSE, FALSE);
+          do_padding_property_term (node, decl->value->next->next,       FALSE, FALSE, FALSE, TRUE);
+          do_padding_property_term (node, decl->value->next->next->next, TRUE,  FALSE, FALSE, FALSE);
         }
       else
         {
@@ -1916,38 +1568,34 @@ static void
 do_margin_property (StThemeNode   *node,
                     CRDeclaration *decl)
 {
-  const char *property_name = decl->property->stryng->str + 6; /* Skip 'margin' */
+  const char *property_name = decl->property->stryng->str + 6;
 
   if (strcmp (property_name, "") == 0)
     {
-      /* Slight deviation ... if we don't understand some of the terms and understand others,
-       * then we set the ones we understand and ignore the others instead of ignoring the
-       * whole thing
-       */
-      if (decl->value == NULL) /* 0 values */
+      if (decl->value == NULL)
         return;
-      else if (decl->value->next == NULL) /* 1 value */
+      else if (decl->value->next == NULL)
         {
-          do_margin_property_term (node, decl->value, TRUE, TRUE, TRUE, TRUE); /* left/right/top/bottom */
+          do_margin_property_term (node, decl->value, TRUE, TRUE, TRUE, TRUE);
           return;
         }
-      else if (decl->value->next->next == NULL) /* 2 values */
+      else if (decl->value->next->next == NULL)
         {
-          do_margin_property_term (node, decl->value,       FALSE, FALSE, TRUE,  TRUE);  /* top/bottom */
-          do_margin_property_term (node, decl->value->next, TRUE, TRUE,   FALSE, FALSE); /* left/right */
+          do_margin_property_term (node, decl->value,       FALSE, FALSE, TRUE,  TRUE);
+          do_margin_property_term (node, decl->value->next, TRUE, TRUE,   FALSE, FALSE);
         }
-      else if (decl->value->next->next->next == NULL) /* 3 values */
+      else if (decl->value->next->next->next == NULL)
         {
-          do_margin_property_term (node, decl->value,             FALSE, FALSE, TRUE,  FALSE); /* top */
-          do_margin_property_term (node, decl->value->next,       TRUE,  TRUE,  FALSE, FALSE); /* left/right */
-          do_margin_property_term (node, decl->value->next->next, FALSE, FALSE, FALSE, TRUE);  /* bottom */
+          do_margin_property_term (node, decl->value,             FALSE, FALSE, TRUE,  FALSE);
+          do_margin_property_term (node, decl->value->next,       TRUE,  TRUE,  FALSE, FALSE);
+          do_margin_property_term (node, decl->value->next->next, FALSE, FALSE, FALSE, TRUE);
         }
-      else if (decl->value->next->next->next->next == NULL) /* 4 values */
+      else if (decl->value->next->next->next->next == NULL)
         {
-          do_margin_property_term (node, decl->value,                   FALSE, FALSE, TRUE,  FALSE); /* top */
-          do_margin_property_term (node, decl->value->next,             FALSE, TRUE,  FALSE, FALSE); /* right */
-          do_margin_property_term (node, decl->value->next->next,       FALSE, FALSE, FALSE, TRUE);  /* bottom */
-          do_margin_property_term (node, decl->value->next->next->next, TRUE,  FALSE, FALSE, FALSE); /* left */
+          do_margin_property_term (node, decl->value,                   FALSE, FALSE, TRUE,  FALSE);
+          do_margin_property_term (node, decl->value->next,             FALSE, TRUE,  FALSE, FALSE);
+          do_margin_property_term (node, decl->value->next->next,       FALSE, FALSE, FALSE, TRUE);
+          do_margin_property_term (node, decl->value->next->next->next, TRUE,  FALSE, FALSE, FALSE);
         }
       else
         {
@@ -2047,18 +1695,6 @@ _st_theme_node_ensure_geometry (StThemeNode *node)
         do_size_property (node, decl, &node->max_height);
     }
 
-  /*
-   * Setting width sets max-width, min-width and -st-natural-width,
-   * unless one of them is set individually.
-   * Setting min-width sets natural width too, so that the minimum
-   * width reported by get_preferred_width() is always not greater
-   * than the natural width.
-   * The natural width in node->width is actually a lower bound, the
-   * actor is allowed to request something greater than that, but
-   * not greater than max-width.
-   * We don't need to clamp node->width to be less than max_width,
-   * that's done by adjust_preferred_width.
-   */
   if (width != -1)
     {
       if (node->width == -1)
@@ -2086,15 +1722,6 @@ _st_theme_node_ensure_geometry (StThemeNode *node)
     node->height = node->min_height;
 }
 
-/**
- * st_theme_node_get_border_width:
- * @node: a #StThemeNode
- * @side: a #StCorner
- *
- * Get the border width for @node on @side, in physical pixels.
- *
- * Returns: the border width in physical pixels
- */
 int
 st_theme_node_get_border_width (StThemeNode *node,
                                 StSide       side)
@@ -2107,15 +1734,6 @@ st_theme_node_get_border_width (StThemeNode *node,
   return node->border_width[side];
 }
 
-/**
- * st_theme_node_get_border_radius:
- * @node: a #StThemeNode
- * @corner: a #StCorner
- *
- * Get the border radius for @node at @corner, in physical pixels.
- *
- * Returns: the border radius in physical pixels
- */
 int
 st_theme_node_get_border_radius (StThemeNode *node,
                                  StCorner     corner)
@@ -2128,14 +1746,6 @@ st_theme_node_get_border_radius (StThemeNode *node,
   return node->border_radius[corner];
 }
 
-/**
- * st_theme_node_get_outline_width:
- * @node: a #StThemeNode
- *
- * Get the width of the outline for @node, in physical pixels.
- *
- * Returns: the width in physical pixels
- */
 int
 st_theme_node_get_outline_width (StThemeNode  *node)
 {
@@ -2146,13 +1756,6 @@ st_theme_node_get_outline_width (StThemeNode  *node)
   return node->outline_width;
 }
 
-/**
- * st_theme_node_get_outline_color:
- * @node: a #StThemeNode
- * @color: (out caller-allocates): location to store the color
- *
- * Gets the color of @node's outline.
- */
 void
 st_theme_node_get_outline_color (StThemeNode *node,
                                  CoglColor   *color)
@@ -2164,14 +1767,6 @@ st_theme_node_get_outline_color (StThemeNode *node,
   *color = node->outline_color;
 }
 
-/**
- * st_theme_node_get_width:
- * @node: a #StThemeNode
- *
- * Get the width for @node, in physical pixels.
- *
- * Returns: the width in physical pixels
- */
 int
 st_theme_node_get_width (StThemeNode *node)
 {
@@ -2181,14 +1776,6 @@ st_theme_node_get_width (StThemeNode *node)
   return node->width;
 }
 
-/**
- * st_theme_node_get_height:
- * @node: a #StThemeNode
- *
- * Get the height for @node, in physical pixels.
- *
- * Returns: the height in physical pixels
- */
 int
 st_theme_node_get_height (StThemeNode *node)
 {
@@ -2198,14 +1785,6 @@ st_theme_node_get_height (StThemeNode *node)
   return node->height;
 }
 
-/**
- * st_theme_node_get_min_width:
- * @node: a #StThemeNode
- *
- * Get the minimum width for @node, in physical pixels.
- *
- * Returns: the minimum width in physical pixels
- */
 int
 st_theme_node_get_min_width (StThemeNode *node)
 {
@@ -2215,14 +1794,6 @@ st_theme_node_get_min_width (StThemeNode *node)
   return node->min_width;
 }
 
-/**
- * st_theme_node_get_min_height:
- * @node: a #StThemeNode
- *
- * Get the minimum height for @node, in physical pixels.
- *
- * Returns: the minimum height in physical pixels
- */
 int
 st_theme_node_get_min_height (StThemeNode *node)
 {
@@ -2232,14 +1803,6 @@ st_theme_node_get_min_height (StThemeNode *node)
   return node->min_height;
 }
 
-/**
- * st_theme_node_get_max_width:
- * @node: a #StThemeNode
- *
- * Get the maximum width for @node, in physical pixels.
- *
- * Returns: the maximum width in physical pixels
- */
 int
 st_theme_node_get_max_width (StThemeNode *node)
 {
@@ -2249,14 +1812,6 @@ st_theme_node_get_max_width (StThemeNode *node)
   return node->max_width;
 }
 
-/**
- * st_theme_node_get_max_height:
- * @node: a #StThemeNode
- *
- * Get the maximum height for @node, in physical pixels.
- *
- * Returns: the maximum height in physical pixels
- */
 int
 st_theme_node_get_max_height (StThemeNode *node)
 {
@@ -2295,14 +1850,8 @@ _st_theme_node_ensure_background (StThemeNode *node)
 
       if (strcmp (property_name, "") == 0)
         {
-          /* We're very liberal here ... if we recognize any term in the expression we take it, and
-           * we ignore the rest. The actual specification is:
-           *
-           * background: [<'background-color'> || <'background-image'> || <'background-repeat'> || <'background-attachment'> || <'background-position'>] | inherit
-           */
 
           CRTerm *term;
-          /* background: property sets all terms to specified or default values */
           node->background_color = TRANSPARENT_COLOR;
           g_clear_object (&node->background_image);
           node->background_position_set = FALSE;
@@ -2313,7 +1862,6 @@ _st_theme_node_ensure_background (StThemeNode *node)
               GetFromTermResult result = get_color_from_term (node, term, &node->background_color);
               if (result == VALUE_FOUND)
                 {
-                  /* color stored in node->background_color */
                 }
               else if (result == VALUE_INHERIT)
                 {
@@ -2325,7 +1873,6 @@ _st_theme_node_ensure_background (StThemeNode *node)
                 }
               else if (term_is_none (term))
                 {
-                  /* leave node->background_color as transparent */
                 }
               else if (term->type == TERM_URI)
                 {
@@ -2422,7 +1969,6 @@ _st_theme_node_ensure_background (StThemeNode *node)
           result = get_color_from_term (node, decl->value, &node->background_color);
           if (result == VALUE_FOUND)
             {
-              /* color stored in node->background_color */
             }
           else if (result == VALUE_INHERIT)
             {
@@ -2495,13 +2041,6 @@ _st_theme_node_ensure_background (StThemeNode *node)
     }
 }
 
-/**
- * st_theme_node_get_background_color:
- * @node: a #StThemeNode
- * @color: (out caller-allocates): location to store the color
- *
- * Gets @node's background color.
- */
 void
 st_theme_node_get_background_color (StThemeNode *node,
                                     CoglColor   *color)
@@ -2513,12 +2052,6 @@ st_theme_node_get_background_color (StThemeNode *node,
   *color = node->background_color;
 }
 
-/**
- * st_theme_node_get_background_image:
- * @node: a #StThemeNode
- *
- * Returns: (transfer none): @node's background image.
- */
 GFile *
 st_theme_node_get_background_image (StThemeNode *node)
 {
@@ -2529,13 +2062,6 @@ st_theme_node_get_background_image (StThemeNode *node)
   return node->background_image;
 }
 
-/**
- * st_theme_node_get_foreground_color:
- * @node: a #StThemeNode
- * @color: (out caller-allocates): location to store the color
- *
- * Gets @node's foreground color.
- */
 void
 st_theme_node_get_foreground_color (StThemeNode  *node,
                                     CoglColor    *color)
@@ -2567,7 +2093,7 @@ st_theme_node_get_foreground_color (StThemeNode  *node,
       if (node->parent_node)
         st_theme_node_get_foreground_color (node->parent_node, &node->foreground_color);
       else
-        node->foreground_color = BLACK_COLOR; /* default to black */
+        node->foreground_color = BLACK_COLOR;
     }
 
  out:
@@ -2575,15 +2101,6 @@ st_theme_node_get_foreground_color (StThemeNode  *node,
 }
 
 
-/**
- * st_theme_node_get_background_gradient:
- * @node: A #StThemeNode
- * @type: (out): Type of gradient
- * @start: (out caller-allocates): Color at start of gradient
- * @end: (out caller-allocates): Color at end of gradient
- *
- * The @start and @end arguments will only be set if @type is not #ST_GRADIENT_NONE.
- */
 void
 st_theme_node_get_background_gradient (StThemeNode    *node,
                                        StGradientType *type,
@@ -2602,14 +2119,6 @@ st_theme_node_get_background_gradient (StThemeNode    *node,
     }
 }
 
-/**
- * st_theme_node_get_border_color:
- * @node: a #StThemeNode
- * @side: a #StSide
- * @color: (out caller-allocates): location to store the color
- *
- * Gets the color of @node's border on @side
- */
 void
 st_theme_node_get_border_color (StThemeNode  *node,
                                 StSide        side,
@@ -2623,16 +2132,6 @@ st_theme_node_get_border_color (StThemeNode  *node,
   *color = node->border_color[side];
 }
 
-/**
- * st_theme_node_get_padding:
- * @node: a #StThemeNode
- * @side: a #StSide
- *
- * Get the padding for @node on @side, in physical pixels. This corresponds to
- * the CSS properties such as `padding-top`.
- *
- * Returns: the padding size in physical pixels
- */
 double
 st_theme_node_get_padding (StThemeNode *node,
                            StSide       side)
@@ -2645,16 +2144,6 @@ st_theme_node_get_padding (StThemeNode *node,
   return node->padding[side];
 }
 
-/**
- * st_theme_node_get_margin:
- * @node: a #StThemeNode
- * @side: a #StSide
- *
- * Get the margin for @node on @side, in physical pixels. This corresponds to
- * the CSS properties such as `margin-top`.
- *
- * Returns: the margin size in physical pixels
- */
 double
 st_theme_node_get_margin (StThemeNode *node,
                           StSide side)
@@ -2667,16 +2156,6 @@ st_theme_node_get_margin (StThemeNode *node,
   return node->margin[side];
 }
 
-/**
- * st_theme_node_get_transition_duration:
- * @node: an #StThemeNode
- *
- * Get the value of the transition-duration property, which
- * specifies the transition time between the previous #StThemeNode
- * and @node.
- *
- * Returns: the node's transition duration in milliseconds
- */
 int
 st_theme_node_get_transition_duration (StThemeNode *node)
 {
@@ -2699,15 +2178,6 @@ st_theme_node_get_transition_duration (StThemeNode *node)
   return factor * node->transition_duration;
 }
 
-/**
- * st_theme_node_get_icon_style:
- * @node: a #StThemeNode
- *
- * Get the icon style for @node (eg. symbolic, regular). This corresponds to the
- * special `-st-icon-style` CSS property.
- *
- * Returns: the icon style for @node
- */
 StIconStyle
 st_theme_node_get_icon_style (StThemeNode *node)
 {
@@ -2752,14 +2222,6 @@ st_theme_node_get_icon_style (StThemeNode *node)
   return ST_ICON_STYLE_REQUESTED;
 }
 
-/**
- * st_theme_node_get_text_decoration
- * @node: a #StThemeNode
- *
- * Get the text decoration for @node (eg. underline, line-through, etc).
- *
- * Returns: the text decoration for @node
- */
 StTextDecoration
 st_theme_node_get_text_decoration (StThemeNode *node)
 {
@@ -2778,11 +2240,6 @@ st_theme_node_get_text_decoration (StThemeNode *node)
           CRTerm *term = decl->value;
           StTextDecoration decoration = 0;
 
-          /* Specification is none | [ underline || overline || line-through || blink ] | inherit
-           *
-           * We're a bit more liberal, and for example treat 'underline none' as the same as
-           * none.
-           */
           for (; term; term = term->next)
             {
               if (term->type != TERM_IDENT)
@@ -2829,14 +2286,6 @@ st_theme_node_get_text_decoration (StThemeNode *node)
   return 0;
 }
 
-/**
- * st_theme_node_get_text_align:
- * @node: a #StThemeNode
- *
- * Get the text alignment of @node.
- *
- * Returns: the alignment of text for @node
- */
 StTextAlign
 st_theme_node_get_text_align(StThemeNode *node)
 {
@@ -2895,15 +2344,6 @@ st_theme_node_get_text_align(StThemeNode *node)
   return ST_TEXT_ALIGN_START;
 }
 
-/**
- * st_theme_node_get_letter_spacing:
- * @node: a #StThemeNode
- *
- * Gets the value for the letter-spacing style property, in physical pixels.
- *
- * Returns: the value of the letter-spacing property, if
- *   found, or zero if such property has not been found.
- */
 gdouble
 st_theme_node_get_letter_spacing (StThemeNode *node)
 {
@@ -2941,7 +2381,6 @@ font_family_from_terms (CRTerm *term,
         {
           if (term->the_operator != COMMA && term->the_operator != NO_OP)
             goto out;
-          /* Can concatenate two bare words, but not two quoted strings */
           if ((term->the_operator == NO_OP && last_was_quoted) || term->type == TERM_STRING)
             goto out;
 
@@ -2976,15 +2415,14 @@ font_family_from_terms (CRTerm *term,
     }
 }
 
-/* In points */
 static int font_sizes[] = {
-  6 * 1024,   /* xx-small */
-  8 * 1024,   /* x-small */
-  10 * 1024,  /* small */
-  12 * 1024,  /* medium */
-  16 * 1024,  /* large */
-  20 * 1024,  /* x-large */
-  24 * 1024,  /* xx-large */
+  6 * 1024,
+  8 * 1024,
+  10 * 1024,
+  12 * 1024,
+  16 * 1024,
+  20 * 1024,
+  24 * 1024,
 };
 
 static gboolean
@@ -2995,9 +2433,6 @@ font_size_from_term (StThemeNode *node,
   if (term->type == TERM_IDENT)
     {
       double resolution = st_theme_context_get_resolution (node->context);
-      /* We work in integers to avoid double comparisons when converting back
-       * from a size in pixels to a logical size.
-       */
       int size_points = (int)(0.5 + *size * (72. / resolution));
 
       if (strcmp (term->content.str->stryng->str, "xx-small") == 0)
@@ -3016,7 +2451,6 @@ font_size_from_term (StThemeNode *node,
         size_points = font_sizes[6];
       else if (strcmp (term->content.str->stryng->str, "smaller") == 0)
         {
-          /* Find the standard size equal to or smaller than the current size */
           int i = 0;
 
           while (i <= 6 && font_sizes[i] < size_points)
@@ -3024,12 +2458,10 @@ font_size_from_term (StThemeNode *node,
 
           if (i > 6)
             {
-              /* original size greater than any standard size */
               size_points = (int)(0.5 + size_points / 1.2);
             }
           else
             {
-              /* Go one smaller than that, if possible */
               if (i > 0)
                 i--;
 
@@ -3038,16 +2470,14 @@ font_size_from_term (StThemeNode *node,
         }
       else if (strcmp (term->content.str->stryng->str, "larger") == 0)
         {
-          /* Find the standard size equal to or larger than the current size */
           int i = 6;
 
           while (i >= 0 && font_sizes[i] > size_points)
             i--;
 
-          if (i < 0) /* original size smaller than any standard size */
+          if (i < 0)
             i = 0;
 
-          /* Go one larger than that, if possible */
           if (i < 6)
             i++;
 
@@ -3069,7 +2499,6 @@ font_size_from_term (StThemeNode *node,
     }
   else if (get_length_from_term (node, term, TRUE, size) == VALUE_FOUND)
     {
-      /* Convert from pixels to Pango units */
       *size *= 1024;
       return TRUE;
     }
@@ -3086,9 +2515,6 @@ font_weight_from_term (CRTerm      *term,
     {
       int weight_int;
 
-      /* The spec only allows numeric weights from 100-900, though Pango
-       * will handle any number. We just let anything through.
-       */
       if (term->content.num->type != NUM_GENERIC)
         return FALSE;
 
@@ -3100,7 +2526,6 @@ font_weight_from_term (CRTerm      *term,
     }
   else if (term->type == TERM_IDENT)
     {
-      /* FIXME: handle INHERIT */
 
       if (strcmp (term->content.str->stryng->str, "bold") == 0)
         {
@@ -3143,7 +2568,6 @@ font_style_from_term (CRTerm     *term,
   if (term->type != TERM_IDENT)
     return FALSE;
 
-  /* FIXME: handle INHERIT */
 
   if (strcmp (term->content.str->stryng->str, "normal") == 0)
     *style = PANGO_STYLE_NORMAL;
@@ -3164,7 +2588,6 @@ font_variant_from_term (CRTerm       *term,
   if (term->type != TERM_IDENT)
     return FALSE;
 
-  /* FIXME: handle INHERIT */
 
   if (strcmp (term->content.str->stryng->str, "normal") == 0)
     *variant = PANGO_VARIANT_NORMAL;
@@ -3176,18 +2599,9 @@ font_variant_from_term (CRTerm       *term,
   return TRUE;
 }
 
-/**
- * st_theme_node_get_font:
- * @node: a #StThemeNode
- *
- * Get the current font of @node as a #PangoFontDescription
- *
- * Returns: (transfer none): the current font
- */
 const PangoFontDescription *
 st_theme_node_get_font (StThemeNode *node)
 {
-  /* Initialized despite _set flags to suppress compiler warnings */
   PangoStyle font_style = PANGO_STYLE_NORMAL;
   gboolean font_style_set = FALSE;
   PangoVariant variant = PANGO_VARIANT_NORMAL;
@@ -3230,10 +2644,6 @@ st_theme_node_get_font (StThemeNode *node)
           double tmp_size;
           CRTerm *term = decl->value;
 
-          /* A font specification starts with node/variant/weight
-           * in any order. Each is allowed to be specified only once,
-           * but we don't enforce that.
-           */
           for (; term; term = term->next)
             {
               if (font_style_from_term (term, &tmp_style))
@@ -3246,7 +2656,6 @@ st_theme_node_get_font (StThemeNode *node)
               break;
             }
 
-          /* The size is mandatory */
 
           if (term == NULL || term->type != TERM_NUMBER)
             {
@@ -3265,13 +2674,9 @@ st_theme_node_get_font (StThemeNode *node)
 
           if (term != NULL && term->type && TERM_NUMBER && term->the_operator == DIVIDE)
             {
-              /* Ignore line-height specification */
               term = term->next;
             }
 
-          /* the font family is mandatory - it is a comma-separated list of
-           * names.
-           */
           if (!font_family_from_terms (term, &family))
             {
               g_warning ("Couldn't parse family in font property");
@@ -3350,11 +2755,6 @@ st_theme_node_get_font (StThemeNode *node)
     {
       if (!weight_absolute)
         {
-          /* bolder/lighter are supposed to switch between available styles, but with
-           * font substitution, that gets to be a pretty fuzzy concept. So we use
-           * a fixed step of 200. (The spec says 100, but that might not take us from
-           * normal to bold.
-           */
 
           PangoWeight old_weight = pango_font_description_get_weight (node->font_desc);
           if (weight == PANGO_WEIGHT_BOLD)
@@ -3379,14 +2779,6 @@ st_theme_node_get_font (StThemeNode *node)
   return node->font_desc;
 }
 
-/**
- * st_theme_node_get_font_features:
- * @node: a #StThemeNode
- *
- * Get the CSS font-features for @node.
- *
- * Returns: (transfer full): font-features as a string
- */
 gchar *
 st_theme_node_get_font_features (StThemeNode *node)
 {
@@ -3422,15 +2814,6 @@ st_theme_node_get_font_features (StThemeNode *node)
   return node->parent_node ? st_theme_node_get_font_features (node->parent_node) : NULL;
 }
 
-/**
- * st_theme_node_get_border_image:
- * @node: a #StThemeNode
- *
- * Gets the value for the border-image style property
- *
- * Returns: (transfer none): the border image, or %NULL
- *   if there is no border image.
- */
 StBorderImage *
 st_theme_node_get_border_image (StThemeNode *node)
 {
@@ -3466,7 +2849,6 @@ st_theme_node_get_border_image (StThemeNode *node)
 
           GFile *file;
 
-          /* Support border-image: none; to suppress a previously specified border image */
           if (term_is_none (term))
             {
               if (term->next == NULL)
@@ -3475,7 +2857,6 @@ st_theme_node_get_border_image (StThemeNode *node)
                 goto next_property;
             }
 
-          /* First term must be the URL to the image */
           if (term->type != TERM_URI)
             goto next_property;
 
@@ -3483,9 +2864,6 @@ st_theme_node_get_border_image (StThemeNode *node)
 
           term = term->next;
 
-          /* Followed by 0 to 4 numbers or percentages. *Not lengths*. The interpretation
-           * of a number is supposed to be pixels if the image is pixel based, otherwise CSS pixels.
-           */
           for (j = 0; j < 4; j++)
             {
               if (term == NULL)
@@ -3501,7 +2879,6 @@ st_theme_node_get_border_image (StThemeNode *node)
                 }
               else if (term->content.num->type == NUM_PERCENTAGE)
                 {
-                  /* This would be easiest to support if we moved image handling into StBorderImage */
                   g_warning ("Percentages not supported for border-image");
                   goto next_property;
                 }
@@ -3563,14 +2940,6 @@ st_theme_node_get_border_image (StThemeNode *node)
   return NULL;
 }
 
-/**
- * st_theme_node_get_horizontal_padding:
- * @node: a #StThemeNode
- *
- * Gets the total horizontal padding (left + right padding), in physical pixels.
- *
- * Returns: the total horizontal padding in physical pixels
- */
 double
 st_theme_node_get_horizontal_padding (StThemeNode *node)
 {
@@ -3584,14 +2953,6 @@ st_theme_node_get_horizontal_padding (StThemeNode *node)
   return padding;
 }
 
-/**
- * st_theme_node_get_vertical_padding:
- * @node: a #StThemeNode
- *
- * Gets the total vertical padding (top + bottom padding), in physical pixels.
- *
- * Returns: the total vertical padding in physical pixels
- */
 double
 st_theme_node_get_vertical_padding (StThemeNode *node)
 {
@@ -3635,7 +2996,6 @@ parse_shadow_property (StThemeNode       *node,
   int n_offsets = 0;
   *is_none = FALSE;
 
-  /* default values */
   color->red = 0x0; color->green = 0x0; color->blue = 0x0; color->alpha = 0xff;
   *xoffset = 0.;
   *yoffset = 0.;
@@ -3643,18 +3003,8 @@ parse_shadow_property (StThemeNode       *node,
   *spread = 0.;
   *inset = FALSE;
 
-  /* The CSS3 draft of the box-shadow property[0] is a lot stricter
-   * regarding the order of terms:
-   * If the 'inset' keyword is specified, it has to be first or last,
-   * and the color may not be mixed with the lengths; while we parse
-   * length values in the correct order, we allow for arbitrary
-   * placement of the color and 'inset' keyword.
-   *
-   * [0] http://www.w3.org/TR/css3-background/#box-shadow
-   */
   for (term = decl->value; term; term = term->next)
     {
-      /* if we found "none", we're all set with the default values */
       if (term_is_none (term)) {
         *is_none = TRUE;
         return VALUE_FOUND;
@@ -3670,7 +3020,6 @@ parse_shadow_property (StThemeNode       *node,
 
           if (result == VALUE_INHERIT)
             {
-              /* we only allow inherit on the line by itself */
               if (n_offsets > 0)
                 return VALUE_NOT_FOUND;
               else
@@ -3727,39 +3076,12 @@ parse_shadow_property (StThemeNode       *node,
         }
     }
 
-  /* The only required terms are the x and y offsets
-   */
   if (n_offsets >= 2)
     return VALUE_FOUND;
   else
     return VALUE_NOT_FOUND;
 }
 
-/**
- * st_theme_node_lookup_shadow:
- * @node: a #StThemeNode
- * @property_name: The name of the shadow property
- * @inherit: if %TRUE, if a value is not found for the property on the
- *   node, then it will be looked up on the parent node, and then on the
- *   parent's parent, and so forth. Note that if the property has a
- *   value of 'inherit' it will be inherited even if %FALSE is passed
- *   in for @inherit; this only affects the default behavior for inheritance.
- * @shadow: (out): location to store the shadow
- *
- * If the property is not found, the value in the shadow variable will not
- * be changed.
- *
- * Generically looks up a property containing a set of shadow values. When
- * specific getters (like st_theme_node_get_box_shadow ()) exist, they
- * should be used instead. They are cached, so more efficient, and have
- * handling for shortcut properties and other details of CSS.
- *
- * See also st_theme_node_get_shadow(), which provides a simpler API.
- *
- * Returns: %TRUE if the property was found in the properties for this
- *   theme node (or in the properties of parent nodes when inheriting.), %FALSE
- *   if the property was not found, or was explicitly set to 'none'.
- */
 gboolean
 st_theme_node_lookup_shadow (StThemeNode  *node,
                              const char   *property_name,
@@ -3829,24 +3151,6 @@ st_theme_node_lookup_shadow (StThemeNode  *node,
   return FALSE;
 }
 
-/**
- * st_theme_node_get_shadow:
- * @node: a #StThemeNode
- * @property_name: The name of the shadow property
- *
- * Generically looks up a property containing a set of shadow values. When
- * specific getters (like st_theme_node_get_box_shadow()) exist, they
- * should be used instead. They are cached, so more efficient, and have
- * handling for shortcut properties and other details of CSS.
- *
- * Like st_theme_get_length(), this does not print a warning if the property is
- * not found; it just returns %NULL
- *
- * See also st_theme_node_lookup_shadow (), which provides more options.
- *
- * Returns: (nullable) (transfer full): the shadow, or %NULL if the property was
- *   not found.
- */
 StShadow *
 st_theme_node_get_shadow (StThemeNode  *node,
                           const char   *property_name)
@@ -3859,15 +3163,6 @@ st_theme_node_get_shadow (StThemeNode  *node,
     return NULL;
 }
 
-/**
- * st_theme_node_get_box_shadow:
- * @node: a #StThemeNode
- *
- * Gets the value for the box-shadow style property
- *
- * Returns: (nullable) (transfer none): the node's shadow, or %NULL
- *   if node has no shadow
- */
 StShadow *
 st_theme_node_get_box_shadow (StThemeNode *node)
 {
@@ -3894,15 +3189,6 @@ st_theme_node_get_box_shadow (StThemeNode *node)
   return NULL;
 }
 
-/**
- * st_theme_node_get_background_image_shadow:
- * @node: a #StThemeNode
- *
- * Gets the value for the -st-background-image-shadow style property
- *
- * Returns: (nullable) (transfer none): the node's background image shadow, or
- *   %NULL if node has no such shadow
- */
 StShadow *
 st_theme_node_get_background_image_shadow (StThemeNode *node)
 {
@@ -3937,15 +3223,6 @@ st_theme_node_get_background_image_shadow (StThemeNode *node)
   return NULL;
 }
 
-/**
- * st_theme_node_get_text_shadow:
- * @node: a #StThemeNode
- *
- * Gets the value for the text-shadow style property
- *
- * Returns: (nullable) (transfer none): the node's text-shadow, or %NULL
- *   if node has no text-shadow
- */
 StShadow *
 st_theme_node_get_text_shadow (StThemeNode *node)
 {
@@ -3984,21 +3261,9 @@ st_theme_node_get_text_shadow (StThemeNode *node)
   return result;
 }
 
-/**
- * st_theme_node_get_icon_colors:
- * @node: a #StThemeNode
- *
- * Gets the colors that should be used for colorizing symbolic icons according
- * the style of this node.
- *
- * Returns: (transfer none): the icon colors to use for this theme node
- */
 StIconColors *
 st_theme_node_get_icon_colors (StThemeNode *node)
 {
-  /* Foreground here will always be the same as st_theme_node_get_foreground_color(),
-   * but there's a loss of symmetry and little efficiency win if we try to exploit
-   * that. */
 
   enum {
     FOREGROUND = 1 << 0,
@@ -4120,17 +3385,6 @@ get_height_inc (StThemeNode *node)
           (int)(0.5 + node->border_width[ST_SIDE_BOTTOM]) + node->padding[ST_SIDE_BOTTOM]);
 }
 
-/**
- * st_theme_node_adjust_for_height:
- * @node: a #StThemeNode
- * @for_height: (inout): the "for height" to adjust
- *
- * Adjusts a "for height" passed to clutter_actor_get_preferred_width() to
- * account for borders and padding. This is a convenience function meant
- * to be called from a get_preferred_width() method of a #ClutterActor
- * subclass. The value after adjustment is the height available for the actor's
- * content.
- */
 void
 st_theme_node_adjust_for_height (StThemeNode  *node,
                                  float        *for_height)
@@ -4145,18 +3399,6 @@ st_theme_node_adjust_for_height (StThemeNode  *node,
     }
 }
 
-/**
- * st_theme_node_adjust_preferred_width:
- * @node: a #StThemeNode
- * @min_width_p: (inout) (nullable): the minimum width to adjust
- * @natural_width_p: (inout): the natural width to adjust
- *
- * Adjusts the minimum and natural width computed for an actor by
- * adding on the necessary space for borders and padding and taking
- * into account any minimum or maximum width. This is a convenience
- * function meant to be called from the get_preferred_width() method
- * of a #ClutterActor subclass
- */
 void
 st_theme_node_adjust_preferred_width (StThemeNode  *node,
                                       float        *min_width_p,
@@ -4187,17 +3429,6 @@ st_theme_node_adjust_preferred_width (StThemeNode  *node,
     }
 }
 
-/**
- * st_theme_node_adjust_for_width:
- * @node: a #StThemeNode
- * @for_width: (inout): the "for width" to adjust
- *
- * Adjusts a "for width" passed to clutter_actor_get_preferred_height() to
- * account for borders and padding. This is a convenience function meant
- * to be called from a get_preferred_height() method of a #ClutterActor
- * subclass. The value after adjustment is the width available for the actor's
- * content.
- */
 void
 st_theme_node_adjust_for_width (StThemeNode  *node,
                                 float        *for_width)
@@ -4212,18 +3443,6 @@ st_theme_node_adjust_for_width (StThemeNode  *node,
     }
 }
 
-/**
- * st_theme_node_adjust_preferred_height:
- * @node: a #StThemeNode
- * @min_height_p: (inout) (nullable): the minimum height to adjust
- * @natural_height_p: (inout): the natural height to adjust
- *
- * Adjusts the minimum and natural height computed for an actor by
- * adding on the necessary space for borders and padding and taking
- * into account any minimum or maximum height. This is a convenience
- * function meant to be called from the get_preferred_height() method
- * of a #ClutterActor subclass
- */
 void
 st_theme_node_adjust_preferred_height (StThemeNode  *node,
                                        float           *min_height_p,
@@ -4253,17 +3472,6 @@ st_theme_node_adjust_preferred_height (StThemeNode  *node,
     }
 }
 
-/**
- * st_theme_node_get_content_box:
- * @node: a #StThemeNode
- * @allocation: the box allocated to a #ClutterAlctor
- * @content_box: (out caller-allocates): computed box occupied by the actor's content
- *
- * Gets the box within an actor's allocation that contents the content
- * of an actor (excluding borders and padding). This is a convenience function
- * meant to be used from the allocate() or paint() methods of a #ClutterActor
- * subclass.
- */
 void
 st_theme_node_get_content_box (StThemeNode           *node,
                                const ClutterActorBox *allocation,
@@ -4298,15 +3506,6 @@ st_theme_node_get_content_box (StThemeNode           *node,
   content_box->y2 = (int)(0.5 + content_box->y1 + content_height);
 }
 
-/**
- * st_theme_node_get_background_paint_box:
- * @node: a #StThemeNode
- * @allocation: the box allocated to a #ClutterActor
- * @paint_box: (out caller-allocates): computed box occupied when painting the actor's background
- *
- * Gets the box used to paint the actor's background, including the area
- * occupied by properties which paint outside the actor's assigned allocation.
- */
 void
 st_theme_node_get_background_paint_box (StThemeNode           *node,
                                         const ClutterActorBox *actor_box,
@@ -4334,17 +3533,6 @@ st_theme_node_get_background_paint_box (StThemeNode           *node,
   paint_box->y2 = MAX (paint_box->y2, shadow_box.y2);
 }
 
-/**
- * st_theme_node_get_paint_box:
- * @node: a #StThemeNode
- * @allocation: the box allocated to a #ClutterActor
- * @paint_box: (out caller-allocates): computed box occupied when painting the actor
- *
- * Gets the box used to paint the actor, including the area occupied
- * by properties which paint outside the actor's assigned allocation.
- * When painting @node to an offscreen buffer, this function can be
- * used to determine the necessary size of the buffer.
- */
 void
 st_theme_node_get_paint_box (StThemeNode           *node,
                              const ClutterActorBox *actor_box,
@@ -4382,17 +3570,6 @@ st_theme_node_get_paint_box (StThemeNode           *node,
     }
 }
 
-/**
- * st_theme_node_geometry_equal:
- * @node: a #StThemeNode
- * @other: a different #StThemeNode
- *
- * Tests if two theme nodes have the same borders and padding; this can be
- * used to optimize having to relayout when the style applied to a Clutter
- * actor changes colors without changing the geometry.
- *
- * Returns: %TRUE if equal, %FALSE otherwise
- */
 gboolean
 st_theme_node_geometry_equal (StThemeNode *node,
                               StThemeNode *other)
@@ -4430,18 +3607,6 @@ st_theme_node_geometry_equal (StThemeNode *node,
   return TRUE;
 }
 
-/**
- * st_theme_node_paint_equal:
- * @node: (nullable): a #StThemeNode
- * @other: (nullable): a different #StThemeNode
- *
- * Check if st_theme_node_paint() will paint identically for @node as it does
- * for @other. Note that in some cases this function may return %TRUE even
- * if there is no visible difference in the painting.
- *
- * Returns: %TRUE if the two theme nodes paint identically. %FALSE if the
- *   two nodes potentially paint differently.
- */
 gboolean
 st_theme_node_paint_equal (StThemeNode *node,
                            StThemeNode *other)
@@ -4450,7 +3615,6 @@ st_theme_node_paint_equal (StThemeNode *node,
   StShadow *shadow, *other_shadow;
   int i;
 
-  /* Make sure NULL != NULL */
   if (node == NULL || other == NULL)
     return FALSE;
 
@@ -4528,15 +3692,6 @@ st_theme_node_paint_equal (StThemeNode *node,
   return TRUE;
 }
 
-/**
- * st_theme_node_to_string:
- * @node: a #StThemeNode
- *
- * Serialize @node to a string of its #GType name, CSS ID, classes and
- * pseudo-classes.
- *
- * Returns: the serialized theme node
- */
 gchar *
 st_theme_node_to_string (StThemeNode *node)
 {

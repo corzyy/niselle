@@ -5,7 +5,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Shell › Dock: Größe, dauerhafte Anzeige und Autohide des Docks (Dash mit angehefteten und laufenden Apps).
 SettingsPage {
     id: root
 

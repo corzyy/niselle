@@ -6,25 +6,17 @@ import qs
 import qs.components
 import qs.services
 
-// Datumsmenü (DateMenuButton) [dateMenu.js]: Popover unter der Uhr, mittig am Panel, 6px Abstand [boxpointer.js:515-566].
-// In #calendarArea: Monatskalender; links davon (zweispaltig) Datum und Termine, einspaltig stehen die Termine darunter.
-// Medien und Benachrichtigungen liegen in den Quick-Settings. Beim Öffnen ist wieder heute gewählt und die Termine
-// werden aktualisiert [dateMenu.js:911-919].
 Scope {
     id: root
 
-    // Panel-Fenster, an dem das Popover hängt
     required property var barWindow
 
     readonly property alias open: popup.open
 
-    // Gewählter Tag, heutiger Tag und Zeitpunkt des Öffnens (für „vor 5 Minuten“)
     property date selected: new Date()
     property date today: new Date()
     property var now: new Date()
 
-    // Zeitpunkt, an dem das Menü zuletzt geschlossen wurde (ms): ein Klick auf die Uhr schließt per Fokus-Grab, der
-    // folgende Klick darf nicht sofort wieder öffnen
     property double closedAt: 0
 
     function toggle() {
@@ -36,8 +28,6 @@ Scope {
         popup.close();
     }
 
-    // Zweispaltig (Datum und Termine links, Kalender rechts): im Modus „auto“, sobald Termine
-    // sichtbar sind [GNOME-Mockup calendar-popover]
     readonly property bool split: {
         const layout = SettingsService.calendarLayout;
         if (layout === "split")
@@ -49,7 +39,6 @@ Scope {
         return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
     }
 
-    // Steuerung von außen (Tastenkürzel, Tests): quickshell ipc call datemenu.<Monitorname> toggle|open|close
     IpcHandler {
         target: "datemenu." + (root.barWindow.screen ? root.barWindow.screen.name : "")
 
@@ -64,7 +53,6 @@ Scope {
         }
     }
 
-    // Tageswechsel und Uhrzeit nur, solange das Menü offen ist
     SystemClock {
         id: clock
         enabled: popup.open
@@ -72,7 +60,6 @@ Scope {
         onDateChanged: root.today = date
     }
 
-    // Anker aus der Leiste (Theme.barAnchor("clock")): folgt dem Uhr-Element, sonst fest mittig unter der Leiste
     BarAnchor {
         id: shellAnchor
 
@@ -95,16 +82,12 @@ Scope {
         anchor.rect.height: 1
         anchor.edges: Edges.Bottom
         anchor.gravity: Edges.Bottom
-        // Nicht nachschieben: die Position ist in BarAnchor schon an den Bildschirmrand geklemmt; ein
-        // PopupAdjustment.SlideX würde das Fenster samt Schattenrand klemmen und einen zu großen Rand lassen.
         anchor.adjustment: PopupAdjustment.None
 
-        // Klick außerhalb schließt über den Fokus-Grab. NISELLE_QS_NOGRAB=1 schaltet ihn ab (Screenshots per IPC ohne Klick).
         grabFocus: Quickshell.env("NISELLE_QS_NOGRAB") !== "1"
         cornerRadius: Theme.radiusDateMenu
         minWidth: 0
 
-        // Höhe, die dem Inhalt höchstens bleibt: Bildschirm ohne Panel, Abstände und Rahmen
         readonly property real maxContentHeight: (root.barWindow.screen ? root.barWindow.screen.height : 1080) - Theme.panelHeight - 2 * Theme.popoverRise - 2 * (contentPadding + Theme.popoverBorderWidth) - 2 * Theme.calendarAreaPadding
 
         onOpenChanged: {
@@ -123,8 +106,6 @@ Scope {
             Layout.margins: Theme.calendarAreaPadding
             spacing: Theme.calendarColumnSpacing
 
-            // Linke Spalte (nur zweispaltig): Datum, Wetter und die Termine des Tages. Die Höhe bestimmen Kalender und
-            // Weltuhren rechts, die Terminliste scrollt bei Bedarf. Ohne Weltuhren bestimmt die Liste die Höhe.
             Item {
                 id: side
 
@@ -208,7 +189,6 @@ Scope {
                         width: displays.width
                         spacing: Theme.calendarColumnSpacing
 
-                        // Einspaltig stehen die Termine hier
                         EventsSection {
                             Layout.fillWidth: true
                             visible: !root.split && EventsService.available && SettingsService.calendarShowEvents

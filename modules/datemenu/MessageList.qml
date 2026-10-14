@@ -7,35 +7,24 @@ import qs
 import qs.components
 import qs.services
 
-// Linke Spalte des Datumsmenüs (.message-list) [calendar.js CalendarMessageList, messageList.js MessageView]: Medienkarten
-// und Benachrichtigungsgruppen in einer Liste mit senkrechtem Ausblenden (68px) und schmaler Überlagerungs-Scrollleiste,
-// darunter Nicht-stören-Schalter und „Leeren“. Ohne Inhalt steht der Platzhalter „Keine Benachrichtigungen“ in der Mitte.
-// Eine aufgeklappte Gruppe bleibt allein bedienbar; Klick daneben oder Esc klappt sie zu.
 Item {
     id: root
 
     property var now: new Date()
-    // Eingebettet (Quick-Settings): volle Breite des Elternelements, kein Rand rechts, ohne Nicht-stören-Schalter
     property bool embedded: false
-    // Medienkarten in der Liste (Quick-Settings zeigen sie über der Liste)
     property bool showMedia: true
-    // Menü offen (Position und Zeit nur dann aktualisieren)
     property bool active: false
 
-    // Schlüssel der aufgeklappten Gruppe oder ""
     property string expandedKey: ""
     readonly property bool empty: mediaRepeater.count === 0 && groupRows.count === 0
     readonly property bool canClear: NotificationService.groups.length > 0
 
     signal closeRequested
 
-    // 29em Inhalt + Innenabstand rechts + 1px Rand rechts, dazu Außenabstand rechts [_message-list:9-13]
     readonly property real sideExtra: embedded ? 0 : Theme.messageListPaddingRight + Theme.messageListBorder
     readonly property real marginRight: embedded ? 0 : Theme.messageListMarginRight
     implicitWidth: embedded ? Theme.quickSettingsWidth : Theme.messageListWidth + sideExtra + marginRight
-    // Höhe des Inhalts samt Steuerzeile, begrenzt auf `maxHeight`
     property real maxHeight: 10000
-    // Eingebettet gibt es nur „Leeren“: ohne Benachrichtigungen entfällt die Zeile samt Rändern (sonst bleibt unter der Medienkarte Leerraum)
     readonly property bool showControls: !embedded || (!empty && canClear)
     implicitHeight: Math.min(maxHeight, stack.height + (showControls ? controls.implicitHeight + Theme.messageControlsPadding + Theme.messageControlsPaddingBottom : 0))
 
@@ -47,7 +36,6 @@ Item {
     onActiveChanged: if (!active)
         collapse()
 
-    // ───────── Gruppen abgleichen ─────────
 
     ListModel {
         id: groupRows
@@ -78,7 +66,6 @@ Item {
 
     function syncGroups() {
         const all = NotificationService.groups;
-        // Kritische Gruppen zuerst [messageList.js:1750-1772]; ohne sort(), das nicht stabil ist und die Reihenfolge mischt
         const list = all.filter(g => _urgent(g)).concat(all.filter(g => !_urgent(g)));
         const keys = list.map(g => g.key);
         for (let i = 0; i < groupRows.count; i++) {
@@ -108,7 +95,6 @@ Item {
 
     Component.onCompleted: syncGroups()
 
-    // „Leeren“: bei wenigen Gruppen verkleinern sie sich, sonst gleiten sie nacheinander heraus [messageList.js:1637-1666]
     function clearAll() {
         const items = [];
         for (let i = 0; i < groupRepeater.count; i++) {
@@ -124,7 +110,6 @@ Item {
         items.forEach((it, i) => it.slideOut(i * delay));
     }
 
-    // ───────── Platzhalter ─────────
 
     ColumnLayout {
         anchors.centerIn: parent
@@ -149,7 +134,6 @@ Item {
         }
     }
 
-    // ───────── Liste und Steuerung ─────────
 
     ColumnLayout {
         anchors.fill: parent
@@ -165,7 +149,6 @@ Item {
             contentHeight: stack.height
             onUserScrolled: root._trackGroup = null
 
-            // Klick neben die aufgeklappte Gruppe klappt sie zu
             MouseArea {
                 width: parent.width
                 height: parent.height
@@ -280,7 +263,6 @@ Item {
             }
         }
 
-        // Nicht stören und Leeren [_message-list-48:26-60]
         RowLayout {
             id: controls
 
@@ -301,7 +283,6 @@ Item {
                 font.weight: Theme.fontWeightBold
             }
 
-            // .dnd-button: 2px Rand, bei Fokus Akzentfarbe, damit der Schalter nicht wächst
             Item {
                 id: dndButton
 
@@ -346,7 +327,6 @@ Item {
         }
     }
 
-    // Rechter Rand der Liste [_message-list:9-13]
     Rectangle {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
@@ -357,8 +337,6 @@ Item {
         color: Theme.borders
     }
 
-    // Aufgeklappte Gruppe in die Mitte rollen: die Bildlaufposition folgt Bild für Bild dem Aufklappen der Gruppe,
-    // denn die Inhaltshöhe wächst erst während der Animation (ein einzelnes scrollTo würde an der alten Höhe gekappt)
     property var _trackGroup: null
     property real _trackFrom: 0
     property real _trackTarget: 0

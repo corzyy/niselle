@@ -5,8 +5,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Unterseite eines Monitors (gnome-control-center display_settings_page): „Aktiviert“-Schalter und die
-// Einstellungen des Monitors (DisplaySettingsList). Erreichbar über die Monitorliste der Displays-Seite.
 SettingsPage {
     id: root
 
@@ -14,7 +12,6 @@ SettingsPage {
     readonly property var monitor: DisplayService.outputs.find(o => o.name === root.monitorName) ?? null
     readonly property bool multi: DisplayService.outputCount > 1
 
-    // ───────── Übernehmen / Verwerfen ─────────
     readonly property bool showingApplyBar: DisplayService.dirty
     property bool confirmOpen: false
     property int countdown: 20
@@ -39,7 +36,6 @@ SettingsPage {
         DisplayService.revertApply();
     }
 
-    // Wird die Seite während der Rückfrage geschlossen, fällt die Anzeige auf den alten Stand zurück
     Component.onDestruction: {
         if (root.confirmOpen)
             DisplayService.revertApply();
@@ -75,7 +71,6 @@ SettingsPage {
         onButtonClicked: id => id === "keep" ? root.keepChanges() : root.revertChanges()
     }
 
-    // Aktiviert (nur bei mehreren Monitoren; die letzte aktive Anzeige lässt sich nicht abschalten)
     PrefGroup {
         visible: root.multi && root.monitor !== null
 
@@ -90,7 +85,6 @@ SettingsPage {
         }
     }
 
-    // Als Primäranzeige festlegen
     PrefGroup {
         visible: root.multi && root.monitor !== null
 

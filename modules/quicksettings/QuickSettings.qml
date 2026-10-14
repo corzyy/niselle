@@ -10,32 +10,20 @@ import qs.components
 import qs.services
 import qs.modules.datemenu
 
-// Quick-Settings-Popover (QuickSettingsMenu) [quickSettings.js, system.js, volume.js, brightness.js, network.js,
-// bluetooth.js, powerProfiles.js, darkMode.js, rfkill.js]: hängt unter dem rechten Panel-Bereich,
-// 6px Abstand zu Panel und Bildschirmrand [boxpointer.js:515-566]. Von oben: Kopfzeile, Lautstärke, Helligkeit,
-// Kachelraster (2 Spalten). Untermenüs liegen wie in der Shell auf einer eigenen Ebene über dem Raster, das
-// Raster darunter wird abgedunkelt; im Layout reserviert ein Platzhalter ihre Höhe.
-//
-// Kacheln ohne Dienst fehlen und die übrigen rücken nach (NISELLE_QS_DEMO=1 zeigt alle, nur zum Prüfen des Layouts).
 Scope {
     id: root
 
-    // Panel-Fenster, an dem das Popover hängt
     required property var barWindow
 
     readonly property alias open: popup.open
-    // Name des offenen Untermenüs: "power", "output", "network", "bluetooth", "profile", "performance", "keyboard", "background" oder ""
     property string openMenu: ""
 
     readonly property bool demo: Quickshell.env("NISELLE_QS_DEMO") === "1"
 
     property var now: new Date()
 
-    // Bearbeitungsansicht (Kacheln hinzufügen, entfernen, umsortieren) statt der normalen Ansicht
     property bool editing: false
 
-    // Hintergrundprogramme [backgroundApps.js]: StatusNotifier-Einträge der Leiste (passive entfallen).
-    // Über den Schließen-Knopf ausgeblendete Einträge stehen in hiddenBackground.
     property var hiddenBackground: ({})
     readonly property var backgroundItems: SystemTray.items.values.filter(i => i.status !== Status.Passive && !root.hiddenBackground[i.id])
     readonly property int backgroundCount: backgroundItems.length
@@ -47,7 +35,6 @@ Scope {
         root.hiddenBackground = next;
     }
 
-    // Alle Kacheln; Reihenfolge und Auswahl in SettingsService.quickToggles
     readonly property var tileCatalog: [
         {
             "id": "network",
@@ -123,7 +110,6 @@ Scope {
             "category": "appearance"
         }
     ]
-    // Kachel auf diesem System nutzbar (Dienst vorhanden)
     readonly property var tileAvailable: ({
             "network": networkTile.available,
             "bluetooth": bluetoothTile.available,
@@ -139,10 +125,8 @@ Scope {
             "bigyahoo": bigYahooTile.available
         })
 
-    // Zeitpunkt, an dem das Popover zuletzt geschlossen wurde (ms)
     property double closedAt: 0
 
-    // Ein Klick auf die Pille schließt zuerst per Fokus-Grab; der folgende Klick darf nicht sofort wieder öffnen
     function toggle() {
         if (!popup.open && Date.now() - closedAt < 200)
             return;
@@ -156,8 +140,6 @@ Scope {
         openMenu = openMenu === name ? "" : name;
     }
 
-    // Fenster nicht pro Animationsbild skalieren: beim Öffnen sofort die Endhöhe reservieren,
-    // erst nach dem vollständigen Schließen aller Untermenüs wieder freigeben
     readonly property var allMenus: [powerMenu, outputMenu, brightnessMenu, networkMenu, bluetoothMenu, profileMenu, performanceMenu, keyboardMenu, backgroundMenu]
     readonly property bool anyMenuShown: allMenus.some(m => m.shown)
     readonly property real menuExtra: allMenus.reduce((sum, m) => sum + (m.shown ? m.height + Theme.spacingLg * m.reveal : 0), 0)
@@ -181,7 +163,6 @@ Scope {
             return;
         const base = stack.implicitHeight - menuExtra;
         const target = base + menu.naturalHeight + Theme.spacingLg;
-        // Nie höher als der Platz unter der Leiste: die Liste unten schrumpft, sobald ein Untermenü aufgeht
         const room = (root.barWindow.screen ? root.barWindow.screen.height : 800) - root.barWindow.height - 2 * popup.margin;
         reservedHeight = Math.min(room, Math.max(reservedHeight, target + 2 * (Theme.quickSettingsPadding + Theme.popoverBorderWidth)));
     }
@@ -190,7 +171,6 @@ Scope {
             reservedHeight = 0;
     }
 
-    // Steuerung von außen (Tastenkürzel, Tests): quickshell ipc call quicksettings.<Monitorname> toggle|open|close|menu <name>
     IpcHandler {
         target: "quicksettings." + (root.barWindow.screen ? root.barWindow.screen.name : "")
 
@@ -216,7 +196,6 @@ Scope {
             root.pendingNetwork = "";
             root.pendingSession = "";
         }
-        // Dialoge ohne passendes Netz/Ereignis prüfen: "password" oder "reboot" | "poweroff" | "logout"
         function dialog(kind: string): void {
             if (kind === "password")
                 root.pendingNetwork = "Testnetz";
@@ -225,7 +204,6 @@ Scope {
         }
     }
 
-    // ───────── Hilfen ─────────
 
     readonly property var profileInfo: ({
             "performance": {
@@ -242,7 +220,6 @@ Scope {
             }
         })
 
-    // Zuletzt gewähltes Nicht-Standard-Profil (Kachel schaltet zwischen diesem und "balanced")
     property string lastProfile: ""
 
     Connections {
@@ -269,7 +246,6 @@ Scope {
         popup.close();
     }
 
-    // ───────── WLAN: Anmeldung ─────────
 
     property string pendingNetwork: ""
     property string triedNetwork: ""
@@ -295,7 +271,6 @@ Scope {
         pendingNetwork = "";
     }
 
-    // Fehlendes oder falsches Passwort: Dialog erneut mit Hinweis
     Connections {
         target: NetworkService
         function onConnectionFailed(name, reason) {
@@ -325,7 +300,6 @@ Scope {
                 "primary": true
             }
         ]
-        // WPA-Passphrasen haben mindestens 8 Zeichen
         disabledButtons: passwordEntry.text.length < 8 ? ["connect"] : []
 
         onOpenChanged: {
@@ -350,7 +324,6 @@ Scope {
             onAccepted: if (text.length >= 8)
                 root.submitPassword()
         }
-        // .prompt-dialog-error-label: Warnfarbe auf getöntem Grund
         Rectangle {
             Layout.fillWidth: true
             Layout.topMargin: Theme.baseMargin
@@ -375,9 +348,7 @@ Scope {
         }
     }
 
-    // ───────── Ein/Aus: Rückfrage ─────────
 
-    // "reboot", "poweroff", "logout" oder ""
     property string pendingSession: ""
     property int sessionCountdown: 60
 
@@ -439,7 +410,7 @@ Scope {
 
         screen: root.barWindow.screen
         open: root.pendingSession !== ""
-        dialogWidth: 24 * 14.667 // .end-session-dialog width: 24em [_dialogs.scss:48]
+        dialogWidth: 24 * 14.667
         title: info.title
         description: info.text.replace("%1", root.sessionCountdown)
         buttons: [
@@ -463,9 +434,7 @@ Scope {
         }
     }
 
-    // ───────── Popover ─────────
 
-    // Anker aus der Leiste (Theme.barAnchor("status")): folgt der Systempille, sonst fest an der rechten oberen Ecke
     BarAnchor {
         id: shellAnchor
 
@@ -488,19 +457,13 @@ Scope {
         anchor.rect.height: 1
         anchor.edges: popup.follows ? Edges.Bottom : (Edges.Bottom | Edges.Right)
         anchor.gravity: popup.follows ? Edges.Bottom : (Edges.Bottom | Edges.Left)
-        // Nicht nachschieben: die Position ist in BarAnchor schon an den Bildschirmrand geklemmt; ein
-        // PopupAdjustment.SlideX würde das Fenster samt Schattenrand klemmen und einen zu großen Rand lassen.
         anchor.adjustment: PopupAdjustment.None
 
-        // Klick außerhalb schließt über den Fokus-Grab. NISELLE_QS_NOGRAB=1 schaltet ihn ab (Screenshots per IPC ohne Klick).
         grabFocus: Quickshell.env("NISELLE_QS_NOGRAB") !== "1"
         openDuration: Theme.durationControlCenter
         cornerRadius: Theme.radiusQuickSettings
         contentPadding: Theme.quickSettingsPadding
         minWidth: 0
-        // Mit Benachrichtigungen wächst/schrumpft die Karte beim Auf-/Zuklappen einer Gruppe, beim Eintreffen und
-        // Verwerfen: das Fenster bekommt sofort die größtmögliche Höhe, sonst ändert der Compositor es in jedem Bild
-        // (das ruckelte). Die Karte selbst bleibt oben bündig.
         reserveHeight: Math.max(root.reservedHeight, messages.visible ? (root.barWindow.screen ? root.barWindow.screen.height : 800) - root.barWindow.height - 2 * popup.margin : 0)
 
         onOpenChanged: {
@@ -570,7 +533,6 @@ Scope {
                     visible: powerMenu.shown
                     Layout.fillWidth: true
                     Layout.preferredHeight: powerMenu.height
-                    // Der Layout-Abstand wächst mit der Höhe, statt beim Öffnen zu springen
                     Layout.topMargin: -Theme.spacingLg * (1 - powerMenu.reveal)
                 }
 
@@ -586,13 +548,11 @@ Scope {
                     value: AudioService.muted ? 0 : AudioService.volume
                     menuEnabled: AudioService.sinks.length > 1
                     menuOpen: root.openMenu === "output"
-                    // Unter einer Raste stumm, sonst Stummschaltung aufheben [volume.js:170-191]
                     onMoved: v => {
                         AudioService.setVolume(v);
                         AudioService.setMuted(v <= 0);
                     }
                     onIconClicked: {
-                        // Stumm bei Lautstärke 0: auf 25 % setzen [volume.js:43,111-117]
                         if (AudioService.muted && AudioService.volume <= 0)
                             AudioService.setVolume(0.25);
                         AudioService.toggleMute();
@@ -605,7 +565,6 @@ Scope {
                     visible: outputMenu.shown
                     Layout.fillWidth: true
                     Layout.preferredHeight: outputMenu.height
-                    // Der Layout-Abstand wächst mit der Höhe, statt beim Öffnen zu springen
                     Layout.topMargin: -Theme.spacingLg * (1 - outputMenu.reveal)
                 }
 
@@ -627,12 +586,9 @@ Scope {
                     visible: brightnessMenu.shown
                     Layout.fillWidth: true
                     Layout.preferredHeight: brightnessMenu.height
-                    // Der Layout-Abstand wächst mit der Höhe, statt beim Öffnen zu springen
                     Layout.topMargin: -Theme.spacingLg * (1 - brightnessMenu.reveal)
                 }
 
-                // Kachelraster: Position nach Reihenfolge der sichtbaren Kacheln, Untermenüs schieben die
-                // folgenden Reihen nach unten [quickSettings.js:288-327, 502-522]
                 Item {
                     id: grid
 
@@ -652,7 +608,6 @@ Scope {
                 "keyboard": keyboardTile,
                 "bigyahoo": bigYahooTile
             })
-            // Kacheln in der eingestellten Reihenfolge
             readonly property var tiles: SettingsService.quickToggles.map(id => tileById[id]).filter(t => !!t)
                     readonly property var menuTiles: [[networkMenu, networkTile], [bluetoothMenu, bluetoothTile], [profileMenu, profileTile], [performanceMenu, performanceTile], [keyboardMenu, keyboardTile]]
                     readonly property int visibleCount: tiles.filter(t => t.shown).length
@@ -674,7 +629,6 @@ Scope {
                     function rowOf(tile) {
                         return Math.floor(slotOf(tile) / 2);
                     }
-                    // Höhe, die Untermenüs oberhalb von Reihe r belegen (Abstand + Menühöhe)
                     function extraBefore(r) {
                         let extra = 0;
                         for (const [menu, tile] of menuTiles) {
@@ -696,7 +650,6 @@ Scope {
                         return yOf(tile) + cellHeight + gap;
                     }
 
-                    // Netzwerk: WLAN und Kabelgebunden in einer Kachel [network.js:1380-1420, 1800-1900]
                     ToggleButton {
                         id: networkTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(networkTile), 12)
@@ -720,7 +673,6 @@ Scope {
                         onMenuClicked: root.toggleMenu("network")
                     }
 
-                    // Bluetooth [bluetooth.js:272-425]
                     ToggleButton {
                         id: bluetoothTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(bluetoothTile), 12)
@@ -739,7 +691,6 @@ Scope {
                         onMenuClicked: root.toggleMenu("bluetooth")
                     }
 
-                    // Energiemodus [powerProfiles.js:28-130]
                     ToggleButton {
                         id: profileTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(profileTile), 12)
@@ -763,7 +714,6 @@ Scope {
                         onMenuClicked: root.toggleMenu("profile")
                     }
 
-                    // Leistung: reine Auswahl des Energieprofils über ein Menü (Leistung/Ausbalanciert/Energiesparen)
                     ToggleButton {
                         id: performanceTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(performanceTile), 12)
@@ -780,8 +730,6 @@ Scope {
                         onClicked: root.toggleMenu("performance")
                     }
 
-                    // Gamemode: Blur und Animationen systemweit aus – Hyprland über GameModeService,
-                    // die Shell über Theme.gameMode (animationen und Schatten)
                     ToggleButton {
                         id: gamemodeTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(gamemodeTile), 12)
@@ -798,7 +746,6 @@ Scope {
                         onClicked: SettingsService.toggleGameMode()
                     }
 
-                    // Dunkler Stil [darkMode.js:10-40]
                     ToggleButton {
                         id: darkTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(darkTile), 12)
@@ -814,7 +761,6 @@ Scope {
                         onClicked: SettingsService.toggleDarkMode()
                     }
 
-                    // VPN: schaltet die aktive Verbindung ab, sonst die erste gespeicherte an (Auswahl im Netzwerk-Menü)
                     ToggleButton {
                         id: vpnTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(vpnTile), 12)
@@ -835,7 +781,6 @@ Scope {
                         }
                     }
 
-                    // Flugmodus [rfkill.js:92-117]
                     ToggleButton {
                         id: airplaneTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(airplaneTile), 12)
@@ -851,7 +796,6 @@ Scope {
                         onClicked: SettingsService.toggleAirplaneMode()
                     }
 
-                    // Nicht stören
                     ToggleButton {
                         id: dndTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(dndTile), 12)
@@ -867,7 +811,6 @@ Scope {
                         onClicked: SettingsService.toggleDoNotDisturb()
                     }
 
-                    // Koffein: kein automatisches Sperren/Standby (IdleService)
                     ToggleButton {
                         id: caffeineTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(caffeineTile), 12)
@@ -883,7 +826,6 @@ Scope {
                         onClicked: IdleService.toggleCaffeine()
                     }
 
-                    // BigYahoo: ersetzt jedes Symbol in der Shell durch die israelische Flagge (siehe components/Icon.qml)
                     ToggleButton {
                         id: bigYahooTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(bigYahooTile), 12)
@@ -900,7 +842,6 @@ Scope {
                         onClicked: SettingsService.toggleBigYahoo()
                     }
 
-                    // Tastaturlayout: Klick wechselt zum nächsten, Pfeil listet alle
                     ToggleButton {
                         id: keyboardTile
                         opacity: Theme.enter(popup.progress, 3 + grid.slotOf(keyboardTile), 12)
@@ -919,8 +860,6 @@ Scope {
                     }
                 }
 
-                // Hintergrundprogramme [backgroundApps.js:121-212, _quick-settings.scss:244-272]: flache Zeile
-                // über die volle Breite unter dem Kachelraster; öffnet das Untermenü der laufenden Anwendungen.
                 BackgroundAppsToggle {
                     opacity: Theme.enter(popup.progress, 10, 12)
                     transform: Translate { y: (1 - Theme.enter(popup.progress, 10, 12)) * Theme.enterRise }
@@ -936,19 +875,14 @@ Scope {
                     visible: backgroundMenu.shown
                     Layout.fillWidth: true
                     Layout.preferredHeight: backgroundMenu.height
-                    // Der Layout-Abstand wächst mit der Höhe, statt beim Öffnen zu springen
                     Layout.topMargin: -Theme.spacingLg * (1 - backgroundMenu.reveal)
                 }
 
-                // Medien und Benachrichtigungen: dieselbe Liste wie im Datumsmenü (Gruppen auf- und zuklappen,
-                // einzeln verwerfen, „Leeren“), nur ohne eigenen Nicht-stören-Schalter – dafür gibt es die Kachel.
-                // Ohne Inhalt fehlt der Abschnitt ganz.
                 MessageList {
                     id: messages
 
                     opacity: Theme.enter(popup.progress, 11, 12)
                     transform: Translate { y: (1 - Theme.enter(popup.progress, 11, 12)) * Theme.enterRise }
-                    // Höhe der übrigen Abschnitte (ohne Liste); die Liste füllt den Rest bis zum Bildschirmrand
                     readonly property real othersHeight: {
                         let h = 0;
                         for (const c of stack.visibleChildren) {
@@ -969,7 +903,6 @@ Scope {
                 }
             }
 
-            // Abdunklung unter den Untermenüs [quickSettings.js:579-606]; deckt die ganze Karte samt Rand
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: -(Theme.quickSettingsPadding + Theme.popoverBorderWidth)
@@ -988,9 +921,7 @@ Scope {
                 }
             }
 
-            // ───────── Untermenüs (Ebene über der Abdunklung) ─────────
 
-            // Ein/Aus [system.js:150-213]
             QuickMenu {
                 id: powerMenu
                 z: 2
@@ -1040,7 +971,6 @@ Scope {
                 }
             }
 
-            // Tonausgabe [volume.js:53-72, 285-330]
             QuickMenu {
                 id: outputMenu
                 z: 2
@@ -1078,7 +1008,6 @@ Scope {
                 }
             }
 
-            // Helligkeit je Monitor (DDC/CI)
             QuickMenu {
                 id: brightnessMenu
                 z: 2
@@ -1115,7 +1044,6 @@ Scope {
                 }
             }
 
-            // Netzwerk: WLAN-Netze, Kabelverbindung und VPN in einem Menü [network.js:1000-1075, 1800-1900]
             QuickMenu {
                 id: networkMenu
                 z: 2
@@ -1127,7 +1055,6 @@ Scope {
                 headerIcon: NetworkService.hasWifi ? "network-wireless-symbolic" : "network-wired-symbolic"
                 headerTitle: "Netzwerk"
                 headerActive: networkTile.checked
-                // Suche nur, solange das Menü offen ist [network.js:1855-1875]
                 onOpenChanged: {
                     NetworkService.setScanning(open && NetworkService.wifiEnabled, "quicksettings.network");
                     if (open)
@@ -1138,13 +1065,11 @@ Scope {
                     running: NetworkService.connectingWifi !== null
                 }
 
-                // ───────── WLAN ─────────
                 MenuSectionLabel {
                     visible: NetworkService.hasWifi
                     text: "WLAN"
                 }
 
-                // WLAN an/aus
                 PopupMenuItem {
                     id: wifiToggleItem
                     visible: NetworkService.hasWifi
@@ -1188,13 +1113,11 @@ Scope {
                     Layout.bottomMargin: Theme.basePadding
                 }
 
-                // ───────── Kabelgebunden ─────────
                 MenuSectionLabel {
                     visible: NetworkService.hasEthernet
                     text: "Kabelgebunden"
                 }
 
-                // Kabelgebunden an/aus
                 PopupMenuItem {
                     id: ethToggleItem
                     visible: NetworkService.hasEthernet
@@ -1218,7 +1141,6 @@ Scope {
                     Layout.bottomMargin: Theme.basePadding
                 }
 
-                // ───────── VPN ─────────
                 MenuSectionLabel {
                     visible: NetworkService.vpnConnections.length > 0
                     text: "VPN"
@@ -1257,7 +1179,6 @@ Scope {
                 }
             }
 
-            // Bluetooth-Geräte [bluetooth.js:199-260, 330-425]
             QuickMenu {
                 id: bluetoothMenu
                 z: 2
@@ -1269,9 +1190,7 @@ Scope {
                 headerTitle: "Bluetooth"
                 headerActive: bluetoothTile.checked
 
-                // Gekoppelte Geräte zuerst, darunter die während der Suche entdeckten [bluetooth.js:161-174]
                 readonly property var deviceList: BluetoothService.enabled ? BluetoothService.pairedDevices.concat(BluetoothService.nearbyDevices) : []
-                // Nach Geräten in der Nähe suchen, solange das Menü offen ist
                 onOpenChanged: open ? BluetoothService.requestDiscovery("quicksettings.bluetooth") : BluetoothService.releaseDiscovery("quicksettings.bluetooth")
 
                 headerSuffix: Spinner {
@@ -1299,14 +1218,13 @@ Scope {
                         Text {
                             visible: !deviceItem.busy
                             text: deviceItem.modelData.connected ? "Trennen" : (deviceItem.paired ? "Verbinden" : "Koppeln")
-                            color: Theme.transparentize(deviceItem.fg, 0.5) // .device-subtitle [_quick-settings.scss:244]
+                            color: Theme.transparentize(deviceItem.fg, 0.5)
                             font.family: Theme.fontFamily
                             font.pointSize: Theme.fontSizeBase
                             font.weight: Theme.fontWeightNormal
                         }
                     }
                 }
-                // Platzhalter ohne Geräte (.bt-menu-placeholder, title-4, zentriert)
                 Text {
                     visible: !BluetoothService.enabled || bluetoothMenu.deviceList.length === 0
                     Layout.fillWidth: true
@@ -1336,7 +1254,6 @@ Scope {
                 }
             }
 
-            // Energiemodus [powerProfiles.js:60-100]
             QuickMenu {
                 id: profileMenu
                 z: 2
@@ -1349,7 +1266,6 @@ Scope {
                 headerActive: profileTile.checked
 
                 Repeater {
-                    // GNOME-Reihenfolge: Leistung, Ausbalanciert, Energiesparen
                     model: PowerService.profiles.slice().reverse()
 
                     PopupMenuItem {
@@ -1364,7 +1280,6 @@ Scope {
                 }
             }
 
-            // Leistung: Menü mit den Energieprofilen (Leistung/Ausbalanciert/Energiesparen)
             QuickMenu {
                 id: performanceMenu
                 z: 2
@@ -1377,7 +1292,6 @@ Scope {
                 headerActive: performanceTile.checked
 
                 Repeater {
-                    // GNOME-Reihenfolge: Leistung, Ausbalanciert, Energiesparen
                     model: PowerService.profiles.slice().reverse()
 
                     PopupMenuItem {
@@ -1392,7 +1306,6 @@ Scope {
                 }
             }
 
-            // Tastaturlayouts
             QuickMenu {
                 id: keyboardMenu
                 z: 2
@@ -1418,8 +1331,6 @@ Scope {
                 }
             }
 
-            // Hintergrundprogramme [backgroundApps.js:121-212]: Kopf mit Geist-Symbol, Hinweiszeile, laufende
-            // Anwendungen (Icon, Name, Schließen-Knopf), Trenner und Einstieg in die Anwendungseinstellungen.
             QuickMenu {
                 id: backgroundMenu
                 z: 2
@@ -1430,7 +1341,6 @@ Scope {
                 headerIcon: Quickshell.shellPath("assets/icons/background-app-ghost-symbolic.svg")
                 headerTitle: "Hintergrundprogramme"
 
-                // .list-title: nicht reaktiv, umbrechender Hinweistext
                 Text {
                     Layout.fillWidth: true
                     Layout.leftMargin: Theme.menuItemPaddingH

@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import qs
 import qs.components
 
-// Zeile der Seitenleiste (AdwSidebar / .navigation-sidebar): 45px, Radius 8, Symbol + Titel.
 Item {
     id: root
 

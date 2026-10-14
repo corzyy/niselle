@@ -6,14 +6,11 @@ import qs.services
 import qs.components
 import ".."
 
-// Netzwerk: WLAN-Schalter und Netzliste, Ethernet-Status (NetworkService).
 SettingsPage {
     id: root
 
     signal navigate(string panel)
 
-    // Nur suchen, solange die Seite aktiv ist. Der Loader zerstört sie beim Panelwechsel,
-    // deshalb wird die Suche hier an- und in onDestruction wieder abgeschaltet.
     function updateScanning() {
         NetworkService.setScanning(NetworkService.hasWifi && NetworkService.wifiEnabled, "settings.network");
     }
@@ -30,7 +27,6 @@ SettingsPage {
         return network.security !== WifiSecurityType.Open && network.security !== WifiSecurityType.Owe && network.security !== WifiSecurityType.Unknown;
     }
 
-    // ───────── Anmeldung ─────────
 
     property string pendingNetwork: ""
     property string triedNetwork: ""
@@ -56,7 +52,6 @@ SettingsPage {
         pendingNetwork = "";
     }
 
-    // Fehlendes oder falsches Passwort: Dialog erneut mit Hinweis
     Connections {
         target: NetworkService
         function onConnectionFailed(name, reason) {
@@ -83,7 +78,6 @@ SettingsPage {
                 "primary": true
             }
         ]
-        // WPA-Passphrasen haben mindestens 8 Zeichen
         disabledButtons: passwordEntry.text.length < 8 ? ["connect"] : []
 
         onOpenChanged: {
@@ -132,7 +126,6 @@ SettingsPage {
         }
     }
 
-    // ───────── Verdecktes Netz ─────────
 
     property bool hiddenOpen: false
     property string hiddenError: ""
@@ -165,7 +158,6 @@ SettingsPage {
                 "primary": true
             }
         ]
-        // Passwort leer (offenes Netz) oder mindestens 8 Zeichen
         disabledButtons: hiddenSsid.text === "" || (hiddenPsk.text !== "" && hiddenPsk.text.length < 8) ? ["connect"] : []
 
         onOpenChanged: {
@@ -201,7 +193,6 @@ SettingsPage {
 
     PrefGroup {
         title: "Wi-Fi"
-        // Bei ausgeschaltetem Funk (rfkill) meldet NetworkManager das Gerät nicht; der Schalter muss trotzdem erreichbar bleiben
         visible: NetworkService.hasWifi || !NetworkService.wifiEnabled
 
         ActionRow {

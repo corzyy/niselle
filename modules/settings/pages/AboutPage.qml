@@ -6,13 +6,11 @@ import qs.services
 import qs.components
 import ".."
 
-// System → Über [cc-about-page]: Distributions-Logo, Gerätename, Software- und Hardware-Informationen.
 SettingsPage {
     id: root
 
     property bool editing: false
 
-    // Logo der aktuellen Distribution (os-release LOGO, Theme-Icon)
     Icon {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: 8
@@ -44,7 +42,6 @@ SettingsPage {
             }
         }
 
-        // Bearbeiten: Eingabefeld statt Zeile
         Item {
             width: parent.width
             implicitHeight: 54

@@ -15,23 +15,17 @@ import * as Workspace from './workspace.js';
 
 const NUM_WORKSPACES_THRESHOLD = 2;
 
-// The maximum size of a thumbnail is 5% the width and height of the screen
 export const MAX_THUMBNAIL_SCALE = 0.05;
 
 const RESCALE_ANIMATION_TIME = 200;
 const SLIDE_ANIMATION_TIME = 200;
 
-// When we create workspaces by dragging, we add a "cut" into the top and
-// bottom of each workspace so that the user doesn't have to hit the
-// placeholder exactly.
 const WORKSPACE_CUT_SIZE = 10;
 
 const WORKSPACE_KEEP_ALIVE_TIME = 100;
 
 const MUTTER_SCHEMA = 'org.gnome.mutter';
 
-/* A layout manager that requests size only for primary_actor, but then allocates
-   all using a fixed layout */
 const PrimaryActorLayout = GObject.registerClass(
 class PrimaryActorLayout extends Clutter.FixedLayout {
     _init(primaryActor) {
@@ -72,8 +66,6 @@ export const WindowClone = GObject.registerClass({
         this.realWindow.connectObject(
             'notify::position', this._onPositionChanged.bind(this),
             'destroy', () => {
-                // First destroy the clone and then destroy everything
-                // This will ensure that we never see it in the _disconnectSignals loop
                 clone.destroy();
                 this.destroy();
             }, this);
@@ -114,8 +106,6 @@ export const WindowClone = GObject.registerClass({
         this.metaWindow.foreach_transient(iter);
     }
 
-    // Find the actor just below us, respecting reparenting done
-    // by DND code
     getActualStackAbove() {
         if (this._stackAbove == null)
             return null;
@@ -133,8 +123,6 @@ export const WindowClone = GObject.registerClass({
     setStackAbove(actor) {
         this._stackAbove = actor;
 
-        // Don't apply the new stacking now, it will be applied
-        // when dragging ends and window are stacked again
         if (actor.inDrag)
             return;
 
@@ -193,9 +181,6 @@ export const WindowClone = GObject.registerClass({
     _onDragEnd(_draggable, _time, _snapback) {
         this.inDrag = false;
 
-        // We may not have a parent if DnD completed successfully, in
-        // which case our clone will shortly be destroyed and replaced
-        // with a new one on the target workspace.
         const parent = this.get_parent();
         if (parent !== null) {
             if (this._stackAbove == null)
@@ -235,10 +220,6 @@ export const WorkspaceThumbnail = GObject.registerClass({
             0, 1, 0),
     },
 }, class WorkspaceThumbnail extends St.Widget {
-    /**
-     * @param {Meta.Workspace} metaWorkspace
-     * @param {number} monitorIndex
-     */
     _init(metaWorkspace, monitorIndex) {
         super._init({
             clip_to_allocation: true,
@@ -268,7 +249,6 @@ export const WorkspaceThumbnail = GObject.registerClass({
             return win.located_on_workspace(metaWorkspace);
         });
 
-        // Create clones for windows that should be visible in the Overview
         this._windows = [];
         this._allWindows = [];
         for (let i = 0; i < windows.length; i++) {
@@ -280,7 +260,6 @@ export const WorkspaceThumbnail = GObject.registerClass({
                 this._addWindowClone(windows[i]);
         }
 
-        // Track window changes
         this.metaWorkspace.connectObject(
             'window-added', this._windowAdded.bind(this),
             'window-removed', this._windowRemoved.bind(this), this);
@@ -289,8 +268,8 @@ export const WorkspaceThumbnail = GObject.registerClass({
             'window-left-monitor', this._windowLeftMonitor.bind(this), this);
 
         this.state = ThumbnailState.NORMAL;
-        this._slidePosition = 0; // Fully slid in
-        this._collapseFraction = 0; // Not collapsed
+        this._slidePosition = 0;
+        this._collapseFraction = 0;
     }
 
     setPorthole(x, y, width, height) {
@@ -358,8 +337,6 @@ export const WorkspaceThumbnail = GObject.registerClass({
         const win = metaWin.get_compositor_private();
 
         if (!win) {
-            // Newly-created windows are added to a workspace before
-            // the compositor finds out about them...
             const id = GLib.idle_add_once(GLib.PRIORITY_DEFAULT, () => {
                 if (!this._removed &&
                     metaWin.get_compositor_private() &&
@@ -376,8 +353,6 @@ export const WorkspaceThumbnail = GObject.registerClass({
             this._allWindows.push(metaWin);
         }
 
-        // We might have the window in our list already if it was on all workspaces and
-        // now was moved to this workspace
         if (this._lookupIndex(metaWin) !== -1)
             return;
 
@@ -393,8 +368,6 @@ export const WorkspaceThumbnail = GObject.registerClass({
 
             const idx = this._lookupIndex(parent);
             if (idx < 0) {
-                // parent was not created yet, it will take care
-                // of the dialog when created
                 return;
             }
 
@@ -450,20 +423,17 @@ export const WorkspaceThumbnail = GObject.registerClass({
         this._windows = [];
     }
 
-    // Tests if @actor belongs to this workspace and monitor
     _isMyWindow(actor) {
         const win = actor.meta_window;
         return win.located_on_workspace(this.metaWorkspace) &&
             (win.get_monitor() === this.monitorIndex);
     }
 
-    // Tests if @win should be shown in the Overview
     _isOverviewWindow(win) {
         return !win.get_meta_window().skip_taskbar &&
                win.get_meta_window().showing_on_its_workspace();
     }
 
-    // Create a clone of a (non-desktop) window and add it to the window list
     _addWindowClone(win) {
         const clone = new WindowClone(win);
 
@@ -493,7 +463,6 @@ export const WorkspaceThumbnail = GObject.registerClass({
     }
 
     _removeWindowClone(metaWin) {
-        // find the position of the window in our list
         const index = this._lookupIndex(metaWin);
 
         if (index === -1)
@@ -506,14 +475,12 @@ export const WorkspaceThumbnail = GObject.registerClass({
         if (this.state > ThumbnailState.NORMAL)
             return;
 
-        // a click on the already current workspace should go back to the main view
         if (this.metaWorkspace.active)
             Main.overview.hide();
         else
             this.metaWorkspace.activate(time);
     }
 
-    // Draggable target interface used only by ThumbnailsBox
     handleDragOverInternal(source, actor, time) {
         if (source === Main.xdndHandler) {
             this.metaWorkspace.activate(time);
@@ -554,8 +521,6 @@ export const WorkspaceThumbnail = GObject.registerClass({
             source.app.open_new_window(this.metaWorkspace.index());
             return true;
         } else if (!source.app && source.shellWorkspaceLaunch) {
-            // While unused in our own drag sources, shellWorkspaceLaunch allows
-            // extensions to define custom actions for their drag sources.
             source.shellWorkspaceLaunch({
                 workspace: this.metaWorkspace.index(),
                 timestamp: time,
@@ -603,7 +568,6 @@ export const ThumbnailsBox = GObject.registerClass({
             visible: false,
         });
 
-        // We don't want the indicator to affect drag-and-drop
         Shell.util_set_hidden_from_pick(indicator, true);
 
         this._indicator = indicator;
@@ -666,7 +630,6 @@ export const ThumbnailsBox = GObject.registerClass({
                 this._createThumbnails();
         }, this);
 
-        // The porthole is the part of the screen we're showing in the thumbnails
         global.display.connectObject('workareas-changed',
             () => this._updatePorthole(), this);
         this._updatePorthole();
@@ -833,7 +796,6 @@ export const ThumbnailsBox = GObject.registerClass({
         return x > workspaceX1 && x <= workspaceX2;
     }
 
-    // Draggable target interface
     handleDragOver(source, actor, x, y, time) {
         if (!source.metaWindow &&
             (!source.app || !source.app.can_open_new_window()) &&
@@ -898,7 +860,6 @@ export const ThumbnailsBox = GObject.registerClass({
             Main.wm.insertWorkspace(newWorkspaceIndex);
 
             if (isWindow) {
-                // Move the window to our monitor first if necessary.
                 const thumbMonitor = this._thumbnails[newWorkspaceIndex].monitorIndex;
                 Main.moveWindowToMonitorAndWorkspace(source.metaWindow,
                     thumbMonitor, newWorkspaceIndex, true);
@@ -908,8 +869,6 @@ export const ThumbnailsBox = GObject.registerClass({
 
                 source.app.open_new_window(newWorkspaceIndex);
             } else if (!source.app && source.shellWorkspaceLaunch) {
-                // While unused in our own drag sources, shellWorkspaceLaunch allows
-                // extensions to define custom actions for their drag sources.
                 source.shellWorkspaceLaunch({
                     workspace: newWorkspaceIndex,
                     timestamp: time,
@@ -917,17 +876,11 @@ export const ThumbnailsBox = GObject.registerClass({
             }
 
             if (source.app || (!source.app && source.shellWorkspaceLaunch)) {
-                // This new workspace will be automatically removed if the application fails
-                // to open its first window within some time, as tracked by Shell.WindowTracker.
-                // Here, we only add a very brief timeout to avoid the _immediate_ removal of the
-                // workspace while we wait for the startup sequence to load.
                 const workspaceManager = global.workspace_manager;
                 Main.wm.keepWorkspaceAlive(workspaceManager.get_workspace_by_index(newWorkspaceIndex),
                     WORKSPACE_KEEP_ALIVE_TIME);
             }
 
-            // Start the animation on the workspace (which is actually
-            // an old one which just became empty)
             const thumbnail = this._thumbnails[newWorkspaceIndex];
             this._setThumbnailState(thumbnail, ThumbnailState.NEW);
             thumbnail.slide_position = 1;
@@ -1026,10 +979,9 @@ export const ThumbnailsBox = GObject.registerClass({
             this.add_child(thumbnail);
 
             if (this._shouldShow && start > 0 && this._spliceIndex === -1) {
-                // not the initial fill, and not splicing via DND
                 thumbnail.state = ThumbnailState.NEW;
-                thumbnail.slide_position = 1; // start slid out
-                thumbnail.collapse_fraction = 1; // start fully collapsed
+                thumbnail.slide_position = 1;
+                thumbnail.collapse_fraction = 1;
                 this._haveNewThumbnails = true;
             } else {
                 thumbnail.state = ThumbnailState.NORMAL;
@@ -1040,10 +992,8 @@ export const ThumbnailsBox = GObject.registerClass({
 
         this._queueUpdateStates();
 
-        // The thumbnails indicator actually needs to be on top of the thumbnails
         this.set_child_above_sibling(this._indicator, null);
 
-        // Clear the splice index, we got the message
         this._spliceIndex = -1;
     }
 
@@ -1103,15 +1053,12 @@ export const ThumbnailsBox = GObject.registerClass({
     _updateStates() {
         this._updateStateId = 0;
 
-        // If we are animating the indicator, wait
         if (this._animatingIndicator)
             return;
 
-        // Likewise if we are in the process of hiding
         if (!this._shouldShow && this.visible)
             return;
 
-        // Then slide out any thumbnails that have been destroyed
         this._iterateStateThumbnails(ThumbnailState.REMOVING, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.ANIMATING_OUT);
 
@@ -1125,12 +1072,9 @@ export const ThumbnailsBox = GObject.registerClass({
             });
         });
 
-        // As long as things are sliding out, don't proceed
         if (this._stateCounts[ThumbnailState.ANIMATING_OUT] > 0)
             return;
 
-        // Once that's complete, we can start scaling to the new size,
-        // collapse any removed thumbnails and expand added ones
         this._iterateStateThumbnails(ThumbnailState.ANIMATED_OUT, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.COLLAPSING);
             thumbnail.ease_property('collapse-fraction', 1, {
@@ -1170,13 +1114,11 @@ export const ThumbnailsBox = GObject.registerClass({
             this._pendingScaleUpdate = false;
         }
 
-        // Wait until that's done
         if (this._scale !== this._targetScale ||
             this._stateCounts[ThumbnailState.COLLAPSING] > 0 ||
             this._stateCounts[ThumbnailState.EXPANDING] > 0)
             return;
 
-        // And then slide in any new thumbnails
         this._iterateStateThumbnails(ThumbnailState.EXPANDED, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.ANIMATING_IN);
             thumbnail.ease_property('slide-position', 0, {
@@ -1228,9 +1170,6 @@ export const ThumbnailsBox = GObject.registerClass({
     }
 
     vfunc_get_preferred_width(_forHeight) {
-        // Note that for getPreferredHeight/Width we cheat a bit and skip propagating
-        // the size request to our children because we know how big they are and know
-        // that the actors aren't depending on the virtual functions being called.
         const themeNode = this.get_theme_node();
 
         const spacing = themeNode.get_length('spacing');
@@ -1270,7 +1209,7 @@ export const ThumbnailsBox = GObject.registerClass({
 
         const rtl = Clutter.get_default_text_direction() === Clutter.TextDirection.RTL;
 
-        if (this._thumbnails.length === 0) // not visible
+        if (this._thumbnails.length === 0)
             return;
 
         const themeNode = this.get_theme_node();
@@ -1282,8 +1221,6 @@ export const ThumbnailsBox = GObject.registerClass({
 
         const nWorkspaces = this._thumbnails.length;
 
-        // Compute the scale we'll need once everything is updated,
-        // unless we are currently transitioning
         if (this._expandFraction === 0 || this._expandFraction === 1) {
             const [, natWidth] = this.get_preferred_width(-1);
             const [, natHeight] = this.get_preferred_height(natWidth);
@@ -1301,9 +1238,6 @@ export const ThumbnailsBox = GObject.registerClass({
 
             if (newScale !== this._targetScale) {
                 if (this._targetScale > 0) {
-                    // We don't ease immediately because we need to observe the
-                    // ordering in queueUpdateStates - if workspaces have been
-                    // removed we need to slide them out as the first thing.
                     this._targetScale = newScale;
                     this._pendingScaleUpdate = true;
                 } else {
@@ -1320,8 +1254,6 @@ export const ThumbnailsBox = GObject.registerClass({
         const thumbnailHeight = thumbnailFullHeight * this._expandFraction;
         const roundedVScale = thumbnailHeight / portholeHeight;
 
-        // We always request size for maxThumbnailScale, distribute
-        // space evently if we use smaller thumbnails
         const extraWidth =
             (this._maxThumbnailScale * portholeWidth - thumbnailWidth) * nWorkspaces;
         box.x1 += Math.round(extraWidth / 2);
@@ -1398,16 +1330,10 @@ export const ThumbnailsBox = GObject.registerClass({
                 x += placeholderWidth + spacing;
             }
 
-            // We might end up with thumbnailWidth being something like 99.33
-            // pixels. To make this work and not end up with a gap at the end,
-            // we need some thumbnails to be 99 pixels and some 100 pixels width;
-            // we compute an actual scale separately for each thumbnail.
             const x1 = Math.round(x);
             const x2 = Math.round(x + thumbnailWidth);
             const roundedHScale = (x2 - x1) / portholeWidth;
 
-            // Allocating a scaled actor is funny - x1/y1 correspond to the origin
-            // of the actor, but x2/y2 are increased by the *unscaled* size.
             if (rtl) {
                 childBox.x2 = box.x2 - x1;
                 childBox.x1 = box.x2 - (x1 + thumbnailWidth);
@@ -1430,9 +1356,6 @@ export const ThumbnailsBox = GObject.registerClass({
                 indicatorLowerX2 = childBox.x2;
             }
 
-            // We round the collapsing portion so that we don't get thumbnails resizing
-            // during an animation due to differences in rounded, but leave the uncollapsed
-            // portion unrounded so that non-animating we end up with the right total
             x += thumbnailWidth - Math.round(thumbnailWidth * thumbnail.collapse_fraction);
         }
 

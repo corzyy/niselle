@@ -4,9 +4,6 @@ import Quickshell
 import qs
 import qs.components
 
-// Medienkarte eines MPRIS-Spielers [messageList.js MediaMessage, _message-list.scss:218-262]: Cover (Radius 8) bzw. Notensymbol,
-// Titel, Künstler, Zurück / Wiedergabe-Pause / Weiter. Klick auf die Karte bringt den Spieler nach vorn. Die Karte hat keine
-// Zeit und keinen Schließen-Knopf; Position wird nicht angezeigt, es gibt also keine Aktualisierung während des Lesens.
 Message {
     id: root
 
@@ -14,7 +11,6 @@ Message {
 
     signal activated
 
-    // Knopf der Medienbedienung (.message-media-control): 16px-Symbol, Innenabstand 18 horizontal, Radius 8
     component MediaButton: Item {
         id: button
 

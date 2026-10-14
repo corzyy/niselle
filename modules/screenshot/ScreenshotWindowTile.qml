@@ -5,14 +5,10 @@ import Quickshell.Wayland
 import qs
 import qs.components
 
-// Fenstervorschau im Fenstermodus (.screenshot-ui-window-selector-window): Standbild des Fensters, 6 px Rand (16 px
-// Radius), beim Überfahren dunkler Akzent, gewählt: Akzentrahmen, Akzentton 20 % und Haken in der Mitte.
 Item {
     id: root
 
-    // {address, x, y, w, h, title} aus ScreenshotService.windows
     required property var window
-    // Platz der Vorschau (lokal zum Monitor)
     required property var slot
     property bool checked: false
 
@@ -25,7 +21,6 @@ Item {
 
     readonly property var toplevel: Hyprland.toplevels.values.find(t => t.address.replace(/^0x/, "") === root.window.address) ?? null
 
-    // Fenstertitel als Rückfall, solange noch kein Bild da ist
     Rectangle {
         anchors.fill: parent
         color: Theme.bgColor
@@ -51,7 +46,6 @@ Item {
         constraintSize: Qt.size(Math.max(1, root.width), Math.max(1, root.height))
     }
 
-    // Rand außen um die Vorschau
     Rectangle {
         anchors.fill: parent
         anchors.margins: -6
@@ -77,7 +71,6 @@ Item {
         }
     }
 
-    // Haken: Kreis 48 px (Icon 24 px + 12 px Rand) in der Mitte
     Rectangle {
         anchors.centerIn: parent
         width: 48

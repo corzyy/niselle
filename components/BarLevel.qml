@@ -1,8 +1,6 @@
 import QtQuick
 import qs
 
-// Reiner Füllbalken ohne Griff (St.BarLevel) [barLevel.js:117-190]: Trog mit runden Enden, Füllung links rund und
-// rechts am Wert gerade abgeschnitten, Overdrive-Bereich ab `overdriveStart` in Destructive-Farbe mit Trenner.
 Item {
     id: root
 
@@ -33,7 +31,6 @@ Item {
         color: root.troughColor
     }
 
-    // Füllung bis zum Wert bzw. zum Overdrive-Trenner
     Item {
         anchors.verticalCenter: parent.verticalCenter
         height: root.barHeight
@@ -49,7 +46,6 @@ Item {
         }
     }
 
-    // Overdrive-Bereich
     Rectangle {
         readonly property real startX: Math.min(root.endX, root.overdriveX) + root._separator / 2
         visible: root.overdriveActive && root._value > root.overdriveStart
@@ -60,7 +56,6 @@ Item {
         color: root.overdriveColor
     }
 
-    // Trenner [barLevel.js:208-219]
     Rectangle {
         visible: root.overdriveActive
         anchors.verticalCenter: parent.verticalCenter

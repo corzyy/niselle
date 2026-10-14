@@ -31,10 +31,8 @@ Gio._promisify(NM.DeviceWifi.prototype, 'request_scan_async');
 const WIFI_SCAN_FREQUENCY = 15;
 const MAX_VISIBLE_NETWORKS = 8;
 
-// small optimization, to avoid using [] all the time
 const NM80211Mode = NM['80211Mode'];
 
-/** @enum {number} */
 const PortalHelperResult = {
     CANCELLED: 0,
     COMPLETED: 1,
@@ -79,19 +77,6 @@ function launchSettingsPanel(panel, ...args) {
 class ItemSorter {
     [Symbol.iterator] = this.items;
 
-    /**
-     * Maintains a list of sorted items. By default, items are
-     * assumed to be objects with a name property.
-     *
-     * Optionally items can have a secondary sort order by
-     * recency. If used, items must by objects with a timestamp
-     * property that can be used in substraction, and "bigger"
-     * must mean "more recent". Number and Date both qualify.
-     *
-     * @param {object=} options - property object with options
-     * @param {Function} options.sortFunc - a custom sort function
-     * @param {bool} options.trackMru - whether to track MRU order as well
-     **/
     constructor(options = {}) {
         const {sortFunc, trackMru} = {
             sortFunc: this._sortByName.bind(this),
@@ -135,12 +120,6 @@ class ItemSorter {
             array.splice(pos, 1);
     }
 
-    /**
-     * Insert or update item.
-     *
-     * @param {any} item - the item to upsert
-     * @returns {number} - the sorted position of item
-     */
     upsert(item) {
         if (this._trackMru)
             this._upsert(this._itemsMruOrder, item, this._sortFuncMru);
@@ -148,9 +127,6 @@ class ItemSorter {
         return this._upsert(this._itemsOrder, item, this._sortFunc);
     }
 
-    /**
-     * @param {any} item - item to remove
-     */
     delete(item) {
         if (this._trackMru)
             this._delete(this._itemsMruOrder, item);
@@ -210,14 +186,9 @@ const NMMenuItem = GObject.registerClass({
     }
 
     _sync() {
-        // Overridden by subclasses
     }
 });
 
-/**
- * Item that contains a section, and can be collapsed
- * into a submenu
- */
 const NMSectionItem = GObject.registerClass({
     Properties: {
         'use-submenu': GObject.ParamSpec.boolean('use-submenu', null, null,
@@ -233,10 +204,8 @@ const NMSectionItem = GObject.registerClass({
 
         this._useSubmenu = false;
 
-        // Turn into an empty container with no padding
         this.styleClass = '';
 
-        // Add intermediate section; we need this for submenu support
         this._mainSection = new PopupMenu.PopupMenuSection();
         this.add_child(this._mainSection.actor);
 
@@ -247,7 +216,6 @@ const NMSectionItem = GObject.registerClass({
         this.section = new PopupMenu.PopupMenuSection();
         this._mainSection.addMenuItem(this.section);
 
-        // Represents the item as a whole when shown
         this.bind_property('name',
             this._submenuItem.label, 'text',
             GObject.BindingFlags.DEFAULT);
@@ -338,11 +306,6 @@ class NMConnectionItem extends NMMenuItem {
     }
 
     updateForConnection(connection) {
-        // connection should always be the same object
-        // (and object path) as this._connection, but
-        // this can be false if NetworkManager was restarted
-        // and picked up connections in a different order
-        // Just to be safe, we set it here again
 
         this._connection = connection;
         this.notify('name');
@@ -351,9 +314,7 @@ class NMConnectionItem extends NMMenuItem {
 
     _getAccessibleName() {
         return this.is_active
-            // Translators: %s is a device name like "MyPhone"
             ? _('Disconnect %s').format(this.name)
-            // Translators: %s is a device name like "MyPhone"
             : _('Connect to %s').format(this.name);
     }
 
@@ -382,7 +343,7 @@ class NMConnectionItem extends NMMenuItem {
         super.activate();
 
         if (this.radio_mode && this._activeConnection != null)
-            return; // only activate in radio mode
+            return;
 
         if (this._activeConnection == null)
             this._section.activateConnection(this._connection);
@@ -440,11 +401,9 @@ const NMDeviceItem = GObject.registerClass({
         this._connectionItems = new Map();
         this._itemSorter = new ItemSorter({trackMru: true});
 
-        // Item shown in the 0-connections case
         this._autoConnectItem =
             this.section.addAction(_('Connect'), () => this._autoConnect(), '');
 
-        // Represents the device as a whole when shown
         this.bind_property('name',
             this._autoConnectItem.label, 'text',
             GObject.BindingFlags.SYNC_CREATE);
@@ -687,7 +646,6 @@ class NMModemDeviceItem extends NMDeviceItem {
     }
 
     get wwanPanelSupported() {
-        // Currently, wwan panel doesn't support CDMA_EVDO modems
         const supportedCaps =
             NM.DeviceModemCapabilities.GSM_UMTS |
             NM.DeviceModemCapabilities.LTE;
@@ -843,10 +801,6 @@ const WirelessNetwork = GObject.registerClass({
             this._securityType === secType;
     }
 
-    /**
-     * @param {NM.AccessPoint} ap - an access point
-     * @returns {bool} - whether the access point was added
-     */
     addAccessPoint(ap) {
         if (!this.checkAccessPoint(ap))
             return false;
@@ -878,10 +832,6 @@ const WirelessNetwork = GObject.registerClass({
         return true;
     }
 
-    /**
-     * @param {NM.AccessPoint} ap - an access point
-     * @returns {bool} - whether the access point was removed
-     */
     removeAccessPoint(ap) {
         const wasActive = this.is_active;
         if (!this._accessPoints.delete(ap))
@@ -896,12 +846,7 @@ const WirelessNetwork = GObject.registerClass({
         return true;
     }
 
-    /**
-     * @param {WirelessNetwork} other - network to compare with
-     * @returns {number} - the sort order
-     */
     compare(other) {
-        // place known connections first
         const cmpConnections = other.hasConnections() - this.hasConnections();
         if (cmpConnections !== 0)
             return cmpConnections;
@@ -910,17 +855,14 @@ const WirelessNetwork = GObject.registerClass({
         if (cmpAps !== 0)
             return cmpAps;
 
-        // place stronger connections first
         const cmpStrength = other.signal_strength - this.signal_strength;
         if (cmpStrength !== 0)
             return cmpStrength;
 
-        // place secure connections first
         const cmpSec = other.secure - this.secure;
         if (cmpSec !== 0)
             return cmpSec;
 
-        // sort alphabetically
         return GLib.utf8_collate(this._name, other._name);
     }
 
@@ -970,7 +912,6 @@ const WirelessNetwork = GObject.registerClass({
     }
 
     _getDeviceDBusPath() {
-        // nm_object_get_path() is shadowed by nm_device_get_path()
         return NM.Object.prototype.get_path.call(this._device);
     }
 
@@ -1060,7 +1001,6 @@ class NMWirelessNetworkItem extends PopupMenu.PopupBaseMenuItem {
     _updateAccessibleName() {
         const secureString = this._network.secure ? _('Secure') : _('Not secure');
         const signalStrengthString = _('Signal strength %s%%').format(this._network.signal_strength);
-        // translators: The first placeholder is the network name, the second and indication whether it is secure, and the last the signal strength indication
         this.accessible_name = _('%s, %s, %s').format(this._label.text, secureString, signalStrengthString);
     }
 });
@@ -1125,7 +1065,6 @@ const NMWirelessDeviceItem = GObject.registerClass({
         this._updateItemsVisibility();
 
         this.connect('destroy', () => {
-            // Iterate a copy because our 'destroy' handler modifies the array
             [...this._networks].forEach(net => net.destroy());
         });
     }
@@ -1163,14 +1102,12 @@ const NMWirelessDeviceItem = GObject.registerClass({
 
     get name() {
         if (this.is_hotspot)
-            /* Translators: %s is a network identifier */
             return _('%s Hotspot').format(this._deviceName);
 
         const {ssid} = this._activeAccessPoint ?? {};
         if (ssid)
             return ssidToLabel(ssid);
 
-        // Use connection name when connected to hidden AP
         const {activeConnection} = this._device;
         if (activeConnection)
             return activeConnection.connection.get_id();
@@ -1224,8 +1161,6 @@ const NMWirelessDeviceItem = GObject.registerClass({
 
     _addAccessPoint(ap) {
         if (ap.get_ssid() == null) {
-            // This access point is not visible yet
-            // Wait for it to get a ssid
             ap.connectObject('notify::ssid', () => {
                 if (!ap.ssid)
                     return;
@@ -1329,8 +1264,6 @@ const NMVpnConnectionItem = GObject.registerClass({
             this._switch, 'state',
             GObject.BindingFlags.SYNC_CREATE);
 
-        // Switch handle is reactive, so events don't propagate to the item;
-        // activate it manually in that case
         this._switch.connect('notify::state', () => {
             if (this.is_active === this._switch.state)
                 return;
@@ -1439,9 +1372,6 @@ const NMToggle = GObject.registerClass({
         throw new GObject.NotImplementedError();
     }
 
-    // transform function for property binding:
-    // Ignore the provided label if there are multiple active
-    // items, and replace it with something like "2 connected"
     _transformSubtitle(source) {
         const nActive = this.checked
             ? [...this._getActiveItems()].length
@@ -1457,8 +1387,6 @@ const NMToggle = GObject.registerClass({
     }
 
     _itemActiveChanged() {
-        // force an update in case we changed
-        // from or to multiple active items
         this._itemBinding.source?.notify('name');
         this._sync();
     }
@@ -1509,17 +1437,14 @@ const NMToggle = GObject.registerClass({
     }
 
     _getPrimaryItem() {
-        // prefer active items
         const [firstActive] = this._getActiveItems();
         if (firstActive)
             return firstActive;
 
-        // otherwise prefer the most-recently used
         const [lastUsed] = this._itemSorter.itemsByMru();
         if (lastUsed?.timestamp > 0)
             return lastUsed;
 
-        // as a last resort, return the top-most visible item
         for (const item of this._itemSorter) {
             if (item.visible)
                 return item;
@@ -1590,7 +1515,6 @@ class NMVpnToggle extends NMToggle {
         if (!setting)
             return false;
 
-        // Ignore slave connection
         if (setting.get_master())
             return false;
 
@@ -1623,8 +1547,6 @@ class NMVpnToggle extends NMToggle {
             this);
         this._addItem(connection, item);
 
-        // FIXME: NM is emitting "connection-added" after "notify::active-connections",
-        // so we need to sync connections here once again.
         this._syncActiveConnections();
     }
 
@@ -1732,9 +1654,6 @@ class NMDeviceToggle extends NMToggle {
             return;
         }
 
-        /* Emit a notification if activation fails, but don't do it
-           if the reason is no secrets, as that indicates the user
-           cancelled the agent dialog */
         if (newState === NM.DeviceState.FAILED &&
             reason !== NM.DeviceStateReason.NO_SECRETS)
             this.emit('activation-failed');
@@ -1851,8 +1770,6 @@ class NMWirelessToggle extends NMDeviceToggle {
         const {lastScan} = device;
         await device.request_scan_async(null);
 
-        // Wait for the lastScan property to update, which
-        // indicates the end of the scan
         return new Promise(resolve => {
             GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
                 if (device.lastScan === lastScan)
@@ -1897,7 +1814,6 @@ class NMWirelessToggle extends NMDeviceToggle {
     }
 
     _updateChecked() {
-        // handled via a property binding
     }
 
     _getPrimaryItem() {
@@ -1909,7 +1825,6 @@ class NMWirelessToggle extends NMDeviceToggle {
     }
 
     _shouldShowDevice(device) {
-        // don't disappear if wireless-enabled is false
         if (device.state === NM.DeviceState.UNAVAILABLE)
             return true;
         return super._shouldShowDevice(device);
@@ -1944,7 +1859,6 @@ class NMBluetoothToggle extends NMDeviceToggle {
     }
 
     _getDefaultName() {
-        // Translators: "Tether" from "Bluetooth Tether"
         return _('Tether');
     }
 
@@ -1969,7 +1883,6 @@ class NMModemToggle extends NMDeviceToggle {
     }
 
     _getDefaultName() {
-        // Translators: "Mobile" from "Mobile Broadband"
         return _('Mobile');
     }
 
@@ -2042,10 +1955,6 @@ class CaptivePortalHandler extends Signals.EventEmitter {
         const [path, result] = parameters;
 
         if (result === PortalHelperResult.CANCELLED) {
-            // Keep the connection in the queue, so the user is not
-            // spammed with more logins until we next flush the queue,
-            // which will happen once they choose a better connection
-            // or we get to full connectivity through other means
         } else if (result === PortalHelperResult.COMPLETED) {
             this.removeConnection(path);
         } else if (result === PortalHelperResult.RECHECK) {
@@ -2236,11 +2145,6 @@ class Indicator extends SystemIndicator {
             return;
 
         let isPortal = this._client.connectivity === NM.ConnectivityState.PORTAL;
-        // For testing, allow interpreting any value != FULL as PORTAL, because
-        // LIMITED (no upstream route after the default gateway) is easy to obtain
-        // with a tethered phone
-        // NONE is also possible, with a connection configured to force no default route
-        // (but in general we should only prompt a portal if we know there is a portal)
         if (GLib.getenv('GNOME_SHELL_CONNECTIVITY_TEST') != null)
             isPortal ||= this._client.connectivity < NM.ConnectivityState.FULL;
 

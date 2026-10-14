@@ -4,9 +4,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Zustand des Einstellungsfensters (modules/settings). Steuerung: `niselle settings [panel]` bzw.
-// quickshell ipc call settings open <panel> | close | toggle.
-// panel: Bereichs-ID der Seitenleiste ("network", "sound", "system"), Unterseite mit "/" ("system/datetime"); leer = zuletzt.
 Singleton {
     id: root
 

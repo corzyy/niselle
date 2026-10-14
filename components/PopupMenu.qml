@@ -3,28 +3,16 @@ import QtQuick.Layouts
 import Quickshell
 import qs
 
-// Popover-Menü (.popup-menu-boxpointer + .popup-menu-content) [_popovers.scss:11-33].
-// Karte: bg_color, radius 20, 1px outer_borders, Schatten 0 2px 4px, Padding 6, min. Breite 15em.
-// Öffnen/Schließen wie BoxPointer [boxpointer.js:74-185]: 150 ms EASE_OUT_QUAD, Deckkraft 0↔1,
-// Skalierung 0.96↔1 um den Pfeilrand, Verschiebung um -arrow-rise (6px) zum Pfeilrand hin.
-//
-// Das Fenster ist rundum um `margin` größer als die Karte (Platz für den Schatten). Anker (anchor.item,
-// anchor.edges, anchor.gravity, anchor.rect) bezieht sich auf das Fenster, die Karte beginnt bei (margin, margin).
 PopupWindow {
     id: root
 
-    // Gewünschter Zustand; Schließen animiert und blendet das Fenster danach aus
     property bool open: false
-    // Seite der Karte, an der das Menü hängt (Qt.TopEdge: Menü unter dem Panel)
     property int arrowSide: Qt.TopEdge
     property real minWidth: Theme.popoverMinWidth
-    // Dauer von Öffnen/Schließen (Quick-Settings nehmen länger für das gestaffelte Einblenden)
     property int openDuration: Theme.durationPopover
-    // Quick-Settings überschreiben Radius und Innenabstand [_quick-settings.scss:1-4]
     property real cornerRadius: Theme.radiusPopover
     property real contentPadding: Theme.popoverPadding
     readonly property real margin: Math.ceil(Theme.shadowPopoverBlur + Theme.shadowPopoverY + 2)
-    // Mindesthöhe der Karte im Fenster: Fenstergröße bleibt während Animationen der Karte konstant
     property real reserveHeight: 0
     readonly property real progress: openAnimation.progress
 
@@ -45,7 +33,6 @@ PopupWindow {
         openAnimation.progress = open ? 1 : 0;
     }
 
-    // Klick daneben (Fokus-Grab) blendet das Fenster aus: Zustand nachziehen
     onVisibleChanged: {
         if (!visible && open) {
             openAnimation.progress = 0;
@@ -107,7 +94,6 @@ PopupWindow {
         ColumnLayout {
             id: column
 
-            // Marker, den PopupMenuItem in der Elternkette sucht
             readonly property var menuOwner: root
 
             anchors.fill: parent

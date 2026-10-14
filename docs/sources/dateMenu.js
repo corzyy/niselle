@@ -25,12 +25,6 @@ const EN_CHAR = '\u2013';
 const ClocksIntegrationIface = loadInterfaceXML('org.gnome.Shell.ClocksIntegration');
 const ClocksProxy = Gio.DBusProxy.makeProxyWrapper(ClocksIntegrationIface);
 
-/**
- * @private
- *
- * @param {Date} date a Date
- * @returns {boolean}
- */
 function _isToday(date) {
     const now = new Date();
     return now.getFullYear() === date.getFullYear() &&
@@ -38,12 +32,6 @@ function _isToday(date) {
            now.getDate() === date.getDate();
 }
 
-/**
- * @private
- *
- * @param {GLib.DateTime} datetime a GLib.DateTime
- * @returns {Date}
- */
 function _gDateTimeToDate(datetime) {
     return new Date(datetime.to_unix() * 1000 + datetime.get_microsecond() / 1000);
 }
@@ -51,9 +39,6 @@ function _gDateTimeToDate(datetime) {
 const TodayButton = GObject.registerClass(
 class TodayButton extends St.Button {
     _init(calendar) {
-        // Having the ability to go to the current date if the user is already
-        // on the current date can be confusing. So don't make the button reactive
-        // until the selected date changes.
         super._init({
             style_class: 'datemenu-today-button',
             x_expand: true,
@@ -78,8 +63,6 @@ class TodayButton extends St.Button {
 
         this._calendar = calendar;
         this._calendar.connect('selected-date-changed', (_calendar, datetime) => {
-            // Make the button reactive only if the selected date is not the
-            // current date.
             this.reactive = !_isToday(_gDateTimeToDate(datetime));
         });
     }
@@ -91,18 +74,9 @@ class TodayButton extends St.Button {
     setDate(date) {
         this._dayLabel.set_text(formatDateWithCFormatString(date, '%A'));
 
-        /* Translators: This is the date format to use when the calendar popup is
-         * shown - it is shown just below the time in the top bar (e.g.,
-         * "Tue 9:29 AM").  The string itself should become a full date, e.g.,
-         * "February 17 2015".
-         */
         const dateFormat = Shell.util_translate_time_string(N_('%B %-d %Y'));
         this._dateLabel.set_text(formatDateWithCFormatString(date, dateFormat));
 
-        /* Translators: This is the accessible name of the date button shown
-         * below the time in the shell; it should combine the weekday and the
-         * date, e.g. "Tuesday February 17 2015".
-         */
         const dateAccessibleNameFormat = Shell.util_translate_time_string(N_('%A %B %e %Y'));
         this.accessible_name = formatDateWithCFormatString(date, dateAccessibleNameFormat);
     }
@@ -169,10 +143,8 @@ class EventsSection extends St.Button {
     }
 
     _updateTitle() {
-        /* Translators: Shown on calendar heading when selected day occurs on current year */
         const sameYearFormat = T_(NC_('calendar heading', '%B %-d'));
 
-        /* Translators: Shown on calendar heading when selected day occurs on different year */
         const otherYearFormat = T_(NC_('calendar heading', '%B %-d %Y'));
 
         const timeSpanDay = GLib.TIME_SPAN_DAY / 1000;
@@ -211,9 +183,6 @@ class EventsSection extends St.Button {
 
         let title;
         if (allDay) {
-            /* Translators: Shown in calendar event list for all day events
-             * Keep it short, best if you can use less then 10 characters
-             */
             title = C_('event list time', 'All Day');
         } else if (startsBeforeToday || endsAfterToday) {
             const now = new Date();
@@ -233,9 +202,6 @@ class EventsSection extends St.Button {
 
             let format;
             if (startYear === thisYear && thisYear === endYear)
-                /* Translators: Shown in calendar event list as the start/end of events
-                 * that only show day and month
-                 */
                 format = T_(N_('%m/%d'));
             else
                 format = '%x';
@@ -358,7 +324,7 @@ class WorldClocksSection extends St.Button {
             'org.gnome.clocks',
             '/org/gnome/clocks',
             this._onProxyReady.bind(this),
-            null /* cancellable */,
+            null ,
             Gio.DBusProxyFlags.DO_NOT_AUTO_START | Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES);
 
         this._settings = new Gio.Settings({
@@ -610,17 +576,17 @@ class WeatherSection extends St.Button {
         for (let i = 0; i < forecasts.length; i++) {
             const [valid, timestamp] = forecasts[i].get_value_update();
             if (!valid || timestamp === 0)
-                continue;  // 0 means 'never updated'
+                continue;
 
             const datetime = GLib.DateTime.new_from_unix_local(timestamp);
             if (now.difference(datetime) > 0)
-                continue; // Ignore earlier forecasts
+                continue;
 
             if (datetime.difference(current) < GLib.TIME_SPAN_HOUR)
-                continue; // Enforce a minimum interval of 1h
+                continue;
 
             if (infos.push(forecasts[i]) === MAX_FORECASTS)
-                break; // Use a maximum of five forecasts
+                break;
 
             current = datetime;
         }
@@ -888,11 +854,9 @@ class DateMenuButton extends PanelMenu.Button {
 
         const layout = new FreezableBinLayout();
         const bin = new St.Widget({layout_manager: layout});
-        // For some minimal compatibility with PopupMenuItem
         bin._delegate = this;
         this.menu.box.add_child(bin);
         this.menu.box.add_style_class_name('datemenu-popover');
-        // Default vertical wraparound keynav behavior is unwanted here
         this.menu.actor.set_keynav_flags(St.KeynavFlags.NONE);
 
         const hbox = new St.BoxLayout({name: 'calendarArea'});
@@ -907,7 +871,6 @@ class DateMenuButton extends PanelMenu.Button {
         this._date = new TodayButton(this._calendar);
 
         this.menu.connect('open-state-changed', (menu, isOpen) => {
-            // Whenever the menu is opened, select today
             if (isOpen) {
                 const now = new Date();
                 this._calendar.setDate(now);
@@ -916,12 +879,10 @@ class DateMenuButton extends PanelMenu.Button {
             }
         });
 
-        // Fill up the first column
         this._messageList = new Calendar.CalendarMessageList();
         this._messageList.setCaptureContainer(this.menu.actor);
         hbox.add_child(this._messageList);
 
-        // Fill up the second column
         const boxLayout = new CalendarColumnLayout([this._calendar, this._date]);
         const vbox = new St.Widget({
             style_class: 'datemenu-calendar-column',
@@ -957,7 +918,6 @@ class DateMenuButton extends PanelMenu.Button {
         this._weatherItem = new WeatherSection();
         displaysBox.add_child(this._weatherItem);
 
-        // Done with hbox for calendar and event list
 
         this._clock = new GnomeDesktop.WallClock();
         this._clock.bind_property('clock', this._clockDisplay, 'text', GObject.BindingFlags.SYNC_CREATE);
@@ -997,9 +957,6 @@ class DateMenuButton extends PanelMenu.Button {
 
         this._setEventSource(eventSource);
 
-        // Displays are not actually expected to launch Settings when activated
-        // but the corresponding app (clocks, weather); however we can consider
-        // that display-specific settings, so re-use "allowSettings" here ...
         this._displaysSection.visible = Main.sessionMode.allowSettings;
 
         this._messageList.visible = Main.sessionMode.hasNotifications && !Main.sessionMode.isGreeter;

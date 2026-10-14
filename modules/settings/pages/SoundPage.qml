@@ -5,7 +5,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Ton: Ausgabe-/Eingabelautstärke und Geräteauswahl (PipeWire über AudioService).
 SettingsPage {
     id: root
 

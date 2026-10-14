@@ -1,9 +1,7 @@
-/* App Grid */
 
 $app_icon_size: 96px;
 $app_folder_size: 720px;
 
-// app icons
 .icon-grid {
   row-spacing: $base_padding * 2;
   column-spacing: $base_padding * 2;
@@ -15,19 +13,14 @@ $app_folder_size: 720px;
   page-padding-right: $base_padding * 3;
 }
 
-/* App Icons */
 
-// items in the app grid and dash
 .overview-tile {
   @include tile_button($bg:$system_base_color);
 
-  // override the %tile style
   border-radius: $base_border_radius*3;
   padding: $base_padding * 2;
 
-  // the icon itself
   .overview-icon {
-    // item with a label
     &.overview-icon-with-label {
       > StBoxLayout {
         spacing: $base_padding;
@@ -36,12 +29,10 @@ $app_folder_size: 720px;
   }
 }
 
-// app folders
 .app-folder {
   @include tile_button($bg:$system_base_color, $raised: true);
 }
 
-// Running app indicator (also shown in dash)
 .app-grid-running-dot {
   height: 5px;
   width: 5px;
@@ -51,11 +42,9 @@ $app_folder_size: 720px;
 }
 
 .app-folder-dialog-container {
-  // pad the top with panel height so the folder doesn't overlap the panel on smaller resolutions
   padding-top: $panel_height;
 }
 
-// Expanded app folder dialog
 .app-folder-dialog {
   width: $app_folder_size;
   height: $app_folder_size;
@@ -108,7 +97,6 @@ $app_folder_size: 720px;
   }
 }
 
-// Rename popup for app folders
 .rename-folder-popup {
   .rename-folder-popup-item {
     spacing: $base_padding;
@@ -116,7 +104,6 @@ $app_folder_size: 720px;
   }
 }
 
-// App Grid pagination indicators
 $page_indicator_size: 10px;
 .page-indicator {
   padding: $base_padding $base_padding * 2 0;
@@ -135,7 +122,6 @@ $page_indicator_size: 10px;
   padding: 0;
 }
 
-// shutdown and other actions in the grid
 .system-action-icon {
   background-color: transparentize($system_fg_color,.9);
   color: $system_fg_color;
@@ -146,7 +132,6 @@ $page_indicator_size: 10px;
   }
 }
 
-// page navigation
 .page-navigation-hint {
   &.dnd {
     background: rgba(255, 255, 255, 0.1);

@@ -28,7 +28,6 @@ class DashIcon extends AppDisplay.AppIcon {
         });
     }
 
-    // Disable scale-n-fade methods used during DND by parent
     scaleAndFade() {
     }
 
@@ -44,8 +43,6 @@ class DashIcon extends AppDisplay.AppIcon {
     }
 });
 
-// A container like StBin, but taking the child's scale into account
-// when requesting a size
 export const DashItemContainer = GObject.registerClass(
 class DashItemContainer extends St.Widget {
     _init() {
@@ -305,9 +302,6 @@ const baseIconSizes = [16, 22, 24, 32, 48, 64];
 export const Dash = GObject.registerClass({
     Signals: {'icon-size-changed': {}},
 }, class Dash extends St.Widget {
-    /**
-     * @param {object} source
-     */
     static getAppFromSource(source) {
         if (source instanceof AppDisplay.AppIcon)
             return source.app;
@@ -396,8 +390,6 @@ export const Dash = GObject.registerClass({
             'window-drag-end', () => this._onWindowDragEnd(),
             this);
 
-        // Translators: this is the name of the dock/favorites area on
-        // the bottom of the overview
         Main.ctrlAltTabManager.addGroup(this, _('Dash'), 'shell-focus-dash-symbolic');
     }
 
@@ -512,8 +504,6 @@ export const Dash = GObject.registerClass({
 
         item.setChild(appIcon);
 
-        // Override default AppIcon label_actor, now the
-        // accessible_name is set at DashItemContainer.setLabelText
         appIcon.label_actor = null;
         item.setLabelText(app.get_name());
 
@@ -524,8 +514,6 @@ export const Dash = GObject.registerClass({
     }
 
     _itemMenuStateChanged(item, opened) {
-        // When the menu closes, it calls sync_hover, which means
-        // that the notify::hover handler does everything we need to.
         if (opened) {
             if (this._showLabelTimeoutId > 0) {
                 GLib.source_remove(this._showLabelTimeoutId);
@@ -571,10 +559,6 @@ export const Dash = GObject.registerClass({
     }
 
     _adjustIconSize() {
-        // For the icon size, we only consider children which are "proper"
-        // icons (i.e. ignoring drag placeholders) and which are not
-        // animating out (which means they will be destroyed at the end of
-        // the animation)
         const iconChildren = this._box.get_children().filter(actor => {
             return actor.child &&
                    actor.child._delegate &&
@@ -592,7 +576,7 @@ export const Dash = GObject.registerClass({
             x1: 0,
             y1: 0,
             x2: this._maxWidth,
-            y2: 42, /* whatever */
+            y2: 42,
         });
         const maxContent = themeNode.get_content_box(maxAllocation);
         let availWidth = maxContent.x2 - maxContent.x1;
@@ -601,12 +585,10 @@ export const Dash = GObject.registerClass({
         const firstButton = iconChildren[0].child;
         const firstIcon = firstButton._delegate.icon;
 
-        // Enforce valid spacings during the size request
         firstIcon.icon.ensure_style();
         const [, , iconWidth, iconHeight] = firstIcon.icon.get_preferred_size();
         const [, , buttonWidth, buttonHeight] = firstButton.get_preferred_size();
 
-        // Subtract icon padding and box spacing from the available width
         availWidth -= iconChildren.length * (buttonWidth - iconWidth) +
                        (iconChildren.length - 1) * spacing;
 
@@ -638,21 +620,14 @@ export const Dash = GObject.registerClass({
         for (let i = 0; i < iconChildren.length; i++) {
             const icon = iconChildren[i].child._delegate.icon;
 
-            // Set the new size immediately, to keep the icons' sizes
-            // in sync with this.iconSize
             icon.setIconSize(this.iconSize);
 
-            // Don't animate the icon size change when the overview
-            // is transitioning, not visible or when initially filling
-            // the dash
             if (!Main.overview.visible || Main.overview.animationInProgress ||
                 !this._shownInitially)
                 continue;
 
             const [targetWidth, targetHeight] = icon.icon.get_size();
 
-            // Scale the icon's texture to the previous size and
-            // tween to the new size
             icon.icon.set_size(
                 icon.icon.width * scale,
                 icon.icon.height * scale);
@@ -684,9 +659,7 @@ export const Dash = GObject.registerClass({
                    actor.child._delegate &&
                    actor.child._delegate.app;
         });
-        // Apps currently in the dash
         const oldApps = children.map(actor => actor.child._delegate.app);
-        // Apps supposed to be in the dash
         const newApps = [];
 
         for (const id in favorites)
@@ -699,22 +672,6 @@ export const Dash = GObject.registerClass({
             newApps.push(app);
         }
 
-        // Figure out the actual changes to the list of items; we iterate
-        // over both the list of items currently in the dash and the list
-        // of items expected there, and collect additions and removals.
-        // Moves are both an addition and a removal, where the order of
-        // the operations depends on whether we encounter the position
-        // where the item has been added first or the one from where it
-        // was removed.
-        // There is an assumption that only one item is moved at a given
-        // time; when moving several items at once, everything will still
-        // end up at the right position, but there might be additional
-        // additions/removals (e.g. it might remove all the launchers
-        // and add them back in the new order even if a smaller set of
-        // additions and removals is possible).
-        // If above assumptions turns out to be a problem, we might need
-        // to use a more sophisticated algorithm, e.g. Longest Common
-        // Subsequence as used by diff.
         const addedItems = [];
         const removedActors = [];
 
@@ -724,21 +681,18 @@ export const Dash = GObject.registerClass({
             const oldApp = oldApps.length > oldIndex ? oldApps[oldIndex] : null;
             const newApp = newApps.length > newIndex ? newApps[newIndex] : null;
 
-            // No change at oldIndex/newIndex
             if (oldApp === newApp) {
                 oldIndex++;
                 newIndex++;
                 continue;
             }
 
-            // App removed at oldIndex
             if (oldApp && !newApps.includes(oldApp)) {
                 removedActors.push(children[oldIndex]);
                 oldIndex++;
                 continue;
             }
 
-            // App added at newIndex
             if (newApp && !oldApps.includes(newApp)) {
                 addedItems.push({
                     app: newApp,
@@ -749,7 +703,6 @@ export const Dash = GObject.registerClass({
                 continue;
             }
 
-            // App moved
             const nextApp = newApps.length > newIndex + 1
                 ? newApps[newIndex + 1] : null;
             const insertHere = nextApp && nextApp === oldApp;
@@ -781,8 +734,6 @@ export const Dash = GObject.registerClass({
         for (let i = 0; i < removedActors.length; i++) {
             const item = removedActors[i];
 
-            // Don't animate item removal when the overview is transitioning
-            // or hidden
             if (Main.overview.visible && !Main.overview.animationInProgress)
                 item.animateOutAndDestroy();
             else
@@ -791,8 +742,6 @@ export const Dash = GObject.registerClass({
 
         this._adjustIconSize();
 
-        // Skip animations on first run when adding the initial set
-        // of items, to avoid all items zooming in at once
 
         const animate = this._shownInitially && Main.overview.visible &&
             !Main.overview.animationInProgress;
@@ -803,7 +752,6 @@ export const Dash = GObject.registerClass({
         for (let i = 0; i < addedItems.length; i++)
             addedItems[i].item.show(animate);
 
-        // Update separator
         const nFavorites = Object.keys(favorites).length;
         const nIcons = children.length + addedItems.length - removedActors.length;
         if (nFavorites > 0 && nFavorites < nIcons) {
@@ -821,8 +769,6 @@ export const Dash = GObject.registerClass({
                 if (item.animatingOut)
                     pos++;
                 itemsBeforeSeparator++;
-                // Assuming only one icon is moved at a time
-                // Or else we need to track removed favorite items
                 if (itemsBeforeSeparator > nFavorites)
                     break;
             }
@@ -834,8 +780,6 @@ export const Dash = GObject.registerClass({
             this._separator = null;
         }
 
-        // Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=692744
-        // Without it, StBoxLayout may use a stale size cache
         this._box.queue_relayout();
     }
 
@@ -861,7 +805,6 @@ export const Dash = GObject.registerClass({
     handleDragOver(source, actor, x, _y, _time) {
         const app = Dash.getAppFromSource(source);
 
-        // Don't allow favoriting of transient apps
         if (app == null || app.is_window_backed())
             return DND.DragMotionResult.NO_DROP;
 
@@ -877,15 +820,11 @@ export const Dash = GObject.registerClass({
         let numChildren = children.length;
         let boxWidth = this._box.width;
 
-        // Keep the placeholder out of the index calculation; assuming that
-        // the remove target has the same size as "normal" items, we don't
-        // need to do the same adjustment there.
         if (this._dragPlaceholder) {
             boxWidth -= this._dragPlaceholder.width;
             numChildren--;
         }
 
-        // Same with the separator
         if (this._separator) {
             boxWidth -= this._separator.width;
             numChildren--;
@@ -893,29 +832,23 @@ export const Dash = GObject.registerClass({
 
         let pos;
         if (this._emptyDropTarget)
-            pos = 0; // always insert at the start when dash is empty
+            pos = 0;
         else if (this.text_direction === Clutter.TextDirection.RTL)
             pos = numChildren - Math.floor(x * numChildren / boxWidth);
         else
             pos = Math.floor(x * numChildren / boxWidth);
 
-        // Put the placeholder after the last favorite if we are not
-        // in the favorites zone
         if (pos > numFavorites)
             pos = numFavorites;
 
         if (pos !== this._dragPlaceholderPos && this._animatingPlaceholdersCount === 0) {
             this._dragPlaceholderPos = pos;
 
-            // Don't allow positioning before or after self
             if (favPos !== -1 && (pos === favPos || pos === favPos + 1)) {
                 this._clearDragPlaceholder();
                 return DND.DragMotionResult.CONTINUE;
             }
 
-            // If the placeholder already exists, we just move
-            // it, but if we are adding it, expand its size in
-            // an animation
             let fadeIn;
             if (this._dragPlaceholder) {
                 this._dragPlaceholder.destroy();
@@ -939,11 +872,9 @@ export const Dash = GObject.registerClass({
         return DND.DragMotionResult.MOVE_DROP;
     }
 
-    // Draggable target interface
     acceptDrop(source, _actor, _x, _y, _time) {
         const app = Dash.getAppFromSource(source);
 
-        // Don't allow favoriting of transient apps
         if (app == null || app.is_window_backed())
             return false;
 
@@ -970,8 +901,6 @@ export const Dash = GObject.registerClass({
                 favPos++;
         }
 
-        // No drag placeholder means we don't want to favorite the app
-        // and we are dragging it to its original position
         if (!this._dragPlaceholder)
             return true;
 

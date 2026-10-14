@@ -5,8 +5,6 @@ import qs
 import qs.services
 import qs.components
 
-// Fokussierte App mit Icon und Name (wie der frühere App-Menü-Button, ohne Menü).
-// Ohne fokussiertes Fenster bleibt die Anzeige leer.
 Pill {
     id: root
 
@@ -21,8 +19,6 @@ Pill {
     readonly property string liveName: entry ? entry.name : appClass
     readonly property string liveIcon: entry && Quickshell.iconPath(entry.icon, true) !== "" ? entry.icon : "application-x-executable"
 
-    // Beim Öffnen/Schließen der Übersicht verliert und bekommt das Fenster kurz den Fokus (Hyprland meldet ein leeres
-    // aktives Fenster). Die Anzeige hält den letzten Wert, bis die Leere länger dauert: kein Flackern.
     property string appName: ""
     property string iconName: "application-x-executable"
     onLiveNameChanged: {

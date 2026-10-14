@@ -6,20 +6,13 @@ import qs
 import qs.components
 import qs.services
 
-// Benachrichtigungsgruppe einer App [messageList.js NotificationMessageGroup, MessageGroupExpanderLayout].
-// Eingeklappt liegen bis zu drei Karten gestapelt (neueste oben, die anderen mit 6px schmaler und 10px, dann 10/1,4 px
-// Höhe sichtbar); aufgeklappt (200 ms EASE_OUT_QUAD) stehen alle untereinander unter einem Kopf mit Titel und
-// Zuklappen-Knopf. Eine Gruppe mit nur einer Nachricht gilt als aufgeklappt. Neue Karten wachsen in 100 ms ein,
-// geschlossene schrumpfen in 100 ms.
 Item {
     id: root
 
     required property string groupKey
-    // Von der Liste gesteuert (aufgeklappte Gruppe)
     property bool expanded: false
     property var now: new Date()
 
-    // Aktuelle Gruppendaten ({ appName, appIcon, desktopEntry, notifications }); danach die letzten bekannten
     readonly property var current: NotificationService.groups.find(g => g.key === groupKey) ?? null
     property var _last: null
     readonly property var groupData: current ?? _last
@@ -39,13 +32,11 @@ Item {
     property bool _initialized: false
 
     signal expandToggleRequested
-    // Eine Benachrichtigung wurde ausgelöst (Standardaktion): das Menü schließt
     signal activated
 
     implicitHeight: contentHeight
     height: contentHeight
     property real contentHeight: 0
-    // Höhe voll aufgeklappt (zum Zentrieren in der Liste)
     property real expandedHeight: 0
 
     Behavior on expansion {
@@ -76,7 +67,6 @@ Item {
         relayout();
     }
 
-    // Anzahl gemerkter Zeilen mit passendem Index ohne die schrumpfenden zählen
     function rowIndexForPos(pos) {
         let count = 0;
         for (let i = 0; i < rows.count; i++) {
@@ -96,9 +86,7 @@ Item {
         return -1;
     }
 
-    // Modell mit den Benachrichtigungen abgleichen; kritische zuerst [messageList.js:1093-1107]
     function sync() {
-        // Kritische zuerst, sonst Reihenfolge der Quelle (neueste zuerst); bewusst ohne sort(), das nicht stabil ist
         const all = current ? current.notifications : [];
         const isCritical = n => n.urgency === NotificationUrgency.Critical;
         const list = all.filter(isCritical).concat(all.filter(n => !isCritical(n)));
@@ -136,7 +124,6 @@ Item {
         NotificationService.dismissGroup(root.groupKey);
     }
 
-    // Eigene Anordnung [MessageGroupExpanderLayout.vfunc_allocate / get_preferred_height]
     function relayout() {
         const items = [];
         for (let i = 0; i < repeater.count; i++) {
@@ -200,14 +187,12 @@ Item {
         cover.z = items.length > 0 ? items.length - 0.5 : 0;
     }
 
-    // Klick auf Kopf, Abdeckung oder freie Fläche klappt um [ClickGesture der Gruppe]
     MouseArea {
         anchors.fill: parent
         z: -1
         onClicked: root.expandToggleRequested()
     }
 
-    // Kopf: Titel und Zuklappen-Knopf (hinter den Karten)
     RowLayout {
         id: header
 
@@ -263,7 +248,6 @@ Item {
         }
     }
 
-    // Abdeckung: sperrt die gestapelten Karten, solange eingeklappt
     MouseArea {
         id: cover
         anchors.fill: parent

@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
-#
-# niselle-update-shell — pull the latest commit from the git remote and restart
-# the shell. Terminal-only: reachable via `niselle shell update`.
-#
-# The restart is detached with setsid so it survives this shell process being
-# killed by the very restart it triggers.
 
 set -uo pipefail
 
-# The config directory is the parent of this script's bin/.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="$(dirname "$SCRIPT_DIR")"
 
@@ -39,7 +32,6 @@ esac
 
 printf 'niselle: restarting the shell …\n'
 
-# Restart detached so it survives this process being killed by the restart.
 if command -v setsid >/dev/null 2>&1; then
     setsid -f "$CONFIG/bin/niselle" restart >/dev/null 2>&1
 else

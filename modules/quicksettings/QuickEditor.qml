@@ -4,17 +4,11 @@ import qs
 import qs.components
 import qs.services
 
-// Bearbeitungsansicht der Quick-Settings: oben die aktuellen Kacheln (Minus entfernt, Ziehen ordnet um),
-// darunter nach Kategorien alle verfügbaren Kacheln (Plus fügt hinzu, bereits eingebaute sind blass).
-// Läuft unten in einen Verlauf zum Kartenhintergrund aus.
 Item {
     id: root
 
-    // [{ id, title, icon, category }]
     required property var catalog
-    // id → Kachel auf diesem System nutzbar
     required property var available
-    // Beschriftung je Kategorie-ID, in Anzeigereihenfolge
     readonly property var categories: [
         {
             "id": "connectivity",
@@ -43,14 +37,11 @@ Item {
     function usable(id) {
         return !!available[id];
     }
-    // Liste der tatsächlich angezeigten Kachel-IDs (verfügbar und eingestellt)
     readonly property var activeIds: order.filter(id => usable(id) && entry(id))
-    // Position in der Anzeige (Gitter) für eine Kachel-ID, -1 = nicht gezeigt
     function slotOf(id) {
         return activeIds.indexOf(id);
     }
 
-    // ───────── Kopf ─────────
 
     Item {
         id: header
@@ -78,7 +69,6 @@ Item {
         }
     }
 
-    // ───────── Inhalt ─────────
 
     Flickable {
         id: flick
@@ -92,7 +82,6 @@ Item {
         contentHeight: content.height + root.fadeHeight
         boundsBehavior: Flickable.StopAtBounds
         clip: true
-        // Abzeichen ragen 4px über die Kachel: oberer Rand nicht abschneiden
         topMargin: 6
 
         ColumnLayout {
@@ -101,7 +90,6 @@ Item {
             width: flick.width
             spacing: root.gap
 
-            // Aktuelle Kacheln: Position per Reihenfolge, Ziehen sortiert um
             Item {
                 id: current
 
@@ -146,7 +134,6 @@ Item {
 
                         onBadgeClicked: SettingsService.removeQuickToggle(modelData.id)
 
-                        // Ziehen: ab 6px Bewegung; Zielposition aus dem Mittelpunkt der Kachel
                         property point pressPoint
                         property bool moved: false
 
@@ -189,7 +176,6 @@ Item {
                 }
             }
 
-            // Kategorien mit allen verfügbaren Kacheln
             Repeater {
                 model: root.categories
 
@@ -244,7 +230,6 @@ Item {
         }
     }
 
-    // Verlauf zum Kartenhintergrund; fängt keine Klicks ab
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -263,7 +248,6 @@ Item {
         }
     }
 
-    // Index in der vollständigen Liste (inkl. nicht verfügbarer Kacheln) für eine Zielposition der sichtbaren
     function moveIndex(id, visibleTarget) {
         const others = order.filter(t => t !== id);
         const shown = others.filter(t => usable(t) && entry(t));

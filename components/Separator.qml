@@ -1,7 +1,6 @@
 import QtQuick
 import qs
 
-// 1px-Trennlinie [_popovers.scss:114-120]: background-color borders_color, height 1px
 Rectangle {
     id: root
 

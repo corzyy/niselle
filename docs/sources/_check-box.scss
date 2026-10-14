@@ -1,4 +1,3 @@
-/* Check Boxes */
 
 .check-box {
   StBoxLayout { spacing: .8em; }
@@ -9,7 +8,6 @@
   }
 
   &:focus StBin {
-    // Trick due to St limitations. It needs a background to draw a box-shadow
     background-color: rgba(0, 0, 0, 0.01);
     box-shadow: inset 0 0 0 2px st-transparentize(-st-accent-color, .65);
   }

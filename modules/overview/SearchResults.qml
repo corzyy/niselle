@@ -5,20 +5,9 @@ import qs
 import qs.services
 import qs.components
 
-// Suchergebnisse der Übersicht (#searchResults / .search-section) [search.js: SearchResultsView, _search-results.scss].
-// Pro Anbieter ein Abschnitt (search-section, Column mit Abstand 18, danach ein leerer Trenner der Höhe 8):
-//   Apps als Raster (eine Reihe, [search.js: GridSearchResults])
-//   Übrige Anbieter als Karte (search-section-content): links die Anbieter-Kachel (search-provider-icon, Icon 32,
-//   Name und „N weitere“), rechts die Ergebniszeilen (list-search-result, Icon 24, Titel + Beschreibung)
-//   [search.js: ListSearchResults, ProviderInfo, ListSearchResult]
-// Ohne Treffer mittig „Keine Ergebnisse“ samt Ladekreis.
-//
-// Auswahl: der erste Treffer des ersten Anbieters ist vorausgewählt [search.js: _maybeSetInitialSelection]; Pfeile
-// bewegen die Auswahl (im Raster auch waagerecht), Enter aktiviert. `opacity`/Sichtbarkeit setzt die Übersicht.
 Item {
     id: root
 
-    // Abschnitte in Reihenfolge mit Startindex (für die Auswahl)
     readonly property var sections: {
         const list = [];
         let start = 0;
@@ -91,7 +80,6 @@ Item {
             OverviewService.hide();
     }
 
-    // Höhe, die der Inhalt im Panel braucht (das Overlay begrenzt sie auf den Platz unter dem Suchfeld)
     readonly property real wantedHeight: (root.total > 0 ? content.height : 0) + 2 * Theme.searchOverlayPadding
 
     function _providerAction(providerId) {
@@ -107,7 +95,6 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
-        // Ausgewähltes Ergebnis per Pfeiltasten in den sichtbaren Bereich holen
         function ensureVisible(item) {
             const top = item.mapToItem(content, 0, 0).y;
             const bottom = top + item.height;
@@ -137,7 +124,6 @@ Item {
                     width: content.width
                     spacing: Theme.basePadding
 
-                    // Kopfzeile: Anbietername, rechts optional ein Knopf („In Dateien suchen“)
                     Item {
                         visible: !sectionDelegate.provider.grid && sectionDelegate.provider.id !== "calculator"
                         width: parent.width
@@ -168,7 +154,6 @@ Item {
                         }
                     }
 
-                    // Apps: Raster ohne Karte [search.js: GridSearchResults]
                     Row {
                         visible: sectionDelegate.provider.grid
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -214,7 +199,6 @@ Item {
                         }
                     }
 
-                    // Rechner: große Ergebniskarte mit Rechnung darüber, Klick kopiert das Ergebnis
                     Repeater {
                         model: sectionDelegate.provider.id === "calculator" ? sectionDelegate.modelData.results : []
 
@@ -277,7 +261,6 @@ Item {
                         }
                     }
 
-                    // Liste: eine Karte, die Ergebniszeilen mit Trennlinien enthält
                     Rectangle {
                         visible: !sectionDelegate.provider.grid && sectionDelegate.provider.id !== "calculator"
                         width: parent.width
@@ -325,9 +308,6 @@ Item {
                                         Layout.fillWidth: true
                                         spacing: Theme.searchListContentSpacing
 
-                                        // Titel mit führendem Symbol (list-search-result-title, Abstand 12). Ohne Beschreibung füllt er
-                                        // die Zeile, mit Beschreibung bekommt er höchstens 60 % – lange Texte (Zwischenablage) werden gekürzt
-                                        // statt am Rand des Panels abgeschnitten.
                                         RowLayout {
                                             Layout.alignment: Qt.AlignVCenter
                                             Layout.fillWidth: !rowContent.hasDescription
@@ -355,7 +335,6 @@ Item {
                                             }
                                         }
 
-                                        // Beschreibung (list-search-result-description)
                                         Text {
                                             Layout.fillWidth: true
                                             Layout.alignment: Qt.AlignVCenter
@@ -379,7 +358,6 @@ Item {
         }
     }
 
-    // Kein Treffer / läuft noch [search.js: _updateSearchProgress]
     Column {
         anchors.centerIn: parent
         visible: root.searching && root.total === 0

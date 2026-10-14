@@ -19,7 +19,6 @@ const WEATHER_INTEGRATION_IFACE = 'org.gnome.Shell.WeatherIntegration';
 
 const WEATHER_APP_ID = 'org.gnome.Weather.desktop';
 
-// Minimum time between updates to show loading indication
 const UPDATE_THRESHOLD = 10 * GLib.TIME_SPAN_MINUTE;
 
 export class WeatherClient extends Signals.EventEmitter {
@@ -47,8 +46,6 @@ export class WeatherClient extends Signals.EventEmitter {
             }
 
             if (this._permStore.g_name_owner == null) {
-                // Failed to auto-start, likely because xdg-desktop-portal
-                // isn't installed; don't restrict access to location service
                 this._weatherAuthorized = true;
                 this._updateAutoLocation();
                 return;
@@ -134,7 +131,6 @@ export class WeatherClient extends Signals.EventEmitter {
             return;
 
         const now = GLib.DateTime.new_now_local();
-        // Update without loading indication if the current info is recent enough
         if (this._weatherInfo.is_valid() &&
             now.difference(this._lastUpdate) < UPDATE_THRESHOLD)
             this._weatherInfo.update();
@@ -268,7 +264,6 @@ export class WeatherClient extends Signals.EventEmitter {
 
     _onGClueLocationChanged() {
         const geoLocation = this._gclueService.location;
-        // Provide empty name so GWeather sets location name
         const location = GWeather.Location.new_detached('',
             null,
             geoLocation.latitude,

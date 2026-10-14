@@ -6,9 +6,6 @@ import qs
 import qs.components
 import qs.services
 
-// Zwischenablage-Verlauf als eigenes Fenster am Mauszeiger (`niselle clipboard`, Super+V). Ein durchsichtiges Vollbild-
-// Fenster fängt Klicks daneben (schließen) und den Tastaturfokus ab; die Karte sitzt am Zeiger und weicht an den
-// Rand aus. Tippen filtert, Pfeile wählen, Enter legt den Eintrag in die Zwischenablage, Entf löscht ihn, Esc schließt.
 PanelWindow {
     id: root
 
@@ -31,7 +28,6 @@ PanelWindow {
         return e.meta !== "" ? metaRowHeight : textRowHeight;
     }
     readonly property real rowsHeight: {
-        // ClipboardService.thumbs: Höhe ändert sich, sobald Vorschauen fertig sind
         const t = ClipboardService.thumbs;
         let h = 0;
         for (const e of filtered)
@@ -40,7 +36,6 @@ PanelWindow {
     }
     readonly property real cardHeight: Math.min(440, headerHeight + rowsHeight + 2 * 8 + 8)
 
-    // Unter dem Zeiger, bei Platzmangel darüber bzw. links davon; immer im Bildschirm
     readonly property real cardX: {
         const p = ClipboardService.popupPoint.x;
         const x = p + cardWidth + margin > width ? p - cardWidth : p;
@@ -118,12 +113,10 @@ PanelWindow {
             }
         }
 
-        // Klicks auf die Karte nicht an den Hintergrund weitergeben
         MouseArea {
             anchors.fill: parent
         }
 
-        // Suchfeld
         Rectangle {
             id: field
 
@@ -230,7 +223,6 @@ PanelWindow {
                 radius: Theme.radiusMenuItem
                 color: current || rowMouse.containsMouse ? Theme.alpha(Theme.popoverFg, 0.1) : "transparent"
 
-                // Vorschau (Bild, Videostandbild) oder Symbol
                 Item {
                     id: lead
                     anchors.left: parent.left
@@ -255,7 +247,6 @@ PanelWindow {
                         asynchronous: true
                         cache: false
                     }
-                    // Abspielsymbol auf Videovorschauen
                     Icon {
                         anchors.centerIn: parent
                         visible: row.hasThumb && row.modelData.preview === "video" && thumbImage.status === Image.Ready
@@ -307,7 +298,6 @@ PanelWindow {
                     onClicked: root.activate(row.modelData)
                 }
 
-                // Eintrag löschen
                 Rectangle {
                     id: removeButton
                     anchors.right: parent.right

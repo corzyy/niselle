@@ -4,8 +4,6 @@ import Quickshell.Wayland
 import qs
 import qs.services
 
-// Sperrbildschirm: ext-session-lock-v1 (der Compositor zeigt nur noch unsere Flächen und gibt die Tastatur nur uns).
-// Im Debug-Modus (NISELLE_LOCK_DEBUG=1) ein gewöhnliches Overlay-Fenster pro Monitor, das sich notfalls per IPC schließen lässt.
 Scope {
     WlSessionLock {
         locked: LockService.locked && !LockService.debug

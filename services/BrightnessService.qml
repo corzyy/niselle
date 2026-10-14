@@ -4,23 +4,15 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Bildschirmhelligkeit über brightnessctl (nutzt logind SetBrightness, wenn kein Schreibzugriff auf sysfs besteht).
-// `brightness` ist 0..1. Änderungen von außen (Tasten, andere Programme) kommen über inotify auf
-// /sys/class/backlight/<gerät>/actual_brightness, es gibt kein Polling.
-// Ohne Backlight-Gerät (Desktop) werden externe Monitore per DDC/CI über ddcutil gesteuert (DdcDisplay.qml, alle gemeinsam);
-// ddcutil braucht Schreibzugriff auf /dev/i2c-*.
-// Dazu die Tastatur-Hintergrundbeleuchtung (LED-Klasse, Gerät *kbd_backlight) nach demselben Muster.
 Singleton {
     id: root
 
-    // Ein Backlight-Gerät wurde gefunden und brightnessctl lieferte Werte
     readonly property bool available: device !== "" || ddcAvailable
 
     property string device: ""
     property int current: 0
     property int max: 0
 
-    // DDC/CI-Monitore (nur wenn es kein Backlight gibt)
     property var ddcDisplays: []
     readonly property bool ddcAvailable: device === "" && ddcDisplays.length > 0
     readonly property real ddcValue: {
@@ -38,7 +30,6 @@ Singleton {
     readonly property int percent: Math.round(brightness * 100)
     readonly property string iconName: "display-brightness-symbolic"
 
-    // Neuer Wert 0..1; mehrere schnelle Aufrufe (Slider) werden zusammengefasst
     function setBrightness(value) {
         if (!available)
             return;
@@ -48,7 +39,6 @@ Singleton {
                 d.setValue(v);
             return;
         }
-        // Optimistisch anzeigen, damit der Slider nicht zurückspringt
         root.current = Math.round(v * root.max);
         setter.pending = Math.round(v * 100);
     }
@@ -70,7 +60,6 @@ Singleton {
         }
     }
 
-    // Jeder "Display N"-Block nennt seinen I2C-Bus; "Invalid display" hat keinen solchen Kopf und wird übersprungen
     function _ddcDetected(text) {
         const found = [];
         let cur = null;
@@ -104,7 +93,6 @@ Singleton {
             d.refresh();
     }
 
-    // Kein Backlight: stattdessen DDC/CI-Monitore suchen (einmalig, ddcutil ist langsam)
     function _noBacklight() {
         root.device = "";
         if (!ddcDetect.running && root.ddcDisplays.length === 0)
@@ -116,7 +104,6 @@ Singleton {
         command: ["brightnessctl", "--machine-readable", "--class=backlight", "info"]
         stdout: StdioCollector {
             onStreamFinished: {
-                // Gerät,Klasse,Aktuell,Prozent,Max
                 const f = text.trim().split(",");
                 if (f.length < 5) {
                     root._noBacklight();
@@ -127,7 +114,6 @@ Singleton {
                 root.max = parseInt(f[4]);
             }
         }
-        // Kein Backlight / brightnessctl fehlt
         onExited: (code, status) => {
             if (code !== 0)
                 root._noBacklight();
@@ -137,7 +123,6 @@ Singleton {
     Process {
         id: setter
         property int pending: -1
-        // Prozentwert setzen; läuft schon ein Aufruf, wird danach nur der letzte Wert angewandt
         onPendingChanged: root._applyPending()
         onExited: (code, status) => root._applyPending()
     }
@@ -156,7 +141,6 @@ Singleton {
         onFileChanged: root.refresh()
     }
 
-    // Tastatur-Hintergrundbeleuchtung: ein LED-Gerät mit "kbd_backlight" im Namen
     readonly property bool kbdAvailable: kbdDevice !== ""
     property string kbdDevice: ""
     property int kbdCurrent: 0
@@ -173,7 +157,6 @@ Singleton {
         command: ["brightnessctl", "--machine-readable", "--list", "--class=leds"]
         stdout: StdioCollector {
             onStreamFinished: {
-                // Gerät,Klasse,Aktuell,Prozent,Max
                 const f = text.split("\n").map(l => l.split(",")).find(c => c.length >= 5 && c[0].includes("kbd_backlight"));
                 if (!f) {
                     root.kbdDevice = "";
@@ -184,14 +167,12 @@ Singleton {
                 root.kbdMax = parseInt(f[4]);
             }
         }
-        // brightnessctl fehlt: kein Gerät
         onExited: (code, status) => {
             if (code !== 0)
                 root.kbdDevice = "";
         }
     }
 
-    // Änderungen durch Tasten (Firmware: brightness_hw_changed) oder Programme (brightness)
     FileView {
         path: root.kbdDevice !== "" ? "/sys/class/leds/" + root.kbdDevice + "/brightness" : ""
         watchChanges: true

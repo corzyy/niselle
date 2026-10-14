@@ -2,29 +2,22 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// Icon-Kachel (Dash-, App-Grid-, Workspace-Elemente) [_drawing.scss:347-383, tile_button(); _common.scss:84-90, %tile]:
-// radius 16, padding 6, spacing 6, Übergang 100 ms. Standard: System-Farben (immer dunkel), flach.
 Item {
     id: root
 
     property color fg: Theme.systemFg
     property color bg: Theme.systemBg
     property bool system: true
-    // raised: dauerhaft gefüllter Hintergrund statt flach
     property bool raised: false
-    // checked/selected/highlighted
     property bool checked: false
     property real padding: Theme.tilePadding
     property real spacing: Theme.tileSpacing
     property real radius: Theme.radiusTile
     property bool interactive: true
-    // Ziel eines Ablegens (:drop)
     property bool dropTarget: false
 
-    // Zustände kommen standardmäßig aus der eigenen Maus; Kacheln mit eigener Mausfläche überschreiben sie
     property bool hovered: mouse.containsMouse
     property bool pressed: mouse.pressed
-    // Tastaturfokus (Fokusring)
     property bool focused: activeFocus
     readonly property string buttonState: Theme.buttonState(hovered, pressed, checked, enabled, focused)
 

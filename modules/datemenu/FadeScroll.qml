@@ -2,10 +2,6 @@ import QtQuick
 import QtQuick.Effects
 import qs
 
-// Scrollbereich mit senkrechtem Ausblenden und Überlagerungs-Scrollleiste [st-scroll-view.c, _scrollbars.scss:1-27]:
-// Oben und unten blendet der Inhalt auf bis zu `fadeOffset` Pixel aus, abhängig vom Abstand zum Rand des Inhalts.
-// Die Leiste ist 8px breit (Griff mit 3px transparentem Rand), erscheint beim Scrollen/Überfahren und blendet in 500 ms aus.
-// Mausradschritt: ein Sechstel der Seitenhöhe.
 Item {
     id: root
 
@@ -18,7 +14,6 @@ Item {
     readonly property real fadeTop: flick.contentY > 0 ? Math.min(flick.contentY, fadeOffset) : 0
     readonly property real fadeBottom: flick.contentY < flick.contentHeight - flick.height ? Math.min(flick.contentHeight - flick.height - flick.contentY, fadeOffset) : 0
 
-    // Der Benutzer scrollt selbst (Mausrad): laufende automatische Bewegungen enden
     signal userScrolled
 
     function scrollTo(value) {
@@ -35,7 +30,6 @@ Item {
         clip: true
         interactive: contentHeight > height
         flickableDirection: Flickable.VerticalFlick
-        // Maske nur, wenn wirklich gescrollt werden kann: sonst entfällt die Offscreen-Textur samt Shader-Pass
         layer.enabled: (root.fadeTop > 0 || root.fadeBottom > 0) && contentHeight > height
         layer.effect: MultiEffect {
             maskEnabled: true

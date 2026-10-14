@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// Scrollbare Seite wie AdwPreferencesPage: AdwClamp (max. 600px, 12px Rand), 24px Abstand zwischen Gruppen.
 Flickable {
     id: root
 
@@ -25,7 +24,6 @@ Flickable {
         spacing: 32
     }
 
-    // Mausrad: 3 Zeilen pro Raste
     WheelHandler {
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         onWheel: event => {
@@ -42,7 +40,6 @@ Flickable {
         }
     }
 
-    // Weiches Nachlaufen des Mausrads
     NumberAnimation {
         id: scrollAnim
         target: root

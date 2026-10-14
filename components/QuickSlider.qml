@@ -2,10 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// Slider-Zeile der Quick-Settings: Pillen-Slider ohne Griff, das Icon sitzt links in der Akzentfüllung,
-// optional ein abgesetzter Pfeil-Button rechts für das Geräte-Untermenü.
-// Die Füllung ist mindestens so breit wie hoch (Kreis um das Icon). Bedienung: Ziehen, Mausrad (0.02/Raste),
-// Pfeiltasten (0.1), Einrasten an `marks` (4 %). Ist `iconReactive` an, löst ein Klick auf das Icon `iconClicked` aus.
 Item {
     id: root
 
@@ -59,7 +55,6 @@ Item {
         _set(_unsnapped);
     }
 
-    // Wert von außen nachführen, nicht während des Ziehens
     onValueChanged: {
         if (!pressed) {
             _shown = value;
@@ -94,7 +89,6 @@ Item {
                 height: parent.height
                 radius: Theme.radiusPill
                 color: Theme.accentColor
-                // Externe Änderungen (Tasten, Mausrad, Dienst) gleiten; beim Ziehen folgt die Füllung sofort
                 Behavior on width {
                     enabled: !Theme.gameMode && !root.pressed
                     NumberAnimation {
@@ -123,7 +117,6 @@ Item {
                 }
             }
 
-            // Icon links in der Füllung; bei iconReactive eigene Klickfläche über dem Ziehbereich
             Item {
                 width: root.barHeight
                 height: root.barHeight
@@ -154,7 +147,6 @@ Item {
             Keys.onRightPressed: root._applyDelta(0.1)
         }
 
-        // Pfeil-Button: Hover-/Druck-/Fokuszustände wie andere Buttons, Pfeil dreht sich bei offenem Untermenü
         IconButton {
             visible: root.menuEnabled
             Layout.alignment: Qt.AlignVCenter

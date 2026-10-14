@@ -5,8 +5,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Standardanwendungen je Kategorie. Klick auf eine Kategorie klappt die passenden Anwendungen auf;
-// die Auswahl wird mit xdg-mime gesetzt (DefaultAppsService).
 SettingsPage {
     id: root
 

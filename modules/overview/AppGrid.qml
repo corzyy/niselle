@@ -4,29 +4,15 @@ import qs
 import qs.services
 import qs.components
 
-// App-Grid [appDisplay.js: AppDisplay/BaseAppView, iconGrid.js: IconGrid/IconGridLayout, pageIndicators.js].
-// Seiten mit Apps und Ordnern in einem Raster; die Rasterform (Zeilen × Spalten) wählt der Modus mit dem
-// Seitenverhältnis am nächsten an der Fläche, die Icongröße ist die größte, die mit Titel noch passt
-// [iconGrid.js: _findBestModeForSize, _findBestIconSize]. Favoriten liegen im Dash und fehlen hier, Apps in
-// Ordnern werden durch den Ordner dargestellt [appDisplay.js: _loadApps].
-//
-// Blättern: Mausrad (höchstens alle `appGridScrollTimeout` ms), Seitenpunkte, Pfeile am Rand; Wechsel 300 ms
-// EASE_OUT_CUBIC. Ziehen: Kacheln lassen sich umsortieren und aufeinander zu Ordnern legen; das Layout wird in
-// appgrid.json gespeichert (AppGridService). Rechtsklick öffnet das App-Menü (Pfeil links, AppMenu sideway).
-//
-// Koordinaten: das Raster füllt den Slot der Übersicht; Seiten liegen nebeneinander in `strip`, `position`
-// (als Kommazahl) verschiebt sie und blendet zwischen zwei Seiten über.
 Item {
     id: root
 
     required property var screen
 
-    // ───────── Aufbau aus dem Dienst ─────────
 
     readonly property var layout: AppGridService.layout
     readonly property var byId: AppGridService.model.byId
 
-    // Rasterform nach Seitenverhältnis [iconGrid.js: _findBestModeForSize]
     property var mode: Theme.appGridModes[0]
     function updateMode() {
         const W = Math.max(1, width);
@@ -55,7 +41,6 @@ Item {
         root.syncRevealOrigin();
     }
 
-    // Höhe einer Titelzeile (für die Größe der Kachel im Raster)
     Text {
         id: probe
         visible: false
@@ -65,7 +50,6 @@ Item {
     }
     readonly property real lineHeight: probe.implicitHeight
 
-    // Geometrie des Rasters: Icongröße, Zellgröße, Abstände, Ränder [iconGrid.js: _findBestIconSize, _calculateSpacing]
     readonly property var geometry: {
         const W = Math.max(1, width);
         const H = Math.max(1, height);
@@ -119,13 +103,11 @@ Item {
         };
     }
 
-    // Seiten: gespeicherte Reihenfolge, dann die noch nicht platzierten Einträge nach Name [AppGridService]
     readonly property var pages: {
         const perPage = itemsPerPage;
         const map = byId;
         const placed = {};
         const out = [];
-        // Seiten mit mehr Einträgen als Platz laufen auf die nächste Seite über (sonst lägen sie außerhalb des Rasters)
         let carry = [];
         for (const page of layout.pages) {
             const ids = page.filter(id => {
@@ -157,9 +139,6 @@ Item {
     }
     readonly property int nPages: pages.length
 
-    // Vorgerechnete Position je Eintrag (Zelle links/oben), damit die Delegates keine Rasterrechnung brauchen.
-    // `delay` (0 = oberste, 1 = unterste Zeile) staffelt das Einblenden beim Öffnen: die Zeilen fahren aus einem
-    // Stapel knapp über dem Dash nach oben auseinander [appgrid-animation.webm], die oberste Zeile startet zuerst.
     readonly property var pageLayout: {
         const g = root.geometry;
         const cols = root.columns;
@@ -185,12 +164,6 @@ Item {
         return entries;
     }
 
-    // Öffnen: Ursprung der Welle ist der „Apps anzeigen“-Knopf (Gridkoordinaten); ohne bekannte Position
-    // Mitte am unteren Rand.
-    // Bewusst kein Binding auf OverviewService.appsOrigin: der Knopf meldet seine Mitte in jedem Bild der
-    // Übersichts-Animation neu (das Dash fährt ein/aus). Jede Änderung baut `pageLayout` neu auf, und weil das
-    // Modell der Repeater ist, würden dabei alle Kacheln in jedem Bild zerstört und neu erzeugt (Ruckeln beim
-    // Schließen). Nur nachführen, solange das Grid geöffnet wird bzw. offen ist, nicht beim Schließen.
     property point revealOrigin: Qt.point(0, 0)
     function syncRevealOrigin() {
         const p = OverviewService.appsOrigin;
@@ -208,7 +181,6 @@ Item {
         }
     }
 
-    // ───────── Paging ─────────
 
     property real currentPage: 0
     Behavior on currentPage {
@@ -220,9 +192,6 @@ Item {
     }
     readonly property int nearestPage: Math.round(currentPage)
 
-    // Gezogene Icons liegen über allem (früh deklariert, damit die Einträge den Layer kennen)
-    // Mit `dragOverlay` (Overview) liegen sie auch über der Arbeitsflächen-Leiste, damit das Icon beim Ziehen auf eine
-    // Vorschau sichtbar bleibt; ohne Overlay bleibt die Ebene im Raster.
     property Item dragOverlay: null
     readonly property Item dragLayer: dragOverlay ? dragOverlay : localDragLayer
 
@@ -232,7 +201,6 @@ Item {
         z: 100
     }
 
-    // Kontextmenü, öffnet rechts neben einer Kachel [appDisplay.js: popupMenuSide]
     AppMenu {
         id: menu
         arrowSide: Qt.LeftEdge
@@ -245,27 +213,20 @@ Item {
         root.goToPage(root.nearestPage + delta);
     }
 
-    // Beim Ändern des Layouts die Position auf eine gültige Seite ziehen
     onPagesChanged: root.currentPage = Math.max(0, Math.min(root.currentPage, root.nPages - 1))
 
-    // Klick ins Leere fängt ab, damit die Übersicht nicht schließt (nur wenn das Raster wirklich aktiv ist)
     MouseArea {
         anchors.fill: parent
         enabled: OverviewService.appsShown && !root.dragging
         acceptedButtons: Qt.LeftButton
     }
 
-    // Sichtbereich: genau eine Seite breit und beschnitten, damit beim Blättern nur die aktuelle Seite
-    // (und während des Wechsels die angrenzende) sichtbar ist.
     Item {
         id: viewport
         width: root.width
         height: root.height
         clip: true
 
-        // Alle Seiten liegen nebeneinander; der Streifen ist so breit wie alle Seiten zusammen und wird
-        // um `currentPage` verschoben. Der Streifen selbst darf nicht beschneiden, sonst lägen die Seiten
-        // ab der zweiten außerhalb seines Rechtecks und würden ganz verschwinden.
         Item {
             id: strip
             width: root.width * root.nPages
@@ -284,7 +245,6 @@ Item {
                     width: root.width
                     height: root.height
 
-                    // Ablegen im leeren Raum der Seite: an das Ende der Seite hängen
                     DropArea {
                         anchors.fill: parent
                         keys: ["niselle-app"]
@@ -315,7 +275,6 @@ Item {
         }
     }
 
-    // Seitenpunkte [pageIndicators.js]
     PageIndicators {
         id: indicators
         anchors.horizontalCenter: parent.horizontalCenter
@@ -325,7 +284,6 @@ Item {
         onPageActivated: page => root.goToPage(page)
     }
 
-    // Pfeile am Rand, wenn es eine vorige/nächste Seite gibt [appDisplay.js: _syncPageIndicatorsVisibility]
     IconButton {
         icon: Quickshell.shellPath("assets/icons/carousel-arrow-previous-symbolic.svg")
         flat: true
@@ -347,7 +305,6 @@ Item {
         onClicked: root.movePage(1)
     }
 
-    // Mausrad blättert; höchstens alle `appGridScrollTimeout` ms [appDisplay.js: _onScroll]
     WheelHandler {
         id: wheel
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
@@ -368,7 +325,6 @@ Item {
         interval: Theme.appGridScrollTimeout
     }
 
-    // ───────── Ziehen ─────────
 
     property bool dragging: false
     function dragStarted() {
@@ -380,7 +336,6 @@ Item {
         root._edgeDir = 0;
     }
 
-    // Beim Ziehen am linken/rechten Rand blättert das Raster nach einer Weile weiter [appDisplay.js: _onDragMotion]
     property int _edgeDir: 0
     function dragMoved(x, y) {
         const p = root.mapFromItem(root.dragLayer, x, y);
@@ -412,7 +367,6 @@ Item {
         }
     }
 
-    // Ordner öffnen (Dialog liegt in der Übersicht über allem)
     function openFolder(id, origin) {
         OverviewService.openFolder(id, origin);
     }
@@ -429,8 +383,6 @@ Item {
         }
     }
 
-    // Ablegen auf einem Icon [appDisplay.js: AppIcon.acceptDrop, FolderIcon.acceptDrop]:
-    // Mitte einer App/eines Ordners nimmt eine App auf, der Rand sortiert vor/hinter das Ziel ein
     function dropOnItem(target, source, x) {
         if (!source || !source.gridId || source.gridId === target.item.id)
             return;
@@ -450,7 +402,6 @@ Item {
         root._moveItem(srcId, target.pageIndex, x < target.width / 2 ? target.position : target.position + 1);
     }
 
-    // Einfügeposition auf einer Seite für einen Punkt in Seitenkoordinaten (Zelle unter dem Punkt, rechte Hälfte = dahinter)
     function slotAt(pageIndex, px, py) {
         const g = root.geometry;
         const pitchX = g.cell + g.hSpacing;
@@ -462,14 +413,12 @@ Item {
         return Math.min(count, row * root.columns + col + (inRight ? 1 : 0));
     }
 
-    // Leeren Raum einer Seite als Ziel: an die Zelle unter dem Zeiger, sonst ans Ende
     function dropOnEmpty(pageIndex, source, x, y) {
         if (!source || !source.gridId)
             return;
         root._moveItem(source.gridId, pageIndex, root.slotAt(pageIndex, x, y));
     }
 
-    // `pos` ist die Einfügeposition in der Seite vor dem Entfernen des Eintrags
     function _moveItem(id, pageIndex, pos) {
         const pages = root._pagesCopy();
         const arr = pages[pageIndex] ?? pages[pages.length - 1];
@@ -480,14 +429,11 @@ Item {
         AppGridService.savePages(pages);
     }
 
-    // App aus einem Ordner, auf dem Hintergrund des Ordner-Dialogs abgelegt: an die Ablegestelle setzen
-    // [appDisplay.js: AppDisplay.acceptDrop, _ensurePlaceholder]. `x`/`y` sind Fensterkoordinaten.
     function placeDroppedApp(appId, windowX, windowY) {
         if (!root.byId[appId])
             return;
         const local = root.mapFromItem(null, windowX, windowY);
         const page = root.nearestPage;
-        // Punkt relativ zur Seite; der Streifen ist um -currentPage * Breite verschoben
         const px = local.x + root.currentPage * root.width - page * root.width;
         root._moveItem(appId, page, root.slotAt(page, px, local.y));
     }
@@ -500,9 +446,7 @@ Item {
         }
     }
 
-    // Ordner aus zwei Apps anlegen; er nimmt den Platz des Ziels ein [appDisplay.js: createFolder]
     function _createFolder(srcId, dstId) {
-        // Layout vor dem Anlegen kopieren: danach fehlen beide Apps in root.pages
         const pages = root._pagesCopy();
         const folderId = AppGridService.createFolder(dstId, srcId, null);
         for (const p of pages) {

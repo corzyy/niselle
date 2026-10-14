@@ -1,16 +1,12 @@
 import QtQuick
 import qs
 
-// Text-Button (.button / %button) [_buttons.scss:3-6, _common.scss:93-110]: fett, Padding 3 × 24, min. 22px hoch,
-// Radius 8. `pill`: vollrund (z. B. .message-list-clear-button). `notification`: %notification_button
-// [_common.scss:197-209], Padding 6 × 12 auf durchscheinendem Grund.
 Item {
     id: root
 
     property string text: ""
     property bool pill: false
     property bool notification: false
-    // suggested-action: Akzent-Hintergrund, weiße Schrift
     property bool primary: false
     property real radius: pill ? Theme.radiusPill : Theme.radiusButton
     property real paddingV: notification ? Theme.notificationButtonPaddingV : Theme.buttonPaddingV

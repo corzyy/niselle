@@ -17,7 +17,7 @@ const WINDOW_OVERLAY_IDLE_HIDE_TIMEOUT = 750;
 const WINDOW_OVERLAY_FADE_TIME = 200;
 
 const WINDOW_SCALE_TIME = 200;
-const WINDOW_ACTIVE_SIZE_INC = 5; // in each direction
+const WINDOW_ACTIVE_SIZE_INC = 5;
 
 const DRAGGING_WINDOW_OPACITY = 100;
 
@@ -78,10 +78,6 @@ export class WindowPreview extends Shell.WindowPreview {
 
         windowContainer.connect('notify::scale-x',
             () => this._adjustOverlayOffsets());
-        // gjs currently can't handle setting an actors layout manager during
-        // the initialization of the actor if that layout manager keeps track
-        // of its container, so set the layout manager after creating the
-        // container
         windowContainer.layout_manager = new Shell.WindowPreviewLayout();
         this.add_child(windowContainer);
 
@@ -107,7 +103,6 @@ export class WindowPreview extends Shell.WindowPreview {
                     height: layout.bounding_box.get_height(),
                 };
 
-                // A bounding box of 0x0 means all windows were removed
                 if (layout.bounding_box.get_area() > 0)
                     this.emit('size-changed');
             });
@@ -337,8 +332,6 @@ export class WindowPreview extends Shell.WindowPreview {
         this._overlayShown = true;
         this._restack();
 
-        // If we're supposed to animate and an animation in our direction
-        // is already happening, let that one continue
         const ongoingTransition = this._title.get_transition('opacity');
         if (animate &&
             ongoingTransition &&
@@ -382,8 +375,6 @@ export class WindowPreview extends Shell.WindowPreview {
         this._overlayShown = false;
         this._restack();
 
-        // If we're supposed to animate and an animation in our direction
-        // is already happening, let that one continue
         const ongoingTransition = this._title.get_transition('opacity');
         if (animate &&
             ongoingTransition &&
@@ -409,9 +400,6 @@ export class WindowPreview extends Shell.WindowPreview {
     }
 
     _adjustOverlayOffsets() {
-        // Assume that scale-x and scale-y update always set
-        // in lock-step; that allows us to not use separate
-        // handlers for horizontal and vertical offsets
         const previewScale = this.window_container.scale_x;
         const [previewWidth, previewHeight] =
             this.window_container.allocation.get_size();
@@ -436,11 +424,6 @@ export class WindowPreview extends Shell.WindowPreview {
         if (!clone)
             return;
 
-        // We expect this to be used for all interaction rather than
-        // the ClutterClone; as the former is reactive and the latter
-        // is not, this just works for most cases. However, for DND all
-        // actors are picked, so DND operations would operate on the clone.
-        // To avoid this, we hide it from pick.
         Shell.util_set_hidden_from_pick(clone, true);
     }
 
@@ -453,7 +436,6 @@ export class WindowPreview extends Shell.WindowPreview {
     _deleteAll() {
         const windows = this.window_container.layout_manager.get_windows();
 
-        // Delete all windows, starting from the bottom-most (most-modal) one
         for (const window of windows.reverse())
             window.delete(global.get_current_time());
 
@@ -465,12 +447,9 @@ export class WindowPreview extends Shell.WindowPreview {
         while (parent.is_attached_dialog())
             parent = parent.get_transient_for();
 
-        // Display dialog if it is attached to our metaWindow
         if (win.is_attached_dialog() && parent === this.metaWindow)
             this._addWindow(win);
 
-        // The dialog popped up after the user tried to close the window,
-        // assume it's a close confirmation and leave the overview
         if (this._closeRequested)
             this._activate();
     }
@@ -523,7 +502,6 @@ export class WindowPreview extends Shell.WindowPreview {
             this.showOverlay(true);
     }
 
-    // Find the actor just below us, respecting reparenting done by DND code
     _getActualStackAbove() {
         if (this._stackAbove == null)
             return null;
@@ -541,7 +519,6 @@ export class WindowPreview extends Shell.WindowPreview {
     setStackAbove(actor) {
         this._stackAbove = actor;
         if (this.inDrag)
-            // We'll fix up the stack after the drag
             return;
 
         const parent = this.get_parent();
@@ -620,9 +597,6 @@ export class WindowPreview extends Shell.WindowPreview {
     }
 
     _restack() {
-        // We may not have a parent if DnD completed successfully, in
-        // which case our clone will shortly be destroyed and replaced
-        // with a new one on the target workspace.
         const parent = this.get_parent();
         if (parent !== null) {
             if (this._overlayShown) {
@@ -632,7 +606,6 @@ export class WindowPreview extends Shell.WindowPreview {
             } else if (!this._stackAbove._overlayShown) {
                 parent.set_child_above_sibling(this, this._stackAbove);
             } else {
-                // This window shall still be above this._stackAbove._stackAbove
                 const above = this._stackAbove._stackAbove;
                 if (above === null)
                     parent.set_child_below_sibling(this, null);

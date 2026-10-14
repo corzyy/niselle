@@ -5,11 +5,6 @@ import Quickshell
 import Quickshell.Io
 import qs
 
-// Zwischenablage-Verlauf über cliphist + wl-clipboard. Solange „Clipboard History“ eingeschaltet ist, hängt die Shell
-// zwei `wl-paste --watch cliphist store`-Prozesse (Text, Bilder) an. Die Suche (SearchService, Anbieter „clipboard“)
-// liest den Verlauf mit `cliphist list`; Aktivieren schreibt den Eintrag zurück in die Zwischenablage.
-// Eintragsarten: text, image (Bilddaten, Vorschau aus `cliphist decode`) und files (kopierte Dateien als file://-Liste;
-// Bilder zeigen sich selbst, Videos ein Standbild per ffmpeg, sonst ein Dateisymbol). Vorschauen liegen im Cache-Ordner.
 Singleton {
     id: root
 
@@ -17,10 +12,7 @@ Singleton {
     readonly property bool available: installed
     readonly property bool enabled: installed && SettingsService.clipboardHistory
 
-    // [{ id, text, kind: "text"|"image"|"files", image, label, meta, icon, mime, preview }], neuester zuerst
-    // `preview`: "" (keine), "image" oder "video"; die fertige Bild-URL steht in `thumbs[id]`
     property var entries: []
-    // id → file://-URL der Vorschau (erst nach dem Erzeugen vorhanden)
     property var thumbs: ({})
 
     readonly property string cacheDir: Quickshell.cachePath("clipboard")
@@ -31,7 +23,6 @@ Singleton {
             list.running = true;
     }
 
-    // Eintrag in die Zwischenablage zurücklegen
     function copy(entry) {
         if (!entry)
             return;
@@ -49,9 +40,7 @@ Singleton {
         root.entries = root.entries.filter(e => e.id !== entry.id);
     }
 
-    // ───────── Fenster am Mauszeiger ─────────
 
-    // Verlaufsfenster (ClipboardPopup) offen; Ankerpunkt in Koordinaten des Monitors `popupScreen`
     property bool popupOpen: false
     property string popupScreen: ""
     property point popupPoint: Qt.point(0, 0)
@@ -72,7 +61,6 @@ Singleton {
             root.showPopup();
     }
 
-    // Mauszeiger (globale Layout-Koordinaten) → Monitor und lokaler Punkt
     Process {
         id: cursor
         command: ["hyprctl", "-j", "cursorpos"]
@@ -124,7 +112,6 @@ Singleton {
         }
     }
 
-    // Verlauf aufzeichnen (läuft nur, solange eingeschaltet; ein Neustart der Shell startet sie neu)
     Process {
         running: root.enabled
         command: ["wl-paste", "--type", "text", "--watch", "cliphist", "store"]
@@ -150,7 +137,6 @@ Singleton {
         return path.slice(path.lastIndexOf("/") + 1);
     }
 
-    // Eintrag aus einer Zeile von `cliphist list`
     function _parse(id, preview) {
         const meta = /^\[\[ binary data (.*) \]\]$/.exec(preview);
         if (meta) {
@@ -181,8 +167,6 @@ Singleton {
         };
     }
 
-    // Vollständiger Text eines file://-Eintrags steht schon in der Vorschauzeile (eine Zeile pro Datei, durch Tab/Leerzeichen
-    // zusammengezogen); Pfade mit Leerzeichen sind als %20 kodiert
     function _files(entry) {
         const urls = entry.text.split(/\s+/).filter(u => u.indexOf("file://") === 0);
         if (urls.length === 0 || urls.join(" ") !== entry.text.trim().split(/\s+/).join(" "))
@@ -217,7 +201,6 @@ Singleton {
         };
     }
 
-    // Vorschaubilder erzeugen (nur die neuesten) und aufräumen; Antwort: eine fertige „id|url“ je Zeile
     Process {
         id: thumbJob
         stdout: StdioCollector {

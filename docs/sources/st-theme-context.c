@@ -1,23 +1,3 @@
-/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
-/*
- * st-theme-context.c: holds global information about a tree of styled objects
- *
- * Copyright 2009, 2010 Red Hat, Inc.
- * Copyright 2009 Florian Müllner
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
- * more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include <config.h>
 
@@ -52,7 +32,6 @@ struct _StThemeContext {
   StThemeNode *root_node;
   StTheme *theme;
 
-  /* set of StThemeNode */
   GHashTable *nodes;
 
   gulong stylesheets_changed_id;
@@ -141,11 +120,6 @@ st_theme_context_class_init (StThemeContextClass *klass)
   object_class->get_property = st_theme_context_get_property;
   object_class->finalize = st_theme_context_finalize;
 
-  /**
-   * StThemeContext:scale-factor:
-   *
-   * The scaling factor used for HiDPI scaling.
-   */
   props[PROP_SCALE_FACTOR] =
     g_param_spec_int ("scale-factor", NULL, NULL,
                       0, G_MAXINT, 1,
@@ -153,18 +127,11 @@ st_theme_context_class_init (StThemeContextClass *klass)
 
   g_object_class_install_properties (object_class, N_PROPS, props);
 
-  /**
-   * StThemeContext::changed:
-   * @self: a #StThemeContext
-   *
-   * Emitted when the icon theme, font, resolution, scale factor or the current
-   * theme's custom stylesheets change.
-   */
   signals[CHANGED] =
     g_signal_new ("changed",
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
-                  0, /* no default handler slot */
+                  0,
                   NULL, NULL, NULL,
                   G_TYPE_NONE, 0);
 }
@@ -320,15 +287,6 @@ st_theme_context_changed (StThemeContext *context)
 
   g_signal_emit (context, signals[CHANGED], 0);
 
-  /* Force a run of the dispose() vfuncs of theme nodes so that their references
-   * into the theme CSS data get cleared. While theme nodes might outlive this
-   * function (in case buggy user code is holding a reference to them), the theme
-   * CSS data definitely gets freed after this function returns.
-   *
-   * Note that we can't do this before emitting ::changed because during the
-   * signal emission, StWidget needs to access the theme nodes (and therefore the
-   * theme CSS data) for its old/new theme node comparisons.
-   */
   g_ptr_array_foreach (old_nodes, (GFunc) g_object_run_dispose, NULL);
 
   if (old_root)
@@ -352,23 +310,10 @@ on_icon_theme_changed (StTextureCache *cache,
 {
   guint id;
 
-  /* Note that an icon theme change isn't really a change of the StThemeContext;
-   * the style information has changed. But since the style factors into the
-   * icon_name => icon lookup, faking a theme context change is a good way
-   * to force users such as StIcon to look up icons again.
-   */
   id = g_idle_add_once ((GSourceOnceFunc) st_theme_context_changed, context);
   g_source_set_name_by_id (id, "[gnome-shell] st_theme_context_changed");
 }
 
-/**
- * st_theme_context_get_for_stage:
- * @stage: a #ClutterStage
- *
- * Gets a singleton theme context associated with the stage.
- *
- * Returns: (transfer none): the singleton theme context for the stage
- */
 StThemeContext *
 st_theme_context_get_for_stage (ClutterStage *stage)
 {
@@ -397,15 +342,6 @@ st_theme_context_get_for_stage (ClutterStage *stage)
   return context;
 }
 
-/**
- * st_theme_context_set_theme:
- * @context: a #StThemeContext
- * @theme: a #StTheme
- *
- * Sets the default set of theme stylesheets for the context. This theme will
- * be used for the root node and for nodes descending from it, unless some other
- * style is explicitly specified.
- */
 void
 st_theme_context_set_theme (StThemeContext          *context,
                             StTheme                 *theme)
@@ -433,14 +369,6 @@ st_theme_context_set_theme (StThemeContext          *context,
     }
 }
 
-/**
- * st_theme_context_get_theme:
- * @context: a #StThemeContext
- *
- * Gets the default theme for the context. See st_theme_context_set_theme()
- *
- * Returns: (transfer none): the default theme for the context
- */
 StTheme *
 st_theme_context_get_theme (StThemeContext *context)
 {
@@ -449,17 +377,6 @@ st_theme_context_get_theme (StThemeContext *context)
   return context->theme;
 }
 
-/**
- * st_theme_context_set_font:
- * @context: a #StThemeContext
- * @font: the default font for theme context
- *
- * Sets the default font for the theme context. This is the font that
- * is inherited by the root node of the tree of theme nodes. If the
- * font is not overridden, then this font will be used. If the font is
- * partially modified (for example, with 'font-size: 110%'), then that
- * modification is based on this font.
- */
 void
 st_theme_context_set_font (StThemeContext             *context,
                            const PangoFontDescription *font)
@@ -476,14 +393,6 @@ st_theme_context_set_font (StThemeContext             *context,
   st_theme_context_changed (context);
 }
 
-/**
- * st_theme_context_get_font:
- * @context: a #StThemeContext
- *
- * Gets the default font for the theme context. See st_theme_context_set_font().
- *
- * Returns: the default font for the theme context.
- */
 const PangoFontDescription *
 st_theme_context_get_font (StThemeContext *context)
 {
@@ -492,14 +401,6 @@ st_theme_context_get_font (StThemeContext *context)
   return context->font;
 }
 
-/**
- * st_theme_context_get_accent_color:
- * @context: a #StThemeContext
- * @color: (out) (nullable): the accent color
- * @fg_color: (out) (nullable): the foreground accent color
- *
- * Gets the current accent color for the theme context.
- */
 void
 st_theme_context_get_accent_color (StThemeContext *context,
                                    CoglColor      *color,
@@ -514,16 +415,6 @@ st_theme_context_get_accent_color (StThemeContext *context,
     memcpy (fg_color, &context->accent_fg_color, sizeof (CoglColor));
 }
 
-/**
- * st_theme_context_get_root_node:
- * @context: a #StThemeContext
- *
- * Gets the root node of the tree of theme style nodes that associated with this
- * context. For the node tree associated with a stage, this node represents
- * styles applied to the stage itself.
- *
- * Returns: (transfer none): the root node of the context's style tree
- */
 StThemeNode *
 st_theme_context_get_root_node (StThemeContext *context)
 {
@@ -534,23 +425,12 @@ st_theme_context_get_root_node (StThemeContext *context)
   return context->root_node;
 }
 
-/**
- * st_theme_context_intern_node:
- * @context: a #StThemeContext
- * @node: a #StThemeNode
- *
- * Return an existing node matching @node, or if that isn't possible,
- * @node itself.
- *
- * Returns: (transfer none): a node with the same properties as @node
- */
 StThemeNode *
 st_theme_context_intern_node (StThemeContext *context,
                               StThemeNode    *node)
 {
   StThemeNode *mine = g_hash_table_lookup (context->nodes, node);
 
-  /* this might be node or not - it doesn't actually matter */
   if (mine != NULL)
     return mine;
 
@@ -558,14 +438,6 @@ st_theme_context_intern_node (StThemeContext *context,
   return node;
 }
 
-/**
- * st_theme_context_get_scale_factor:
- * @context: a #StThemeContext
- *
- * Return the current scale factor of @context.
- *
- * Returns: an integer scale factor
- */
 int
 st_theme_context_get_scale_factor (StThemeContext *context)
 {
@@ -574,13 +446,6 @@ st_theme_context_get_scale_factor (StThemeContext *context)
   return context->scale_factor;
 }
 
-/**
- * st_theme_context_set_scale_factor:
- * @context: a #StThemeContext
- * @factor: the new factor
- *
- * Set the new scale factor of @context.
- */
 void
 st_theme_context_set_scale_factor (StThemeContext *context,
                                    int             scale_factor)
@@ -595,12 +460,6 @@ st_theme_context_set_scale_factor (StThemeContext *context,
   st_theme_context_changed (context);
 }
 
-/**
- * st_theme_context_get_resolution:
- * @context: a #StThemeContext
- *
- * Returns: The font resolution
- */
 double
 st_theme_context_get_resolution (StThemeContext *context)
 {

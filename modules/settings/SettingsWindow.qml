@@ -5,15 +5,9 @@ import qs
 import qs.services
 import qs.components
 
-// Einstellungen-App im Stil von GNOME Settings 51: Seitenleiste mit Bereichen links, Seite mit Kopfleiste rechts.
-// Steuerung über SettingsWindowService (niselle settings [panel]).
-// Die Größe richtet sich nach dem Bildschirm, und bei schmalen Fenstern wandert die Seitenleiste
-// in eine Schublade (kompakte Ansicht), wie es GNOME Settings tut.
 FloatingWindow {
     id: win
 
-    // Seitenleiste, Unterseiten und Seiten-Dateien kommen aus dem gemeinsamen Katalog
-    // (SettingsPanelsService), damit die Shell-Suche dieselben Einträge anbieten kann.
     readonly property var groups: SettingsPanelsService.groups
     readonly property var subpageTitles: SettingsPanelsService.subpageTitles
     readonly property var pageFiles: SettingsPanelsService.pageFiles
@@ -23,13 +17,11 @@ FloatingWindow {
     readonly property bool isSubpage: panel.indexOf("/") >= 0
     readonly property string pageTitle: win.titleFor(win.panel)
 
-    // Seiten-Datei bestimmen; Monitor-Unterseiten (displays/monitor/<name>) sind dynamisch
     function pageFileFor(p) {
         if (p.startsWith("displays/monitor/"))
             return "MonitorSettingsPage";
         return win.pageFiles[p];
     }
-    // Übergeordnete Seite für den Zurück-Knopf; Monitor-Unterseiten gehören direkt zu „displays“
     function parentPanelFor(p) {
         if (p.startsWith("displays/monitor/"))
             return "displays";
@@ -51,31 +43,22 @@ FloatingWindow {
         return "Settings";
     }
 
-    // Von der Seite gesetzte Übernehmen-Leiste (Displays) und ihre Rückrufe
     readonly property var pageItem: page.item
     readonly property bool applyBar: !!(pageItem && pageItem.showingApplyBar === true)
 
     property bool searching: false
     property string query: ""
 
-    // ───────── Anpassung an die Bildschirmgröße ─────────
-    // Bildschirm, auf dem das Fenster liegt (sonst der primäre Monitor). Daraus leiten sich die
-    // Fenstermaße ab, damit die App nicht größer als der Bildschirm öffnet.
     readonly property var targetScreen: win.screen ? win.screen : OverviewService.primaryScreen
     readonly property int screenWidth: win.targetScreen ? win.targetScreen.width : 1280
     readonly property int screenHeight: win.targetScreen ? win.targetScreen.height : 800
 
-    // Bevorzugte Fenstergröße: gut 80 % des Bildschirms, aber zwischen einer brauchbaren
-    // Untergrenze und einer Obergrenze, damit die App auf kleinen wie großen Bildschirmen passt.
     readonly property int preferredWidth: Math.min(Math.max(Math.round(screenWidth * 0.8), 640), 1100)
     readonly property int preferredHeight: Math.min(Math.max(Math.round(screenHeight * 0.8), 480), 820)
 
-    // Kompakte Ansicht: unterhalb dieser Fensterbreite wird die Seitenleiste zur Schublade.
     readonly property int compactBreakpoint: 720
     readonly property bool compact: win.width > 0 && win.width < win.compactBreakpoint
-    // Schublade offen (nur im Kompaktmodus von Bedeutung)
     property bool sidebarOpen: false
-    // Breite der Seitenleiste folgt der Fensterbreite (breit: 240–280 px, kompakt: bis 85 % des Fensters)
     readonly property real sidebarWidth: win.compact ? Math.min(280, win.width * 0.85) : Math.max(240, Math.min(280, win.width * 0.3))
 
     title: "Settings"
@@ -97,7 +80,6 @@ FloatingWindow {
 
     function go(p) {
         SettingsWindowService.panel = p;
-        // Im Kompaktmodus schließt die Auswahl die Schublade
         win.sidebarOpen = false;
     }
 
@@ -107,7 +89,6 @@ FloatingWindow {
         color: Theme.windowBg
         clip: true
 
-        // Esc: erst die Schublade, dann die Suche schließen
         Keys.onEscapePressed: {
             if (win.sidebarOpen)
                 win.sidebarOpen = false;
@@ -117,7 +98,6 @@ FloatingWindow {
             }
         }
 
-        // ───────── Inhalt ─────────
         Item {
             id: content
             x: win.compact ? 0 : win.sidebarWidth + 1
@@ -130,8 +110,6 @@ FloatingWindow {
                 height: 60
                 color: Theme.windowBg
 
-                // Navigation: im Kompaktmodus öffnet/schließt der Knopf die Seitenleiste,
-                // auf Unterseiten geht er eine Ebene zurück.
                 IconButton {
                     anchors.left: parent.left
                     anchors.leftMargin: 6
@@ -217,7 +195,6 @@ FloatingWindow {
                 source: win.pageFileFor(win.panel) ? Qt.resolvedUrl("pages/" + win.pageFileFor(win.panel) + ".qml") : ""
                 active: win.pageFileFor(win.panel) !== undefined
 
-                // Seitenwechsel: Einblenden mit leichtem Versatz (Unterseiten kommen von rechts)
                 transform: Translate {
                     id: pageShift
                 }
@@ -265,7 +242,6 @@ FloatingWindow {
             }
         }
 
-        // Abdunkeln des Inhalts, wenn im Kompaktmodus die Schublade offen ist
         Rectangle {
             anchors.fill: parent
             visible: opacity > 0
@@ -284,7 +260,6 @@ FloatingWindow {
             }
         }
 
-        // ───────── Seitenleiste ─────────
         Rectangle {
             id: sidebar
             width: win.sidebarWidth
@@ -300,7 +275,6 @@ FloatingWindow {
                 }
             }
 
-            // Kopf: Suche, Titel, Menü
             Item {
                 id: sidebarHeader
                 width: parent.width
@@ -357,7 +331,6 @@ FloatingWindow {
                     onClicked: menu.toggle()
                 }
 
-                // Menü am Kopf der Seitenleiste: Hilfe und weitere Einträge
                 PopupMenu {
                     id: menu
 
@@ -379,7 +352,6 @@ FloatingWindow {
             }
 
             Rectangle {
-                // dezente Trennlinie zwischen Seitenleiste und Inhalt
                 visible: !win.compact
                 anchors.right: parent.right
                 width: 1
@@ -439,7 +411,6 @@ FloatingWindow {
             }
         }
 
-        // Fensterrand
         Rectangle {
             anchors.fill: parent
             radius: win.maximized ? 0 : Theme.radiusWindow

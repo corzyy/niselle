@@ -5,14 +5,12 @@ import qs.services
 import qs.components
 import ".."
 
-// Fenster (Hyprland): Abstände, Rahmen, Rundung, Deckkraft, Schatten und Blur. Änderungen gelten sofort.
 SettingsPage {
     id: root
 
     readonly property var v: HyprlandLayoutService.values
     readonly property bool ready: HyprlandLayoutService.available
 
-    // Zeile mit Ganzzahl und −/+ am Zeilenende
     component SpinRow: ActionRow {
         id: spin
 

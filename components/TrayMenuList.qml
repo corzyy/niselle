@@ -4,7 +4,6 @@ import Quickshell
 import qs
 import qs.components
 
-// Einträge eines StatusNotifier-Menüs (dbusmenu). Untermenüs klappen darunter eingerückt auf.
 ColumnLayout {
     id: root
 
@@ -66,7 +65,6 @@ ColumnLayout {
                 visible: active
                 Layout.fillWidth: true
                 source: Qt.resolvedUrl("TrayMenuList.qml")
-                // Rekursion per URL: ein direkter Typ-Verweis auf sich selbst ist in QML verboten
                 onLoaded: {
                     item.handle = Qt.binding(() => entryRoot.modelData);
                     item.depth = root.depth + 1;

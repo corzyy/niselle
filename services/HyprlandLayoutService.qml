@@ -5,18 +5,13 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
-// Fensterlayout und Dekoration über Hyprland: Abstände, Rahmen, Rundung, Deckkraft, Schatten, Blur und
-// Bewegungsunschärfe. Werte werden per `hyprctl getoption` gelesen und zur Laufzeit gesetzt
-// (Lua: `hyprctl eval`, sonst `keyword`). Gesetzte Werte gelten bis zum Neuladen der Hyprland-Konfiguration.
 Singleton {
     id: root
 
     readonly property bool available: Hyprland.monitors.values.length > 0
     readonly property bool usingLua: Hyprland.usingLua
 
-    // Option → { path (hyprctl-Pfad), kind (int | float | bool | str | css) }; Werte stehen in `values`
     readonly property var options: ({
-            // general: Abstände und Rahmen
             "gapsIn": {
                 "path": "general:gaps_in",
                 "kind": "css"
@@ -37,7 +32,6 @@ Singleton {
                 "path": "general:layout",
                 "kind": "str"
             },
-            // decoration: Fenster
             "rounding": {
                 "path": "decoration:rounding",
                 "kind": "int"
@@ -66,7 +60,6 @@ Singleton {
                 "path": "decoration:dim_strength",
                 "kind": "float"
             },
-            // decoration: Schatten
             "shadowEnabled": {
                 "path": "decoration:shadow:enabled",
                 "kind": "bool"
@@ -79,7 +72,6 @@ Singleton {
                 "path": "decoration:shadow:render_power",
                 "kind": "int"
             },
-            // decoration: Blur
             "blurEnabled": {
                 "path": "decoration:blur:enabled",
                 "kind": "bool"
@@ -100,12 +92,10 @@ Singleton {
                 "path": "decoration:blur:vibrancy",
                 "kind": "float"
             },
-            // decoration: Bewegungsunschärfe
             "motionBlur": {
                 "path": "decoration:motion_blur:enabled",
                 "kind": "bool"
             },
-            // dwindle
             "preserveSplit": {
                 "path": "dwindle:preserve_split",
                 "kind": "bool"
@@ -138,7 +128,6 @@ Singleton {
             "preserveSplit": true
         })
 
-    // Lua-Literal eines Werts (bool → true/false, str → "…", sonst die Zahl)
     function _luaValue(kind, value) {
         if (kind === "bool")
             return value ? "true" : "false";
@@ -147,7 +136,6 @@ Singleton {
         return String(value);
     }
 
-    // `decoration:shadow:enabled` → hl.config({decoration={shadow={enabled=<lit>}}})
     function _luaExpr(path, lit) {
         const parts = path.split(":");
         let expr = lit;

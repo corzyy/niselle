@@ -4,17 +4,12 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Installiert passende Matugen-Vorlagen aus InioX/matugen-themes (bin/niselle-matugen-install).
-// Das Skript meldet Zeilen "<art>|<text>"; das Fenster (modules/matugeninstall) zeigt sie als Protokoll.
-//
-// state: "idle" | "running" | "done" | "failed"
 Singleton {
     id: root
 
     property bool open: false
     property string state: "idle"
     readonly property bool running: state === "running"
-    // [{ kind: step|info|ok|skip|warn|error|done, text }]
     property var entries: []
     property string summary: ""
 

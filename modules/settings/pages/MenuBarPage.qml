@@ -5,7 +5,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Shell › Menu Bar: Anordnung und Darstellung der oberen Leiste.
 SettingsPage {
     id: root
 

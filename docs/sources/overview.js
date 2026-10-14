@@ -7,8 +7,6 @@ import Shell from 'gi://Shell';
 import St from 'gi://St';
 import * as Signals from '../misc/signals.js';
 
-// Time for initial animation going into Overview mode;
-// this is defined here to make it available in imports.
 export const ANIMATION_TIME = 250;
 
 import * as DND from './dnd.js';
@@ -28,8 +26,6 @@ class OverviewActor extends St.BoxLayout {
     _init() {
         super._init({
             name: 'overview',
-            /* Translators: This is the main view to select
-                activities. See also note for "Activities" string. */
             accessible_name: _('Overview'),
             orientation: Clutter.Orientation.VERTICAL,
         });
@@ -151,16 +147,13 @@ export class Overview extends Signals.EventEmitter {
 
         this._activationTime = 0;
 
-        this._visible = false;          // animating to overview, in overview, animating out
-        this._shown = false;            // show() and not hide()
-        this._modal = false;            // have a modal grab
+        this._visible = false;
+        this._shown = false;
+        this._modal = false;
         this._animationInProgress = false;
         this._visibleTarget = false;
         this._shownState = OverviewShownState.HIDDEN;
 
-        // During transitions, we raise this to the top to avoid having the overview
-        // area be reactive; it causes too many issues such as double clicks on
-        // Dash elements, or mouseover handlers in the workspaces.
         this._coverPane = new Clutter.Actor({
             opacity: 0,
             reactive: true,
@@ -168,7 +161,6 @@ export class Overview extends Signals.EventEmitter {
         Main.layoutManager.overviewGroup.add_child(this._coverPane);
         this._coverPane.hide();
 
-        // XDND
         this._dragMonitor = {
             dragMotion: this._onDragMotion.bind(this),
         };
@@ -199,10 +191,6 @@ export class Overview extends Signals.EventEmitter {
         this._createOverview();
     }
 
-    // The members we construct that are implemented in JS might
-    // want to access the overview as Main.overview to connect
-    // signal handlers and so forth. So we create them after
-    // construction in this init() method.
     init() {
         this._initCalled = true;
 
@@ -261,7 +249,6 @@ export class Overview extends Signals.EventEmitter {
         this._inXdndDrag = true;
 
         DND.addDragMonitor(this._dragMonitor);
-        // Remember the workspace we started from
         const workspaceManager = global.workspace_manager;
         this._lastActiveWorkspaceIndex = workspaceManager.get_active_workspace_index();
     }
@@ -269,9 +256,6 @@ export class Overview extends Signals.EventEmitter {
     _onDragEnd() {
         this._inXdndDrag = false;
 
-        // In case the drag was canceled while in the overview
-        // we have to go back to where we started and hide
-        // the overview
         if (this._shown) {
             const workspaceManager = global.workspace_manager;
             workspaceManager.get_workspace_by_index(this._lastActiveWorkspaceIndex)
@@ -331,9 +315,6 @@ export class Overview extends Signals.EventEmitter {
     }
 
     _relayout() {
-        // To avoid updating the position and size of the workspaces
-        // we just hide the overview. The positions will be updated
-        // when it is next shown.
         this.hide();
 
         this._coverPane.set_position(0, 0);
@@ -345,7 +326,6 @@ export class Overview extends Signals.EventEmitter {
         const stackIndices = {};
 
         for (let i = 0; i < stack.length; i++) {
-            // Use the stable sequence for an integer to use as a hash key
             stackIndices[stack[i].get_meta_window().get_stable_sequence()] = i;
         }
 
@@ -431,12 +411,6 @@ export class Overview extends Signals.EventEmitter {
         this._overview.searchEntry.grab_key_focus();
     }
 
-    // Checks if the Activities button is currently sensitive to
-    // clicks. The first call to this function within the
-    // OVERVIEW_ACTIVATION_TIMEOUT time of the hot corner being
-    // triggered will return false. This avoids opening and closing
-    // the overview if the user both triggered the hot corner and
-    // clicked the Activities button.
     shouldToggleByCornerOrButton() {
         if (this._animationInProgress)
             return false;
@@ -449,9 +423,6 @@ export class Overview extends Signals.EventEmitter {
     }
 
     _syncGrab() {
-        // We delay grab changes during animation so that when removing the
-        // overview we don't have a problem with the release of a press/release
-        // going to an application.
         if (this._animationInProgress)
             return true;
 
@@ -470,7 +441,6 @@ export class Overview extends Signals.EventEmitter {
                 this._modal = true;
             }
         } else {
-            // eslint-disable-next-line no-lonely-if
             if (this._modal) {
                 Main.popModal(this._grab);
                 this._grab = false;
@@ -480,9 +450,6 @@ export class Overview extends Signals.EventEmitter {
         return true;
     }
 
-    // show:
-    //
-    // Animates the overview visible and grabs mouse and keyboard input
     show(state = OverviewControls.ControlsState.WINDOW_PICKER) {
         if (state === OverviewControls.ControlsState.HIDDEN)
             throw new Error('Invalid state, use hide() to hide');
@@ -526,16 +493,12 @@ export class Overview extends Signals.EventEmitter {
         if (this._shownState !== OverviewShownState.SHOWN)
             this._changeShownState(OverviewShownState.SHOWN);
 
-        // Handle any calls to hide* while we were showing
         if (!this._shown)
             this._animateNotVisible();
 
         this._syncGrab();
     }
 
-    // hide:
-    //
-    // Reverses the effect of show()
     hide() {
         if (this.isDummy)
             return;
@@ -582,7 +545,6 @@ export class Overview extends Signals.EventEmitter {
         this._visible = false;
         this._animationInProgress = false;
 
-        // Handle any calls to show* while we were hiding
         if (this._shown) {
             this._changeShownState(OverviewShownState.HIDDEN);
             this._animateVisible(OverviewControls.ControlsState.WINDOW_PICKER);
@@ -622,15 +584,11 @@ export class Overview extends Signals.EventEmitter {
         this._visible = true;
         this._visibleTarget = true;
         Main.layoutManager.showOverview();
-        // We should call this._syncGrab() here, but moved it to happen after
-        // the animation because of a race in the xserver where the grab
-        // fails when requested very early during startup.
 
         this._changeShownState(OverviewShownState.SHOWING);
 
         await this._overview.runStartupAnimation();
 
-        // Overview got hidden during startup animation
         if (this._shownState !== OverviewShownState.SHOWING)
             return;
 

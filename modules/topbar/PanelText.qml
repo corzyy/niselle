@@ -1,7 +1,6 @@
 import QtQuick
 import qs
 
-// Panel-Schrift: fett, tabellarische Ziffern [_panel.scss:15-17, %numeric _common.scss:287]
 Text {
     color: Theme.panelFg
     font.family: Theme.fontFamily

@@ -4,8 +4,8 @@ import GObject from 'gi://GObject';
 
 import * as BarLevel from './barLevel.js';
 
-const SLIDER_SCROLL_STEP = 0.02; /* Slider scrolling step in % */
-const SNAP_THRESHOLD = 0.04; /* Snap to marks within 4% */
+const SLIDER_SCROLL_STEP = 0.02;
+const SNAP_THRESHOLD = 0.04;
 
 export class Slider extends BarLevel.BarLevel {
     static [GObject.signals] = {
@@ -105,7 +105,6 @@ export class Slider extends BarLevel.BarLevel {
     vfunc_repaint() {
         super.vfunc_repaint();
 
-        // Add handle
         const cr = this.get_context();
         const themeNode = this.get_theme_node();
         const [width, height] = this.get_surface_size();
@@ -140,8 +139,6 @@ export class Slider extends BarLevel.BarLevel {
     _onPanBegin() {
         this._grab = global.stage.grab(this);
 
-        // We need to emit 'drag-begin' before moving the handle to make
-        // sure that no 'notify::value' signal is emitted before this one.
         this.emit('drag-begin');
 
         const coords = this._panGesture.get_centroid();
@@ -169,9 +166,6 @@ export class Slider extends BarLevel.BarLevel {
     }
 
     _applyDelta(delta) {
-        // Track unsnapped value to allow escaping snap zones when scrolling/using arrow keys.
-        // Without this, if the scroll step is smaller than the snap threshold,
-        // the slider gets stuck at the mark because each scroll snaps back.
         const base = this._unsnappedValue ?? this._value;
         const oldValue = this._value;
         this._unsnappedValue = Math.clamp(base + delta, 0, this._maxValue);

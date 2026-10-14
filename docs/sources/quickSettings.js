@@ -76,8 +76,6 @@ export const QuickToggle = GObject.registerClass({
         });
         this._box.add_child(this._icon);
 
-        // bindings are in the "wrong" direction, so we
-        // pick up StIcon's linking of the two properties
         this._icon.bind_property('icon-name',
             this, 'icon-name',
             GObject.BindingFlags.SYNC_CREATE |
@@ -294,7 +292,6 @@ export const QuickSlider = GObject.registerClass({
         });
         this._iconButton.connect('clicked',
             () => this.emit('icon-clicked'));
-        // Show as regular icon when non-interactive
         this._iconButton.connect('notify::reactive',
             () => this._iconButton.remove_style_pseudo_class('insensitive'));
         box.add_child(this._iconButton);
@@ -309,8 +306,6 @@ export const QuickSlider = GObject.registerClass({
             this._iconButton, 'accessible-name',
             GObject.BindingFlags.SYNC_CREATE);
 
-        // bindings are in the "wrong" direction, so we
-        // pick up StIcon's linking of the two properties
         this._icon.bind_property('icon-name',
             this, 'icon-name',
             GObject.BindingFlags.SYNC_CREATE |
@@ -322,7 +317,6 @@ export const QuickSlider = GObject.registerClass({
 
         this.slider = new Slider(0);
 
-        // for focus indication
         const sliderBin = new St.Bin({
             style_class: 'slider-bin',
             child: this.slider,
@@ -453,13 +447,6 @@ class QuickToggleMenu extends PopupMenu.PopupMenuBase {
         headerLayout.attach_next_to(this._headerSpacer, actor, side, 1, 1);
     }
 
-    /**
-     * @param {object} params
-     * @param {bool} [params.animate=true] whether to animate the transition
-     * @param {Clutter.Event} [params.triggerEvent] the keyboard/mouse event that triggered opening this
-     *
-     * @returns {bool} whether the open state changed
-     */
     open(params = {}) {
         if (!super.open(params))
             return false;
@@ -490,12 +477,6 @@ class QuickToggleMenu extends PopupMenu.PopupMenuBase {
         return true;
     }
 
-    /**
-     * @param {object} params
-     * @param {bool} [params.animate=true] whether to animate the transition
-     *
-     * @returns {bool} whether the open state changed
-     */
     close(params = {}) {
         if (!super.close(params))
             return false;
@@ -531,7 +512,6 @@ class QuickToggleMenu extends PopupMenu.PopupMenuBase {
             this._headerIcon.remove_style_class_name('active');
     }
 
-    // expected on toplevel menus
     _setOpenedSubMenu(submenu) {
         this._openedSubMenu?.close(true);
         this._openedSubMenu = submenu;
@@ -614,7 +594,6 @@ const QuickSettingsLayout = GObject.registerClass({
         let lineIndex = 0;
         let curRow;
 
-        /** private */
         function appendRow() {
             curRow = [];
             rows.push(curRow);
@@ -743,7 +722,6 @@ export const QuickSettingsMenu = class extends PopupMenu.PopupMenu {
         this.actor = new St.Widget({reactive: true, width: 0, height: 0});
         this.actor.add_child(this._boxPointer);
         this.actor._delegate = this;
-        // Undo superclass defaults
         this._boxPointer.set_keynav_flags(St.KeynavFlags.NONE);
 
         global.focus_manager.add_group(this.actor);
@@ -759,12 +737,10 @@ export const QuickSettingsMenu = class extends PopupMenu.PopupMenu {
         this._boxPointer.add_effect_with_name('dim', this._dimEffect);
         this.box.add_style_class_name('quick-settings');
 
-        // Overlay layer for menus
         this._overlay = new Clutter.Actor({
             layout_manager: new Clutter.BinLayout(),
         });
 
-        // "clone"
         const placeholder = new Clutter.Actor({
             constraints: new Clutter.BindConstraint({
                 coordinate: Clutter.BindCoordinate.HEIGHT,
@@ -790,7 +766,6 @@ export const QuickSettingsMenu = class extends PopupMenu.PopupMenu {
             source: this._boxPointer,
         });
 
-        // Pick up additional spacing from any intermediate actors
         const updateOffset = (constraint, axis) => {
             const laters = global.compositor.get_laters();
             laters.add(Meta.LaterType.BEFORE_REDRAW, () => {

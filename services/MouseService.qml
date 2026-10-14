@@ -5,16 +5,12 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
-// Mauseinstellungen über Hyprland (input:*): Geschwindigkeit, Beschleunigung, Scrollen, Primärtaste.
-// Werte werden per `hyprctl getoption` gelesen und zur Laufzeit gesetzt (Lua: `hyprctl eval`, sonst `keyword`).
-// Gesetzte Werte gelten bis zum Neuladen der Hyprland-Konfiguration.
 Singleton {
     id: root
 
     readonly property bool available: Hyprland.monitors.values.length > 0
     readonly property bool usingLua: Hyprland.usingLua
 
-    // Option → { name, kind } ; Werte stehen in `values`
     readonly property var options: ({
             "sensitivity": {
                 "name": "sensitivity",

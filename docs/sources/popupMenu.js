@@ -11,7 +11,6 @@ import * as BoxPointer from './boxpointer.js';
 import * as Main from './main.js';
 import * as Params from '../misc/params.js';
 
-/** @enum {number} */
 export const Ornament = {
     NONE: 0,
     DOT: 1,
@@ -20,9 +19,6 @@ export const Ornament = {
     NO_DOT: 4,
 };
 
-/**
- * @param {St.Widget} child
- */
 function isPopupMenuItemVisible(child) {
     if (child._delegate instanceof PopupMenuSection) {
         if (child._delegate.isEmpty())
@@ -31,12 +27,6 @@ function isPopupMenuItemVisible(child) {
     return child.visible;
 }
 
-/**
- * arrowIcon
- *
- * @param {St.Side} side - Side to which the arrow points.
- * @returns {St.Icon} a new arrow icon
- */
 export function arrowIcon(side) {
     let iconName;
     switch (side) {
@@ -152,8 +142,6 @@ export class PopupBaseMenuItem extends St.BoxLayout {
     }
 
     get actor() {
-        /* This is kept for compatibility with current implementation, and we
-           don't want to warn here yet since PopupMenu depends on this */
         return this;
     }
 
@@ -196,12 +184,6 @@ export class PopupBaseMenuItem extends St.BoxLayout {
                     this.grab_key_focus();
             } else {
                 this.remove_style_pseudo_class('selected');
-                // Remove the CSS active state if the user press the button and
-                // while holding moves to another menu item, so we don't paint all items.
-                // The correct behaviour would be to set the new item with the CSS
-                // active state as well, but button-press-event is not triggered,
-                // so we should track it in our own, which would involve some work
-                // in the container
                 this.remove_style_pseudo_class('active');
             }
             this.notify('active');
@@ -413,7 +395,6 @@ export const Switch = GObject.registerClass({
 
     set state(state) {
         let handleAlignFactor;
-        // Calling get_theme_node() while unmapped is an error, avoid that
         const duration = this._handle.mapped
             ? this._handle.get_theme_node().get_transition_duration()
             : 0;
@@ -530,8 +511,6 @@ export const PopupSwitchMenuItem = GObject.registerClass({
         if (this._switch.mapped)
             this.toggle();
 
-        // we allow pressing space to toggle the switch
-        // without closing the menu
         if (event.type() === Clutter.EventType.KEY_PRESS &&
             event.get_key_symbol() === Clutter.KEY_space)
             return;
@@ -602,7 +581,6 @@ class PopupImageMenuItem extends PopupBaseMenuItem {
     }
 
     setIcon(icon) {
-        // The 'icon' parameter can be either a Gio.Icon or a string.
         if (icon instanceof GObject.Object && GObject.type_is_a(icon, Gio.Icon))
             this._icon.gicon = icon;
         else
@@ -610,8 +588,6 @@ class PopupImageMenuItem extends PopupBaseMenuItem {
     }
 
     _updateOrnamentStyle() {
-        // we move the ornament after the label, so we don't need
-        // additional padding regardless of ornament visibility
     }
 });
 
@@ -907,10 +883,6 @@ export class PopupMenuBase extends Signals.EventEmitter {
         } else if (menuItem instanceof PopupSeparatorMenuItem) {
             this._connectItemSignals(menuItem);
 
-            // updateSeparatorVisibility needs to get called any time the
-            // separator's adjacent siblings change visibility or position.
-            // open-state-changed isn't exactly that, but doing it in more
-            // precise ways would require a lot more bookkeeping.
             this.connectObject('open-state-changed', () => {
                 this._updateSeparatorVisibility(menuItem);
             }, menuItem);
@@ -966,13 +938,6 @@ export class PopupMenuBase extends Signals.EventEmitter {
         }
     }
 
-    /**
-     * @param {object} params
-     * @param {bool} [params.animate=true] whether to animate the transition
-     * @param {Clutter.Event} [params.triggerEvent] the keyboard/mouse event that triggered opening this
-     *
-     * @returns {bool} whether the open state changed
-     */
     open(params = {}) {
         if (this.isOpen)
             return false;
@@ -987,12 +952,6 @@ export class PopupMenuBase extends Signals.EventEmitter {
         return true;
     }
 
-    /**
-     * @param {object} _params
-     * @param {bool} [_params.animate=true] whether to animate the transition
-     *
-     * @returns {bool} whether the open state changed
-     */
     close(_params) {
         if (!this.isOpen)
             return false;
@@ -1064,8 +1023,6 @@ export class PopupMenu extends PopupMenuBase {
     }
 
     _onKeyPress() {
-        // Disable toggling the menu by keyboard
-        // when it cannot be toggled by pointer
         if (!this.sourceActor.reactive)
             return Clutter.EVENT_PROPAGATE;
 
@@ -1088,7 +1045,6 @@ export class PopupMenu extends PopupMenuBase {
         const [, symbol] = this._keyController.get_key();
         const [, pressed, latched] = this._keyController.get_state();
 
-        // If user has a modifier down then don't handle the key presses
         if (pressed || latched)
             return Clutter.EVENT_PROPAGATE;
 
@@ -1123,14 +1079,6 @@ export class PopupMenu extends PopupMenuBase {
             : BoxPointer.PopupAnimation.FULL;
     }
 
-    /**
-     * @param {object} params
-     * @param {bool} [params.animate=true] whether to animate the transition
-     * @param {bool} [params.fadeOnly=false] whether to skip motion bits of the animation
-     * @param {Clutter.Event} [params.triggerEvent] the keyboard/mouse event that triggered opening this
-     *
-     * @returns {bool} whether the open state changed
-     */
     open(params = {}) {
         if (!super.open(params))
             return false;
@@ -1146,23 +1094,12 @@ export class PopupMenu extends PopupMenuBase {
 
         this.actor.get_parent().set_child_above_sibling(this.actor, null);
 
-        /* The position calculation expects the source actor allocation to be
-         * up to date, so queue relayout on parent to ensure it gets allocated
-         * first.
-         */
         if (!this.sourceActor?.has_allocation())
             this.sourceActor?.get_parent().queue_relayout();
 
         return true;
     }
 
-    /**
-     * @param {object} params
-     * @param {bool} [params.animate=true] whether to animate the transition
-     * @param {bool} [params.fadeOnly=false] whether to skip motion bits of the animation
-     *
-     * @returns {bool} whether the open state changed
-     */
     close(params) {
         if (this._activeMenuItem)
             this._activeMenuItem.active = false;
@@ -1232,9 +1169,6 @@ export class PopupSubMenu extends PopupMenuBase {
 
         this._arrow = sourceArrow;
 
-        // Since a function of a submenu might be to provide a "More.." expander
-        // with long content, we make it scrollable - the scrollbar will only take
-        // effect if a CSS max-height is set on the top menu.
         this.actor = new St.ScrollView({
             style_class: 'popup-sub-menu',
             vscrollbar_policy: St.PolicyType.NEVER,
@@ -1268,13 +1202,6 @@ export class PopupSubMenu extends PopupMenuBase {
         return this.getSensitive();
     }
 
-    /**
-     * @param {object} params
-     * @param {bool} [params.animate=true] whether to animate the transition
-     * @param {Clutter.Event} [params.triggerEvent] the keyboard/mouse event that triggered opening this
-     *
-     * @returns {bool} whether the open state changed
-     */
     open(params = {}) {
         if (!super.open(params))
             return false;
@@ -1282,11 +1209,6 @@ export class PopupSubMenu extends PopupMenuBase {
         let {animate = true} = params;
         const needsScrollbar = this._needsScrollbar();
 
-        // St.ScrollView always requests space horizontally for a possible vertical
-        // scrollbar if in AUTOMATIC mode. Doing better would require implementation
-        // of width-for-height in St.BoxLayout and St.ScrollView. This looks bad
-        // when we *don't* need it, so turn off the scrollbar when that's true.
-        // Dynamic changes in whether we need it aren't handled properly.
         this.actor.vscrollbar_policy =
             needsScrollbar ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER;
 
@@ -1295,8 +1217,6 @@ export class PopupSubMenu extends PopupMenuBase {
         else
             this.actor.remove_style_pseudo_class('scrolled');
 
-        // It looks funny if we animate with a scrollbar (at what point is
-        // the scrollbar added?) so just skip that case
         if (animate && needsScrollbar)
             animate = false;
 
@@ -1319,12 +1239,6 @@ export class PopupSubMenu extends PopupMenuBase {
         return true;
     }
 
-    /**
-     * @param {object} params
-     * @param {bool} [params.animate=true] whether to animate the transition
-     *
-     * @returns {bool} whether the open state changed
-     */
     close(params = {}) {
         if (!super.close(params))
             return false;
@@ -1355,7 +1269,6 @@ export class PopupSubMenu extends PopupMenuBase {
     }
 
     _onKeyPress(controller) {
-        // Move focus back to parent menu if the user types Left.
         const [, symbol] = controller.get_key();
 
         if (this.isOpen && symbol === Clutter.KEY_Left) {
@@ -1368,14 +1281,6 @@ export class PopupSubMenu extends PopupMenuBase {
     }
 }
 
-/**
- * PopupMenuSection:
- *
- * A section of a PopupMenu which is handled like a submenu
- * (you can add and remove items, you can destroy it, you
- * can add it to another menu), but is completely transparent
- * to the user
- */
 export class PopupMenuSection extends PopupMenuBase {
     constructor() {
         super();
@@ -1387,8 +1292,6 @@ export class PopupMenuSection extends PopupMenuBase {
         this.actor.add_style_class_name('popup-menu-section');
     }
 
-    // deliberately ignore any attempt to open() or close(), but emit the
-    // corresponding signal so children can still pick it up
     open() {
         this.emit('open-state-changed', true);
     }
@@ -1500,9 +1403,6 @@ export class PopupSubMenuMenuItem extends PopupBaseMenuItem {
     }
 };
 
-/* Basic implementation of a menu manager.
- * Call addMenu to add menus
- */
 export class PopupMenuManager {
     constructor(owner, grabParams) {
         this._grabParams = Params.parse(grabParams,
@@ -1560,7 +1460,7 @@ export class PopupMenuManager {
         }
 
         const position = this._menus.indexOf(menu);
-        if (position === -1) // not a menu we manage
+        if (position === -1)
             return;
 
         menu.disconnectObject(this);
@@ -1667,9 +1567,6 @@ export class PopupMenuManager {
     }
 
     _closeMenu(isUser, menu) {
-        // If this isn't a user action, we called close()
-        // on the BoxPointer ourselves, so we shouldn't
-        // reanimate.
         if (isUser)
             menu.close();
     }

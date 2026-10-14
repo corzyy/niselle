@@ -2,13 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// Untermenü der Quick-Settings (.quick-toggle-menu, QuickToggleMenu) [quickSettings.js:371-502, _quick-settings.scss:150-203].
-// Karte mit Kopf (Icon-Kreis, Titel, Untertitel) und Einträgen. Die Höhe des Platzhalters im Layout wächst zuerst
-// (200 ms, EASE_OUT_QUAD), danach blendet die Karte ein (200 ms); Schließen läuft umgekehrt. Die Karte selbst
-// bleibt bis zum Einblenden unsichtbar, sie wächst nicht sichtbar mit.
-//
-// `height` ist die belegte Höhe im Layout (0 = zu); die Karte liegt oben bündig und hat ihre natürliche Höhe.
-// Einträge (PopupMenuItem) schließen beim Aktivieren dieses Untermenü, nicht das ganze Popup.
 Item {
     id: root
 
@@ -16,15 +9,11 @@ Item {
     property string headerIcon: ""
     property string headerTitle: ""
     property string headerSubtitle: ""
-    // Kopf-Icon in Akzentfarbe, wenn die zugehörige Kachel an ist (.active)
     property bool headerActive: false
 
-    // Einträge unter dem Kopf
     default property alias content: column.data
-    // Elemente rechts im Kopf (z. B. Ladekreis)
     property alias headerSuffix: suffix.data
 
-    // Anteil der geöffneten Höhe (0..1) und Deckkraft der Karte
     property real reveal: 0
     property real fade: 0
 
@@ -32,10 +21,8 @@ Item {
     readonly property real naturalHeight: card.implicitHeight
 
     signal closed
-    // Schließwunsch (PopupMenuItem): der Besitzer setzt `open` über seine Bindung zurück
     signal closeRequested
 
-    // Wird von PopupMenuItem in der Elternkette gesucht
     readonly property var menuOwner: root
 
     function close() {
@@ -46,7 +33,6 @@ Item {
     height: reveal * naturalHeight
 
     onOpenChanged: {
-        // Gamemode: Höhe und Deckkraft sofort setzen, ohne Animation
         if (Theme.gameMode) {
             openAnimation.stop();
             closeAnimation.stop();
@@ -65,7 +51,6 @@ Item {
         }
     }
 
-    // Öffnen: erst Höhe (Dauer anteilig zur Strecke), dann Deckkraft [quickSettings.js:400-428]
     SequentialAnimation {
         id: openAnimation
 
@@ -85,7 +70,6 @@ Item {
         }
     }
 
-    // Schließen: erst ausblenden (Dauer anteilig zur Deckkraft), dann Höhe einfahren [quickSettings.js:437-461]
     SequentialAnimation {
         id: closeAnimation
 
@@ -134,7 +118,6 @@ Item {
             anchors.fill: parent
             spacing: 0
 
-            // Kopf [_quick-settings.scss:163-203]
             RowLayout {
                 visible: root.headerTitle !== ""
                 Layout.fillWidth: true

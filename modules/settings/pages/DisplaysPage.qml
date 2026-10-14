@@ -5,15 +5,11 @@ import qs.services
 import qs.components
 import ".."
 
-// Anzeigen wie in GNOME Settings: Anordnungsvorschau (ziehen zum Anordnen), Anzeigeart (Erweitern/Spiegeln),
-// Primäranzeige und eine Liste der Monitore mit Unterseite je Monitor.
-// Änderungen laufen über einen Entwurf (DisplayService) und werden mit Leiste „Abbrechen/Übernehmen“ bestätigt.
 SettingsPage {
     id: root
 
     signal navigate(string panel)
 
-    // ───────── Übernehmen / Verwerfen (von SettingsWindow gelesen) ─────────
     readonly property bool showingApplyBar: DisplayService.dirty
     property bool confirmOpen: false
     property int countdown: 20
@@ -38,7 +34,6 @@ SettingsPage {
         DisplayService.revertApply();
     }
 
-    // Wird die Seite während der Rückfrage geschlossen, fällt die Anzeige auf den alten Stand zurück
     Component.onDestruction: {
         if (root.confirmOpen)
             DisplayService.revertApply();
@@ -74,10 +69,8 @@ SettingsPage {
         onButtonClicked: id => id === "keep" ? root.keepChanges() : root.revertChanges()
     }
 
-    // ───────── Abgeleitete Werte ─────────
     readonly property bool multi: DisplayService.outputCount > 1
     readonly property bool mirror: DisplayService.configMode === "mirror"
-    // Monitor, dessen Einstellungen auf der Hauptseite erscheinen (ein Monitor bzw. Spiegeln)
     readonly property var sourceMonitor: DisplayService.selectedOutput ?? (DisplayService.enabledOutputs.length > 0 ? DisplayService.enabledOutputs[0] : null)
 
     readonly property var arrangementMonitors: DisplayService.outputs.filter(o => DisplayService._d(o).enabled).map(o => ({
@@ -91,7 +84,6 @@ SettingsPage {
                 "selected": o.name === DisplayService.selected
             }))
 
-    // ───────── Keine Anzeige ─────────
     PrefGroup {
         visible: DisplayService.loaded && DisplayService.outputCount === 0
 
@@ -102,7 +94,6 @@ SettingsPage {
         }
     }
 
-    // ───────── Anzeigeart (nur bei mehreren Monitoren) ─────────
     PrefGroup {
         visible: root.multi
 
@@ -123,11 +114,9 @@ SettingsPage {
         }
     }
 
-    // ───────── Anordnung, Primäranzeige, Monitorliste (Erweitern) ─────────
     PrefGroup {
         visible: root.multi && !root.mirror
 
-        // Anordnungsvorschau
         Item {
             Layout.fillWidth: true
             width: parent ? parent.width : 0
@@ -144,7 +133,6 @@ SettingsPage {
             }
         }
 
-        // Primäranzeige
         ChoiceRow {
             title: "Primary Display"
             choices: DisplayService.enabledOutputs.map(o => ({
@@ -155,7 +143,6 @@ SettingsPage {
             onPicked: name => DisplayService.setPrimary(name)
         }
 
-        // Ausgewählte Anzeige zur Primäranzeige machen
         ActionRow {
             title: "Make Primary"
             subtitle: "Use the selected display for the top bar and Activities"
@@ -166,7 +153,6 @@ SettingsPage {
             }
         }
 
-        // Monitore (Klick öffnet die Unterseite); auch abgeschaltete Anzeigen werden gelistet
         Repeater {
             model: DisplayService.outputs
 
@@ -184,7 +170,6 @@ SettingsPage {
         }
     }
 
-    // ───────── Monitor-Einstellungen (ein Monitor oder Spiegeln) ─────────
     PrefGroup {
         visible: DisplayService.loaded && root.sourceMonitor !== null && (!root.multi || root.mirror)
 

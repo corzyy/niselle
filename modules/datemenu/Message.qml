@@ -6,10 +6,6 @@ import Quickshell.Widgets
 import qs
 import qs.components
 
-// Nachricht (.message) [messageList.js Message, _message-list.scss:86-215]: Karte mit Kopf (Quellsymbol, Name, Zeit,
-// Aufklappen, Schließen), Inhalt (Symbol 48px, Titel fett, Text) und Aktionsleiste. Der Text steht eingeklappt in einer
-// Zeile und klappt auf bis zu 6 Zeilen auf, Aktionen erscheinen erst aufgeklappt (200 ms EASE_OUT_QUAD, Pfeil dreht um
-// 180°). `stackLevel` färbt die Karte im Stapel (0 oben, 1 zweite, 2 tiefer).
 Card {
     id: root
 
@@ -18,26 +14,20 @@ Card {
     property string title: ""
     property string body: ""
     property string timeText: ""
-    // Symbol der Nachricht: Bild-URL, Pfad oder Symbolname; leer: kein Symbol
     property string iconSource: ""
-    // Albumcover (Medienkarte): abgerundetes Bild bzw. Notensymbol
     property bool media: false
     property bool closable: true
-    // Banner: Aufklapp-Knopf ausgeblendet, Schließen-Knopf nur bei Hover
     property bool expandable: true
     property real closeOpacity: 1
-    // [{ label, trigger: function }], höchstens 3 sichtbar [messageList.js MAX_NOTIFICATION_BUTTONS]
     property var actions: []
     property int stackLevel: 0
     property bool expanded: false
-    // Fokus-Tastenkürzel: Entf/Rücktaste schließen
     property alias controls: controlsRow.data
 
     property real expansion: expanded ? 1 : 0
     readonly property bool canExpand: expanded || actions.length > 0 || measure.lineCount > 1
 
     signal closeRequested
-    // Der Nutzer klappt auf/zu; die Gruppe reagiert (eine eingeklappte Gruppe klappt selbst auf)
     signal expandRequested(bool expand)
 
     function toggleExpanded() {
@@ -68,7 +58,6 @@ Card {
         anchors.fill: parent
         spacing: 0
 
-        // ───────── Kopf ─────────
         RowLayout {
             Layout.fillWidth: true
             Layout.leftMargin: Theme.messageHeaderButtonPadding
@@ -159,14 +148,12 @@ Card {
             }
         }
 
-        // ───────── Inhalt ─────────
         RowLayout {
             Layout.fillWidth: true
             Layout.margins: Theme.messagePadding
             Layout.topMargin: 0
             spacing: 0
 
-            // Symbol: 48px; symbolische Symbole auf einem Kreis, Cover mit Radius 8
             Item {
                 id: iconBox
 
@@ -241,7 +228,6 @@ Card {
                     font.weight: Theme.fontWeightBold
                 }
 
-                // Text: eine Zeile, aufgeklappt bis zu 6 [LabelExpanderLayout]
                 Item {
                     id: bodyBin
 
@@ -292,7 +278,6 @@ Card {
             }
         }
 
-        // ───────── Aktionen ─────────
         Item {
             id: actionBin
 

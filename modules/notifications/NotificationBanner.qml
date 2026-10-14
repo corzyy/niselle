@@ -6,15 +6,9 @@ import qs
 import qs.services
 import qs.modules.datemenu
 
-// Banner-Benachrichtigung (#notification-container, .notification-banner) [messageTray.js, _notifications.scss]:
-// oben mittig unter dem Panel, immer nur ein Banner, weitere warten in der Warteschlange und schauen als Stapel darunter
-// hervor. Einblenden 200 ms (Deckkraft EASE_OUT_QUAD; Position und Skalierung 0.9→1 EASE_OUT_BACK), Ausblenden nach oben.
-// Unter dem Zeiger steht der Timer still und der Banner klappt auf (Text bis 6 Zeilen, Aktionen); kritische klappen
-// sofort auf und bleiben stehen. Erscheint nur auf dem Monitor, der beim Einblenden fokussiert war.
 PanelWindow {
     id: root
 
-    // Zuletzt angezeigter Banner: bleibt während des Ausblendens erhalten
     property var current: null
     property bool shown: false
 
@@ -36,7 +30,6 @@ PanelWindow {
     onShownChanged: {
         if (shown) {
             hideAnim.stop();
-            // Neu: von oben, durchsichtig und verkleinert starten; ein sich gerade ausblendender Banner kehrt zurück
             if (bin.opacity === 0) {
                 bin.y = -bin.height;
                 bin.scale = Theme.notificationBannerScaleFrom;
@@ -56,7 +49,6 @@ PanelWindow {
     color: "transparent"
     visible: shown || showAnim.running || hideAnim.running
 
-    // Nur der Banner nimmt Eingaben an, der Rest des Fensters lässt sie durch
     mask: Region {
         item: bin
     }
@@ -126,12 +118,10 @@ PanelWindow {
             id: hover
         }
 
-        // Wartende Banner: Stapel unter dem aktuellen wie bei Benachrichtigungsgruppen [messageList.js]
         Item {
             id: stack
 
             readonly property int levels: Math.min(NotificationService.queueCount, Theme.groupMaxVisibleStacked - 1)
-            // Überstand des Stapels unter dem Banner
             property real extra: {
                 let e = 0, o = Theme.groupStackHeightOffset;
                 for (let i = 0; i < levels; i++) {

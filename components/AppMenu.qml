@@ -5,12 +5,6 @@ import qs
 import qs.services
 import qs.components
 
-// Kontextmenü einer App (.app-menu) [appMenu.js, _popovers.scss:143-155]: Offene Fenster, Neues Fenster,
-// Desktop-Actions, Anheften/Lösen, Beenden. Ein Menü für ein ganzes Dash bzw. Raster, `target` ist der Eintrag, an dem es hängt
-// (braucht die Eigenschaften `entry`, `windows`, `label`).
-// Trennlinien erscheinen nur zwischen sichtbaren Abschnitten [popupMenu.js: _updateSeparatorVisibility].
-// Lage [appDisplay.js: popupMenuSide]: im Dash über dem Eintrag (Pfeil unten, Qt.BottomEdge), im App-Grid rechts neben der
-// Kachel (Pfeil links, Qt.LeftEdge).
 PopupMenu {
     id: root
 
@@ -57,10 +51,8 @@ PopupMenu {
     anchor.gravity: root.sideways ? (root.arrowSide === Qt.LeftEdge ? Edges.Right : Edges.Left) : Edges.Top
     anchor.adjustment: root.sideways ? PopupAdjustment.Slide | PopupAdjustment.Flip : PopupAdjustment.None
 
-    // Klick außerhalb schließt über den Fokus-Grab. NISELLE_QS_NOGRAB=1 schaltet ihn ab (Screenshots per IPC ohne Klick).
     grabFocus: Quickshell.env("NISELLE_QS_NOGRAB") !== "1"
 
-    // Offene Fenster: Überschrift (%caption_heading), dann ein Eintrag je Fenster
     ColumnLayout {
         visible: root.showWindows
         Layout.fillWidth: true
@@ -99,7 +91,6 @@ PopupMenu {
         }
     }
 
-    // Neues Fenster und Desktop-Actions
     ColumnLayout {
         visible: root.showLaunch
         Layout.fillWidth: true

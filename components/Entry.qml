@@ -2,9 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// Eingabefeld (StEntry / StPasswordEntry) [_common.scss:175-195, _drawing.scss:85-150]: Radius 8, Padding 9/12,
-// Hintergrund aus Vorder- und Hintergrundfarbe gemischt, Fokus = 2px-Ring in Akzent. Als Passwortfeld mit
-// Auge zum Anzeigen (St.PasswordEntry, show-peek-icon).
 Item {
     id: root
 
@@ -12,7 +9,6 @@ Item {
     property string placeholderText: ""
     property bool password: false
     property real paddingV: Theme.entryPaddingV
-    // Passwort sichtbar (nur bei password)
     property bool revealed: false
 
     readonly property bool hovered: hover.hovered
@@ -45,7 +41,6 @@ Item {
         }
     }
 
-    // Fokusring
     Rectangle {
         anchors.fill: parent
         radius: Theme.radiusEntry

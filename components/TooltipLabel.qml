@@ -1,7 +1,6 @@
 import QtQuick
 import qs
 
-// Tooltip (%tooltip) [_common.scss:225-232, _dash.scss:103-106]: fast schwarze Pille mit hellem Rand, zentrierter Text
 Rectangle {
     id: root
 

@@ -2,9 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// Quick-Settings-Toggle (.quick-toggle / .quick-toggle-has-menu) [_quick-settings.scss:15-136]:
-// Pille 12em × 48px, Icon 16px, Titel (heading, bold), Untertitel (caption). Checked = Akzent-Stil (default).
-// Mit `hasMenu`: zweites Segment mit Pfeil und 1px-Trenner.
 Item {
     id: root
 
@@ -14,16 +11,13 @@ Item {
     property bool checked: false
     property bool hasMenu: false
     property string menuIcon: "go-next-symbolic"
-    // false: Icon unverändert (farbig) darstellen, z. B. die israelische Flagge der BigYahoo-Kachel
     property bool iconSymbolic: true
 
     readonly property string buttonState: Theme.buttonState(main.containsMouse, main.pressed, false, enabled, activeFocus)
     readonly property string menuButtonState: Theme.buttonState(menu.containsMouse, menu.pressed, false, enabled, false)
 
-    // Vordergrund der Hauptfläche
     readonly property color fg: checked ? Theme.accentFg : Theme.fgColor
 
-    // Halbe Höhe statt Theme.radiusPill: der schmale Pfeil-Abschnitt würde 999 sonst auf seine halbe Breite kappen
     readonly property real pillRadius: height / 2
 
     signal clicked
@@ -33,7 +27,6 @@ Item {
     implicitHeight: Theme.quickToggleHeight
     activeFocusOnTab: true
 
-    // Hauptsegment: bei checked button(..., $style: default) mit Akzent [_common.scss:122-128]
     Rectangle {
         id: mainBg
 
@@ -78,7 +71,6 @@ Item {
 
     RowLayout {
         anchors.fill: mainBg
-        // Padding im Inneren, damit Menüpfeile bis zum Rand reichen [_quick-settings.scss:28-35]
         anchors.leftMargin: Theme.quickToggleIconLeading
         anchors.rightMargin: root.hasMenu ? Theme.basePadding * 1.5 : Theme.quickToggleHPadding
         spacing: Theme.quickToggleSpacing
@@ -126,7 +118,6 @@ Item {
         onClicked: root.clicked()
     }
 
-    // Trenner
     Rectangle {
         visible: root.hasMenu
         x: mainBg.width
@@ -135,7 +126,6 @@ Item {
         color: root.checked ? Theme.quickToggleCheckedSeparator : Theme.quickToggleSeparator
     }
 
-    // Menü-Segment: volle Pillenform, auf die Segmentbreite zugeschnitten (Qt kappt Eckenradien sonst auf die halbe Breite)
     Item {
         id: menuSegment
 

@@ -5,21 +5,14 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
-// Gamemode: schaltet in Hyprland den Fenster- und Bewegungs-Blur sowie alle Animationen ab, um GPU-Last zu senken.
-// Beim Einschalten werden die aktuellen Werte gelesen und gemerkt, beim Ausschalten wiederhergestellt.
-// Werte werden zur Laufzeit per `hyprctl` gesetzt (Lua: `hyprctl eval`, sonst `keyword`) und gelten bis zum
-// Neuladen der Hyprland-Konfiguration. Die Shell-Animationen und -Schatten hängen an Theme.gameMode, das in
-// shell.qml an SettingsService.gameMode gebunden ist.
 Singleton {
     id: root
 
     readonly property bool available: Hyprland.monitors.values.length > 0
     readonly property bool usingLua: Hyprland.usingLua
 
-    // An SettingsService.gameMode gebundenes Zustandssignal
     readonly property bool active: SettingsService.gameMode
 
-    // Optionen, die Gamemode abschaltet (Hyprland-Pfad für getoption/keyword)
     readonly property var options: [
         {
             "path": "decoration:blur:enabled"
@@ -32,9 +25,7 @@ Singleton {
         }
     ]
 
-    // Gemerkte Werte vor dem Einschalten (Hyprland-Pfad → bool)
     property var saved: ({})
-    // Läuft noch das Auslesen der aktuellen Werte?
     property bool reading: false
     property int pending: 0
 
@@ -55,7 +46,6 @@ Singleton {
         setter.running = true;
     }
 
-    // Aktuelle Werte merken, danach Blur und Animationen abschalten
     function enable() {
         if (!available || reading)
             return;
@@ -70,7 +60,6 @@ Singleton {
         }
     }
 
-    // Gemerkte Werte wiederherstellen
     function disable() {
         if (!available || reading || Object.keys(saved).length === 0)
             return;
@@ -104,7 +93,6 @@ Singleton {
                     root.pending -= 1;
                     if (root.pending <= 0 && root.reading) {
                         root.reading = false;
-                        // Beim Ausschalten noch während des Lesens die gemerkten Werte zurücknehmen
                         if (root.active)
                             root.apply(false, false, false);
                         else

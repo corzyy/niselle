@@ -3,17 +3,12 @@ import qs
 import qs.services
 import qs.components
 
-// Suchfeld der Übersicht (.search-entry) [_search-entry.scss, searchController.js: SearchEntry].
-// Pille in voller Breite (24em), System-Farben (immer dunkel): führendes Lupensymbol, danach das Eingabefeld,
-// rechts ein Löschen-Knopf, sobald etwas eingegeben ist. Jede Änderung setzt `SearchService.text` und startet
-// damit sofort die Suche. Tastatur (Pfeile, Enter, Esc) wird über Signale an die Übersicht gereicht.
 Item {
     id: root
 
     readonly property alias text: input.text
     readonly property bool focused: input.activeFocus
 
-    // Abstand oben/unten des Suchfelds [_search-entry.scss:4-5]
     implicitWidth: Theme.searchEntryWidth
     implicitHeight: Math.max(field.height, input.implicitHeight + 2 * Theme.entryPaddingV) + Theme.searchEntryMarginTop + Theme.searchEntryMarginBottom
 
@@ -25,7 +20,6 @@ Item {
         input.forceActiveFocus();
     }
 
-    // Eingabe und Diensteingabe angleichen (reset() leert den Dienst)
     onTextChanged: {
         if (SearchService.text !== root.text)
             SearchService.text = root.text;
@@ -57,7 +51,6 @@ Item {
             }
         }
 
-        // Klick in das Feld setzt den Fokus (liegt unter Feld und Knopf)
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
@@ -121,7 +114,6 @@ Item {
             }
         }
 
-        // Löschen-Knopf [searchController.js: _clearIcon]
         IconButton {
             id: clearButton
             visible: input.text !== ""

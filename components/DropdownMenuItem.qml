@@ -1,8 +1,6 @@
 import QtQuick
 import qs
 
-// Eintrag in einem Dropdown-Popover im Libadwaita-Stil (z. B. Sortier-Auswahl): links ein Auswahlpunkt
-// (Ring, gefüllt wenn ausgewählt), dann die Beschriftung; Hover- und Auswahlhintergrund.
 Item {
     id: root
 
@@ -22,7 +20,6 @@ Item {
         color: root.hovered ? Theme.alpha(Theme.windowFg, 0.08) : (root.selected ? Theme.alpha(Theme.windowFg, 0.06) : "transparent")
     }
 
-    // Auswahlpunkt
     Rectangle {
         x: 12
         anchors.verticalCenter: parent.verticalCenter

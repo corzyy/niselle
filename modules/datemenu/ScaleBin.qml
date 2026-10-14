@@ -1,15 +1,10 @@
 import QtQuick
 import qs
 
-// Behälter mit ScaleLayout [messageList.js:159-224]: Der Inhalt skaliert um seine Mitte, die Höhe folgt der Skalierung.
-// Erscheinen und Verschwinden dauern MESSAGE_ANIMATION_TIME (100 ms, EASE_OUT_QUAD). Nach dem Verkleinern auf 0 kommt
-// `hidden`; der Besitzer entfernt den Eintrag dann.
 Item {
     id: root
 
-    // Soll sichtbar sein (false: verkleinern und entfernen)
     property bool shown: true
-    // Beim Erzeugen aufblenden (sonst sofort voll da)
     property bool animateIn: true
     property real amount: animateIn ? 0 : 1
     property bool scalingEnabled: true

@@ -4,9 +4,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Systeminformationen für die Einstellungen (Über): Gerätename, Betriebssystem, Kernel, Hardware.
-// Erst beim Öffnen der Einstellungen per Shell-Skript gelesen (kein Polling, kein Startaufwand);
-// `reload()` liest neu, z. B. nach dem Umbenennen.
 Singleton {
     id: root
 
@@ -14,7 +11,6 @@ Singleton {
     property string osName: ""
     property string osBuild: ""
     property string osType: ""
-    // Icon-Name des Distributions-Logos (os-release LOGO), z. B. "fedora-logo-icon"
     property string osLogo: ""
     property string virtualization: ""
     property string kernel: ""
@@ -31,7 +27,6 @@ Singleton {
         reader.running = true;
     }
 
-    // Anzeigenamen setzen (hostnamectl --pretty); Rückfrage übernimmt polkit
     function setDeviceName(name) {
         const n = name.trim();
         if (n === "" || n === root.deviceName)

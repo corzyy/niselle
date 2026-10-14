@@ -1,26 +1,11 @@
 .pragma library
 
-// Anordnung der Fenstervorschauen: Port von UnalignedLayoutStrategy und WorkspaceLayout [workspace.js:26-385, 478-640].
-// Rein rechnerisch, ohne UI. Alle Längen in Pixeln.
-//
-// Eingabe `windows`: [{ x, y, width, height }] – Fenstergröße samt Position auf dem Monitor (boundingBox)
-// `opts`:
-//   monitorHeight   Höhe des Monitors (für die Fenster-Skalierung)
-//   workarea        {x, y, width, height}: Arbeitsfläche, nach der die Zeilenzahl gewählt wird
-//   container       {x, y, width, height}: Fläche, in die die Vorschauen gelegt werden
-//   spacing         Abstand zwischen den Vorschauen (.window-picker spacing)
-//   oversize        größte Überhangbreite des Beiwerks (Icon, Schließen-Knopf, Hervorhebung)
-//   bottomOverlap   Höhe des Titels samt Abstand unter der Vorschau
-//   monitorBottomFree  freier Platz zwischen Containerunterkante und Monitorunterkante
-//   maxScale, scaleWeight, spaceWeight
-// Rückgabe: [{ x, y, width, height }] in der Reihenfolge von `windows`
 
 function lerp(a, b, t) {
     return a + (b - a) * t;
 }
 
 function windowScale(win, monitorHeight) {
-    // Höhe ist wichtiger als Breite, kleine Fenster werden bis 1.5-fach vergrößert [workspace.js:155-170]
     return lerp(1.5, 1, win.height / monitorHeight);
 }
 
@@ -31,7 +16,6 @@ function computeLayout(windows, numRows, o) {
         totalWidth += w.width * windowScale(w, o.monitorHeight);
     const idealRowWidth = totalWidth / numRows;
 
-    // Vertikal sortieren: bestimmt die Zeile [workspace.js:226-229]
     const sorted = windows.slice().sort((a, b) => (a.y + a.height / 2) - (b.y + b.height / 2));
 
     let idx = 0;
@@ -58,7 +42,6 @@ function computeLayout(windows, numRows, o) {
     let gridHeight = 0;
     let maxRow = null;
     for (const row of rows) {
-        // Horizontal sortieren: Reihenfolge in der Zeile [workspace.js:206-210]
         row.windows.sort((a, b) => (a.x + a.width / 2) - (b.x + b.width / 2));
         if (!maxRow || row.fullWidth > maxRow.fullWidth)
             maxRow = row;
@@ -156,7 +139,6 @@ function computeSlots(layout, area, rowSpacing, colSpacing, o) {
             const cloneHeight = w.height * s;
 
             const cloneX = x + (cellWidth - cloneWidth) / 2;
-            // Eine Zeile: mittig, sonst unten bündig [workspace.js:362-367]
             const cloneY = rows.length === 1 ? rowY + (rowHeight - cloneHeight) / 2 : rowY + rowHeight - cellHeight;
 
             slots[w.index] = {
@@ -203,7 +185,6 @@ function compute(windows, o) {
         lastSpace = space;
     }
 
-    // Unterkante des Containers kürzen, wenn Titel und Icon über den Monitor ragen [workspace.js:496-505]
     const c = o.container;
     let height = c.height;
     if (o.bottomOverlap + o.oversize > o.monitorBottomFree)

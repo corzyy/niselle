@@ -4,10 +4,6 @@ import qs
 import qs.services
 import qs.components
 
-// Aufnahme und Bildschirmfreigabe mit Knopf zum Beenden [GNOME-Mockup system-status-indicators]: roter Pille mit Dauer und
-// Stopp-Symbol, orange Pille mit Freigabe-Symbol und ✕. Beides sind die Anzeigen, bei denen ein sofortiger Weg zum Beenden
-// zählt; Kamera, Mikrofon und Standort sind nur Anzeigen (QuickSettingsButton). Die Freigabe-Pille erscheint nur, wenn
-// sich die Freigabe beenden lässt (pw-cli); sonst zeigt die Statuspille ein Symbol.
 RowLayout {
     id: root
 

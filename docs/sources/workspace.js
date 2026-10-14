@@ -19,85 +19,11 @@ const WINDOW_PREVIEW_MAXIMUM_SCALE = 0.95;
 
 const WINDOW_REPOSITIONING_DELAY = 750;
 
-// When calculating a layout, we calculate the scale of windows and the percent
-// of the available area the new layout uses. If the values for the new layout,
-// when weighted with the values as below, are worse than the previous layout's,
-// we stop looking for a new layout and use the previous layout.
-// Otherwise, we keep looking for a new layout.
 const LAYOUT_SCALE_WEIGHT = 1;
 const LAYOUT_SPACE_WEIGHT = 0.1;
 
 const BACKGROUND_CORNER_RADIUS_PIXELS = 30;
 
-// Window Thumbnail Layout Algorithm
-// =================================
-//
-// General overview
-// ----------------
-//
-// The window thumbnail layout algorithm calculates some optimal layout
-// by computing layouts with some number of rows, calculating how good
-// each layout is, and stopping iterating when it finds one that is worse
-// than the previous layout. A layout consists of which windows are in
-// which rows, row sizes and other general state tracking that would make
-// calculating window positions from this information fairly easy.
-//
-// After a layout is computed that's considered the best layout, we
-// compute the layout scale to fit it in the area, and then compute
-// slots (sizes and positions) for each thumbnail.
-//
-// Layout generation
-// -----------------
-//
-// Layout generation is naive and simple: we simply add windows to a row
-// until we've added too many windows to a row, and then make a new row,
-// until we have our required N rows. The potential issue with this strategy
-// is that we may have too many windows at the bottom in some pathological
-// cases, which tends to make the thumbnails have the shape of a pile of
-// sand with a peak, with one window at the top.
-//
-// Scaling factors
-// ---------------
-//
-// Thumbnail position is mostly straightforward -- the main issue is
-// computing an optimal scale for each window that fits the constraints,
-// and doesn't make the thumbnail too small to see. There are two factors
-// involved in thumbnail scale to make sure that these two goals are met:
-// the window scale (calculated by _computeWindowScale) and the layout
-// scale (calculated by computeSizeAndScale).
-//
-// The calculation logic becomes slightly more complicated because row
-// and column spacing are not scaled, they're constant, so we can't
-// simply generate a bunch of window positions and then scale it. In
-// practice, it's not too bad -- we can simply try to fit the layout
-// in the input area minus whatever spacing we have, and then add
-// it back afterwards.
-//
-// The window scale is constant for the window's size regardless of the
-// input area or the layout scale or rows or anything else, and right
-// now just enlarges the window if it's too small. The fact that this
-// factor is stable makes it easy to calculate, so there's no sense
-// in not applying it in most calculations.
-//
-// The layout scale depends on the input area, the rows, etc, but is the
-// same for the entire layout, rather than being per-window. After
-// generating the rows of windows, we basically do some basic math to
-// fit the full, unscaled layout to the input area, as described above.
-//
-// With these two factors combined, the final scale of each thumbnail is
-// simply windowScale * layoutScale... almost.
-//
-// There's one additional constraint: the thumbnail scale must never be
-// larger than WINDOW_PREVIEW_MAXIMUM_SCALE, which means that the inequality:
-//
-//   windowScale * layoutScale <= WINDOW_PREVIEW_MAXIMUM_SCALE
-//
-// must always be true. This is for each individual window -- while we
-// could adjust layoutScale to make the largest thumbnail smaller than
-// WINDOW_PREVIEW_MAXIMUM_SCALE, it would shrink windows which are already
-// under the inequality. To solve this, we simply cheat: we simply keep
-// each window's "cell" area to be the same, but we shrink the thumbnail
-// and center it horizontally, and align it to the bottom vertically.
 
 export class LayoutStrategy {
     constructor(params) {
@@ -115,28 +41,14 @@ export class LayoutStrategy {
         this._columnSpacing = params.columnSpacing;
     }
 
-    // Compute a strategy-specific overall layout given a list of WindowPreviews
-    // @windows and the strategy-specific @layoutParams.
-    //
-    // Returns a strategy-specific layout object that is opaque to the user.
     computeLayout(_windows, _layoutParams) {
         throw new GObject.NotImplementedError(`computeLayout in ${this.constructor.name}`);
     }
 
-    // Given @layout and @area, compute the overall scale of the layout and
-    // space occupied by the layout.
-    //
-    // This method returns an array where the first element is the scale and
-    // the second element is the space.
-    //
-    // This method must be called before calling computeWindowSlots(), as it
-    // sets the fixed overall scale of the layout.
     computeScaleAndSpace(_layout, _area) {
         throw new GObject.NotImplementedError(`computeScaleAndSpace in ${this.constructor.name}`);
     }
 
-    // Returns an array with final position and size information for each
-    // window of the layout, given a bounding area that it will be inside of.
     computeWindowSlots(_layout, _area) {
         throw new GObject.NotImplementedError(`computeWindowSlots in ${this.constructor.name}`);
     }
@@ -144,17 +56,6 @@ export class LayoutStrategy {
 
 class UnalignedLayoutStrategy extends LayoutStrategy {
     _newRow() {
-        // Row properties:
-        //
-        // * x, y are the position of row, relative to area
-        //
-        // * width, height are the scaled versions of fullWidth, fullHeight
-        //
-        // * width also has the spacing in between windows. It's not in
-        //   fullWidth, as the spacing is constant, whereas fullWidth is
-        //   meant to be scaled
-        //
-        // * neither height/fullHeight have any sort of spacing or padding
         return {
             x: 0, y: 0,
             width: 0, height: 0,
@@ -163,21 +64,10 @@ class UnalignedLayoutStrategy extends LayoutStrategy {
         };
     }
 
-    // Computes and returns an individual scaling factor for @window,
-    // to be applied in addition to the overall layout scale.
     _computeWindowScale(window) {
-        // Since we align windows next to each other, the height of the
-        // thumbnails is much more important to preserve than the width of
-        // them, so two windows with equal height, but maybe differering
-        // widths line up.
         const ratio = window.boundingBox.height / this._monitor.height;
 
-        // The purpose of this manipulation here is to prevent windows
-        // from getting too small. For something like a calculator window,
-        // we need to bump up the size just a bit to make sure it looks
-        // good. We'll use a multiplier of 1.5 for this.
 
-        // Map from [0, 1] to [1.5, 1]
         return Util.lerp(1.5, 1, ratio);
     }
 
@@ -204,8 +94,6 @@ class UnalignedLayoutStrategy extends LayoutStrategy {
     }
 
     _sortRow(row) {
-        // Sort windows horizontally to minimize travel distance.
-        // This affects in what order the windows end up in a row.
         row.windows.sort((a, b) => a.windowCenter.x - b.windowCenter.x);
     }
 
@@ -229,8 +117,6 @@ class UnalignedLayoutStrategy extends LayoutStrategy {
 
         const idealRowWidth = totalWidth / numRows;
 
-        // Sort windows vertically to minimize travel distance.
-        // This affects what rows the windows get placed in.
         const sortedWindows = windows.slice();
         sortedWindows.sort((a, b) => a.windowCenter.y - b.windowCenter.y);
 
@@ -246,7 +132,6 @@ class UnalignedLayoutStrategy extends LayoutStrategy {
                 const height = window.boundingBox.height * s;
                 row.fullHeight = Math.max(row.fullHeight, height);
 
-                // either new width is < idealWidth or new width is nearer from idealWidth then oldWidth
                 if (this._keepSameRow(row, window, width, idealRowWidth) || (i === numRows - 1)) {
                     row.windows.push(window);
                     row.fullWidth += width;
@@ -286,7 +171,6 @@ class UnalignedLayoutStrategy extends LayoutStrategy {
         const horizontalScale = spacedWidth / layout.gridWidth;
         const verticalScale = spacedHeight / layout.gridHeight;
 
-        // Thumbnails should be less than 70% of the original size
         const scale = Math.min(
             horizontalScale, verticalScale, WINDOW_PREVIEW_MAXIMUM_SCALE);
 
@@ -306,7 +190,6 @@ class UnalignedLayoutStrategy extends LayoutStrategy {
 
         const slots = [];
 
-        // Do this in three parts.
         let heightWithoutSpacing = 0;
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
@@ -316,28 +199,21 @@ class UnalignedLayoutStrategy extends LayoutStrategy {
         const verticalSpacing = (rows.length - 1) * this._rowSpacing;
         const additionalVerticalScale = Math.min(1, (area.height - verticalSpacing) / heightWithoutSpacing);
 
-        // keep track how much smaller the grid becomes due to scaling
-        // so it can be centered again
         let compensation = 0;
         let y = 0;
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
 
-            // If this window layout row doesn't fit in the actual
-            // geometry, then apply an additional scale to it.
             const horizontalSpacing = (row.windows.length - 1) * this._columnSpacing;
             const widthWithoutSpacing = row.width - horizontalSpacing;
             const additionalHorizontalScale = Math.min(1, (area.width - horizontalSpacing) / widthWithoutSpacing);
 
             if (additionalHorizontalScale < additionalVerticalScale) {
                 row.additionalScale = additionalHorizontalScale;
-                // Only consider the scaling in addition to the vertical scaling for centering.
                 compensation += (additionalVerticalScale - additionalHorizontalScale) * row.height;
             } else {
                 row.additionalScale = additionalVerticalScale;
-                // No compensation when scaling vertically since centering based on a too large
-                // height would undo what vertical scaling is trying to achieve.
             }
 
             row.x = area.x + (Math.max(area.width - (widthWithoutSpacing * row.additionalScale + horizontalSpacing), 0) / 2);
@@ -367,14 +243,11 @@ class UnalignedLayoutStrategy extends LayoutStrategy {
                 let cloneX = x + (cellWidth - cloneWidth) / 2;
                 let cloneY;
 
-                // If there's only one row, align windows vertically centered inside the row
                 if (rows.length === 1)
                     cloneY = rowY + (rowHeight - cloneHeight) / 2;
-                // If there are multiple rows, align windows to the bottom edge of the row
                 else
                     cloneY = rowY + rowHeight - cellHeight;
 
-                // Align with the pixel grid to prevent blurry windows at scale = 1
                 cloneX = Math.floor(cloneX);
                 cloneY = Math.floor(cloneY);
 
@@ -461,16 +334,12 @@ export const WorkspaceLayout = GObject.registerClass({
         const scalePower = (scale - oldScale) * LAYOUT_SCALE_WEIGHT;
 
         if (scale > oldScale && space > oldSpace) {
-            // Win win -- better scale and better space
             return true;
         } else if (scale > oldScale && space <= oldSpace) {
-            // Keep new layout only if scale gain outweighs aspect space loss
             return scalePower > spacePower;
         } else if (scale <= oldScale && space > oldSpace) {
-            // Keep new layout only if aspect space gain outweighs scale loss
             return spacePower > scalePower;
         } else {
-            // Lose -- worse scale and space
             return false;
         }
     }
@@ -479,8 +348,6 @@ export const WorkspaceLayout = GObject.registerClass({
         if (this._sortedWindows.length === 0)
             return [rowSpacing, colSpacing, containerBox];
 
-        // All of the overlays have the same chrome sizes,
-        // so just pick the first one.
         const window = this._sortedWindows[0];
 
         const [topOversize, bottomOversize] = window.chromeHeights();
@@ -516,8 +383,6 @@ export const WorkspaceLayout = GObject.registerClass({
         const [rowSpacing, columnSpacing] =
             this._adjustSpacingAndPadding(this._spacing, this._spacing, null);
 
-        // We look for the largest scale that allows us to fit the
-        // largest row/tallest column on the workspace.
         this._layoutStrategy = new UnalignedLayoutStrategy({
             monitor: Main.layoutManager.monitors[this._monitorIndex],
             rowSpacing,
@@ -532,9 +397,6 @@ export const WorkspaceLayout = GObject.registerClass({
         for (let numRows = 1; ; numRows++) {
             const numColumns = Math.ceil(this._sortedWindows.length / numRows);
 
-            // If adding a new row does not change column count just stop
-            // (for instance: 9 windows, with 3 rows -> 3 columns, 4 rows ->
-            // 3 columns as well => just use 3 rows then)
             if (numColumns === lastNumColumns)
                 break;
 
@@ -632,13 +494,6 @@ export const WorkspaceLayout = GObject.registerClass({
         const containerAllocationChanged =
             this._lastBox === null || !this._lastBox.equal(containerBox);
 
-        // If the containers size changed, we can no longer keep around
-        // the old windowSlots, so we must unfreeze the layout.
-        //
-        // However, if the overview animation is in progress, don't unfreeze
-        // the layout. This is needed to prevent windows "snapping" to their
-        // new positions during the overview closing animation when the
-        // allocation subtly expands every frame.
         if (this._layoutFrozen && containerAllocationChanged && !Main.overview.animationInProgress) {
             this._layoutFrozen = false;
             this.notify('layout-frozen');
@@ -719,11 +574,6 @@ export const WorkspaceLayout = GObject.registerClass({
                 workspaceBoxHeight = 0;
             }
 
-            // Don't allow the scaled floating size to drop below
-            // the target layout size.
-            // We only want to apply this when the scaled floating size is
-            // actually larger than the target layout size, that is while
-            // animating between the session and the window picker.
             if (inSessionTransition) {
                 workspaceBoxWidth = Math.max(workspaceBoxWidth, width);
                 workspaceBoxHeight = Math.max(workspaceBoxHeight, height);
@@ -740,22 +590,10 @@ export const WorkspaceLayout = GObject.registerClass({
             if (windowInfo.currentTransition) {
                 windowInfo.currentTransition.get_interval().set_final(childBox);
 
-                // The timeline of the transition might not have been updated
-                // before this allocation cycle, so make sure the child
-                // still updates needs_allocation to FALSE.
-                // Unfortunately, this relies on the fast paths in
-                // clutter_actor_allocate(), otherwise we'd start a new
-                // transition on the child, replacing the current one.
                 child.allocate(child.allocation);
                 continue;
             }
 
-            // We want layout changes (ie. larger changes to the layout like
-            // reshuffling the window order) to be animated, but small changes
-            // like changes to the container size to happen immediately (for
-            // example if the container height is being animated, we want to
-            // avoid animating the children allocations to make sure they
-            // don't "lag behind" the other animation).
             if (layoutChanged && !Main.overview.animationInProgress) {
                 const transition = animateAllocation(child, childBox);
                 if (transition) {
@@ -777,22 +615,10 @@ export const WorkspaceLayout = GObject.registerClass({
         preview.overlayEnabled = active && this._stateAdjustment.value === 1;
     }
 
-    /**
-     * Synchronizes the overlay state of all window previews.
-     */
     syncOverlays() {
         [...this._windows.keys()].forEach(preview => this._syncOverlay(preview));
     }
 
-    /**
-     * Adds `window` to the workspace, it will be shown immediately if
-     * the layout isn't frozen using the layout-frozen property.
-     *
-     * If `window` is already part of the workspace, nothing will happen.
-     *
-     * @param {WindowPreview} window - the window to add
-     * @param {Meta.Window} metaWindow - the MetaWindow of the window
-     */
     addWindow(window, metaWindow) {
         if (this._windows.has(window))
             return;
@@ -824,13 +650,6 @@ export const WorkspaceLayout = GObject.registerClass({
         this.layout_changed();
     }
 
-    /**
-     * Removes `window` from the workspace if `window` is a part of the
-     * workspace. If the layout-frozen property is set to true, the
-     * window will still be visible until the property is set to false.
-     *
-     * @param {WindowPreview} window - the window to remove
-     */
     removeWindow(window) {
         const windowInfo = this._windows.get(window);
         if (!windowInfo)
@@ -844,13 +663,10 @@ export const WorkspaceLayout = GObject.registerClass({
         this._windows.delete(window);
         this._sortedWindows.splice(this._sortedWindows.indexOf(window), 1);
 
-        // The layout might be frozen and we might not update the windowSlots
-        // on the next allocation, so remove the slot now already
         const index = this._windowSlots.findIndex(s => s[4] === window);
         if (index !== -1)
             this._windowSlots.splice(index, 1);
 
-        // The window might have been reparented by DND
         if (window.get_parent() === this._container)
             this._container.remove_child(window);
 
@@ -877,33 +693,13 @@ export const WorkspaceLayout = GObject.registerClass({
         this.layout_changed();
     }
 
-    /**
-     * getFocusChain:
-     *
-     * Gets the focus chain of the workspace. This function will return
-     * an empty array if the floating window layout is used.
-     *
-     * @returns {Array} an array of {Clutter.Actor}s
-     */
     getFocusChain() {
         if (this._stateAdjustment.value === 0)
             return [];
 
-        // The fifth element in the slot array is the WindowPreview
         return this._windowSlots.map(s => s[4]);
     }
 
-    /**
-     * An StAdjustment for controlling and transitioning between
-     * the alignment of windows using the layout strategy and the
-     * floating window layout.
-     *
-     * A value of 0 of the adjustment completely uses the floating
-     * window layout while a value of 1 completely aligns windows using
-     * the layout strategy.
-     *
-     * @type {St.Adjustment}
-     */
     get stateAdjustment() {
         return this._stateAdjustment;
     }
@@ -1030,11 +826,6 @@ class WorkspaceBackground extends Shell.WorkspaceBackground {
 
 export const Workspace = GObject.registerClass(
 class Workspace extends St.Widget {
-    /**
-     * @param {Meta.Workspace} metaWorkspace
-     * @param {number} monitorIndex
-     * @param {OverviewAdjustment} overviewAdjustment
-     */
     _init(metaWorkspace, monitorIndex, overviewAdjustment) {
         super._init({
             style_class: 'window-picker',
@@ -1045,12 +836,10 @@ class Workspace extends St.Widget {
         const layoutManager = new WorkspaceLayout(metaWorkspace, monitorIndex,
             overviewAdjustment);
 
-        // Background
         this._background =
             new WorkspaceBackground(monitorIndex, layoutManager.stateAdjustment);
         this.add_child(this._background);
 
-        // Window previews
         this._container = new Clutter.Actor({
             reactive: true,
             x_expand: true,
@@ -1073,8 +862,6 @@ class Workspace extends St.Widget {
             required_button: Clutter.BUTTON_PRIMARY,
         });
         clickGesture.connect('recognize', () => {
-            // Switch to the workspace when not the active one, leave the
-            // overview otherwise.
             const leaveOverview = this._shouldLeaveOverview();
 
             this.metaWorkspace?.activate(global.get_current_time());
@@ -1091,10 +878,8 @@ class Workspace extends St.Widget {
         this._windows = [];
         this._layoutFrozenId = 0;
 
-        // DND requires this to be set
         this._delegate = this;
 
-        // Track window changes, but let the window tracker process them first
         this.metaWorkspace?.connectObject(
             'window-added', this._windowAdded.bind(this), GObject.ConnectFlags.AFTER,
             'window-removed', this._windowRemoved.bind(this), GObject.ConnectFlags.AFTER,
@@ -1104,8 +889,6 @@ class Workspace extends St.Widget {
             'window-left-monitor', this._windowLeftMonitor.bind(this), GObject.ConnectFlags.AFTER,
             this);
 
-        // Create clones for windows that should be
-        // visible in the Overview
         global.get_window_actors().map(a => this._doAddWindow(a.meta_window));
     }
 
@@ -1145,10 +928,6 @@ class Workspace extends St.Widget {
 
         clone.destroy();
 
-        // We need to reposition the windows; to avoid shuffling windows
-        // around while the user is interacting with the workspace, we delay
-        // the positioning until the pointer remains still for at least 750 ms
-        // or is moved outside the workspace
         this._container.layout_manager.layout_frozen = true;
 
         if (this._layoutFrozenId > 0) {
@@ -1187,8 +966,6 @@ class Workspace extends St.Widget {
         const win = metaWin.get_compositor_private();
 
         if (!win) {
-            // Newly-created windows are added to a workspace before
-            // the compositor finds out about them...
             const id = GLib.idle_add_once(GLib.PRIORITY_DEFAULT, () => {
                 if (metaWin.get_compositor_private() &&
                     metaWin.get_workspace() === this.metaWorkspace)
@@ -1198,8 +975,6 @@ class Workspace extends St.Widget {
             return;
         }
 
-        // We might have the window in our list already if it was on all workspaces and
-        // now was moved to this workspace
         if (this.containsMetaWindow(metaWin))
             return;
 
@@ -1218,12 +993,9 @@ class Workspace extends St.Widget {
             if (metaWin.get_transient_for() == null)
                 return;
 
-            // Let the top-most ancestor handle all transients
             const parent = metaWin.find_root_ancestor();
             const clone = this._windows.find(c => c.metaWindow === parent);
 
-            // If no clone was found, the parent hasn't been created yet
-            // and will take care of the dialog when added
             if (clone)
                 clone.addDialog(metaWin);
 
@@ -1243,8 +1015,6 @@ class Workspace extends St.Widget {
         });
 
         if (this._layoutFrozenId > 0) {
-            // If a window was closed before, unfreeze the layout to ensure
-            // the new window is immediately shown
             this._container.layout_manager.layout_frozen = false;
 
             GLib.source_remove(this._layoutFrozenId);
@@ -1271,7 +1041,6 @@ class Workspace extends St.Widget {
             this._doRemoveWindow(metaWin);
     }
 
-    // check for maximized windows on the workspace
     hasMaximizedWindows() {
         return this._windows.some(w => {
             const {metaWindow} = w;
@@ -1333,7 +1102,6 @@ class Workspace extends St.Widget {
         return !window.skip_taskbar;
     }
 
-    // Create a clone of a (non-desktop) window and add it to the window list
     _addWindowClone(metaWindow) {
         const clone = new WindowPreview(metaWindow, this, this._overviewAdjustment);
 
@@ -1375,7 +1143,6 @@ class Workspace extends St.Widget {
     }
 
     _removeWindowClone(metaWin) {
-        // find the position of the window in our list
         const index = this._lookupIndex(metaWin);
 
         if (index === -1)
@@ -1400,7 +1167,6 @@ class Workspace extends St.Widget {
             this.metaWorkspace?.activate(time);
     }
 
-    // Draggable target interface
     handleDragOver(source, _actor, _x, _y, _time) {
         if (source.metaWindow && !this._isMyWindow(source.metaWindow))
             return DND.DragMotionResult.MOVE_DROP;
@@ -1433,8 +1199,6 @@ class Workspace extends St.Widget {
             source.app.open_new_window(workspaceIndex);
             return true;
         } else if (!source.app && source.shellWorkspaceLaunch) {
-            // While unused in our own drag sources, shellWorkspaceLaunch allows
-            // extensions to define custom actions for their drag sources.
             source.shellWorkspaceLaunch({
                 workspace: workspaceIndex,
                 timestamp: time,

@@ -6,12 +6,9 @@ import qs.services
 import qs.components
 import ".."
 
-// Schrift: alle installierten Familien nach Kategorie, Auswahl für Oberfläche und Monospace
-// (wahlweise gemeinsam). Wird auch an GNOME/GTK (gsettings) weitergegeben, falls vorhanden.
 SettingsPage {
     id: root
 
-    // Auswahl gilt für: "both" (eine Schrift für alles), "interface" oder "mono"
     property string target: "both"
     property string query: ""
     property var expanded: ({})
@@ -55,7 +52,6 @@ SettingsPage {
         root.syncGtk();
     }
 
-    // Best effort: GTK-/GNOME-Apps folgen der Auswahl (nur wenn gsettings existiert)
     function syncGtk() {
         gtk.command = ["sh", "-c", 'command -v gsettings >/dev/null 2>&1 || exit 0; s=org.gnome.desktop.interface; if [ -n "$1" ]; then gsettings set $s font-name "$1 11"; gsettings set $s document-font-name "$1 11"; else gsettings reset $s font-name; gsettings reset $s document-font-name; fi; if [ -n "$2" ]; then gsettings set $s monospace-font-name "$2 11"; else gsettings reset $s monospace-font-name; fi', "sh", SettingsService.fontFamily, SettingsService.fontFamilyMono];
         gtk.running = true;

@@ -22,8 +22,6 @@ MATUGEN = os.path.join(os.environ.get("XDG_CONFIG_HOME", HOME + "/.config"), "ma
 CONFIG = os.path.join(MATUGEN, "config.toml")
 TEMPLATES = os.path.join(MATUGEN, "templates")
 
-# README section -> executables / desktop ids / flatpak ids that mean "installed".
-# Sections not listed fall back to the lower-cased first word as executable.
 DETECT = {
     "Aerc": ["aerc"], "Alacritty": ["alacritty"], "Btop": ["btop"], "Cava": ["cava"],
     "Clipse": ["clipse"], "Dunst": ["dunst"], "Foot": ["foot"], "Fuzzel": ["fuzzel"],
@@ -45,14 +43,9 @@ DETECT = {
     "Hyprland": ["Hyprland", "hyprland"], "Kitty": ["kitty"], "GTK": ["gtk4-launch", "gtk-launch"],
     "Papirus": ["papirus-folders"],
 }
-# Need manual work beyond a template + config entry (python post-process, directory templates, …).
 SKIP = {"Cosmic", "ANSI", "Gnome-shell", "Neovim plugin", "Quickshell", "Wine", "Windows Terminal"}
-# The README only gives a placeholder output_path for these; template id -> real path.
 OUTPUT = {"vivaldi": "~/.config/matugen/vivaldi/vivaldi.css"}
-# Template rewrites applied while copying. matugen 4 made set_lightness absolute (matugen 3 shifted it),
-# which turns every "set_lightness: -10.0" into black; lighten keeps the relative meaning.
 REWRITE = {"vivaldi.css": [("| set_lightness:", "| lighten:")]}
-# Steps the user still has to do by hand after the template is set up.
 NOTES = {
     "Vivaldi": [
         "Vivaldi: enable \"Allow for using CSS modifications\" in vivaldi://experiments",
@@ -151,8 +144,6 @@ def main():
     sections = parse_readme(CACHE + "/README.md")
     emit("info", f"{len(sections)} programs in the theme list")
 
-    # A template that belongs to another program (e.g. Wofi's link points at zellij) is a README
-    # copy/paste slip; such a link is only used by a section whose name appears in the file name.
     usage = {}
     for sec in sections:
         for l in sec["links"]:

@@ -1,10 +1,8 @@
-// Rubberband for select-area screenshots
 .select-area-rubberband {
   background-color: st-transparentize(-st-accent-color,0.7);
   border: 1px solid -st-accent-color;
 }
 
-// User icon
 .user-icon {
   background-size: contain;
   border-radius: $forced_circular_radius;
@@ -29,10 +27,8 @@
 .lightbox { background-color: black; }
 .flashspot { background-color: white; }
 
-// Hidden
 .hidden { color: transparent;}
 
-// Caps-lock warning
 .caps-lock-warning-label {
   text-align: center;
   padding-bottom: 8px;
@@ -40,13 +36,11 @@
   color: $warning_color;
 }
 
-/* Workspace animation */
 
 .workspace-animation {
   background-color: $system_bg_color;
 }
 
-/* Tiled window previews */
 .tile-preview {
   background-color: st-transparentize(-st-accent-color,0.5);
   border: 1px solid -st-accent-color;

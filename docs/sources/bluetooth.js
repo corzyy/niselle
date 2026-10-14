@@ -101,8 +101,6 @@ const BtClient = GObject.registerClass({
     }
 
     get available() {
-        // If we have an rfkill switch, make sure it's not a hardware
-        // one as we can't get out of it in software
         return this._proxy.BluetoothHasAirplaneMode &&
             !this._proxy.BluetoothHardwareAirplaneMode;
     }
@@ -120,18 +118,11 @@ const BtClient = GObject.registerClass({
     toggleActive() {
         const {active} = this;
 
-        // on many systems, there's a significant delay until the rfkill
-        // state results in an adapter state change; work around that by
-        // overriding the current state with the expected transition
         this._predictedState = active
             ? AdapterState.TURNING_OFF
             : AdapterState.TURNING_ON;
         this.notify('adapter-state');
 
-        // toggling the state *really* should result in an adapter-state
-        // change eventually (even on error), but just to be sure to not
-        // be stuck with the overriden state, force a notify signal after
-        // a timeout
         setTimeout(() => this._client.notify('default-adapter-state'),
             STATE_CHANGE_FAILED_TIMEOUT_MS);
 
@@ -159,7 +150,6 @@ const BtClient = GObject.registerClass({
     }
 
     *getDevices() {
-        // Ignore any lingering device references when turned off
         if (!this.active)
             return;
 
@@ -262,9 +252,7 @@ class BluetoothDeviceItem extends PopupMenu.PopupBaseMenuItem {
 
     _updateAccessibleName() {
         this.accessible_name = this._device.connected
-            // Translators: %s is a device name like "MyPhone"
             ? _('Disconnect %s').format(this._device.alias)
-            // Translators: %s is a device name like "MyPhone"
             : _('Connect to %s').format(this._device.alias);
     }
 });
@@ -324,8 +312,6 @@ class BluetoothToggle extends QuickMenuToggle {
             this);
 
         this.menu.connect('open-state-changed', isOpen => {
-            // We don't reorder the list while the menu is open,
-            // so do it now to start with the proper order
             if (isOpen)
                 this._reorderDeviceItems();
         });
@@ -411,7 +397,6 @@ class BluetoothToggle extends QuickMenuToggle {
         const nConnected = connectedDevices.length;
 
         if (nConnected > 1)
-            /* Translators: This is the number of connected bluetooth devices */
             this.subtitle = ngettext('%d Connected', '%d Connected', nConnected).format(nConnected);
         else if (nConnected === 1)
             this.subtitle = connectedDevices[0].alias;

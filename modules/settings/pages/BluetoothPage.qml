@@ -4,16 +4,12 @@ import qs.services
 import qs.components
 import ".."
 
-// Bluetooth: Schalter, gekoppelte Geräte und Geräte in der Nähe (BluetoothService).
-// Solange die Seite sichtbar ist, läuft die Suche nach Geräten in der Nähe.
 SettingsPage {
     id: root
 
-    // Suche anfordern, sobald die Seite geladen ist, und beim Verlassen wieder freigeben
     Component.onCompleted: BluetoothService.requestDiscovery("settings.bluetooth")
     Component.onDestruction: BluetoothService.releaseDiscovery("settings.bluetooth")
 
-    // Adapter wird auf der Seite ein-/ausgeschaltet: Suche entsprechend nachführen
     Connections {
         target: BluetoothService
 
@@ -37,7 +33,6 @@ SettingsPage {
         }
     }
 
-    // Gekoppelte Geräte
     PrefGroup {
         title: "Devices"
         visible: BluetoothService.enabled && BluetoothService.pairedDevices.length > 0
@@ -56,7 +51,6 @@ SettingsPage {
         }
     }
 
-    // Während der Suche entdeckte Geräte, die noch nicht gekoppelt sind
     PrefGroup {
         title: "Nearby Devices"
         visible: BluetoothService.enabled

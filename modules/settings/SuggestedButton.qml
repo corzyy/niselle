@@ -1,7 +1,6 @@
 import QtQuick
 import qs
 
-// .suggested-action: Akzent-Textknopf (Donate, …), Radius 8, fett.
 Item {
     id: root
 

@@ -4,20 +4,15 @@ import Quickshell
 import qs
 import qs.components
 
-// Ein Eintrag der Hintergrundprogramme (.background-app-item) [backgroundApps.js:21-119, _quick-settings.scss:251-272]:
-// 32px-App-Icon (nicht symbolisch), Name (heading) und Untertitel (caption), rechts ein Schließen-Knopf.
-// Klick auf die Zeile klappt das StatusNotifier-Menü der Anwendung darunter auf; der Knopf beendet sie nach Möglichkeit.
 ColumnLayout {
     id: root
 
     required property var item
 
-    // Objekt, dessen close() das gesamte Quick-Settings-Popup schließt (Aktivieren eines Menüeintrags)
     property var popupRef: null
 
     property bool expanded: false
 
-    // PopupMenuItem in der Elternkette sucht dieses Feld: Menüeinträge schließen das ganze Popup
     readonly property var menuOwner: root.popupRef
 
     readonly property string appName: root.item ? (root.item.title || root.item.tooltipTitle || root.item.id || "") : ""
@@ -27,7 +22,6 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: 0
 
-    // Der Schließen-Knopf hat keinen „Beenden“-Eintrag gefunden: Zeile ausblenden
     signal dismissed
 
     QsMenuOpener {
@@ -36,7 +30,6 @@ ColumnLayout {
         menu: root.hasMenu ? root.item.menu : null
     }
 
-    // Klick auf die Zeile: mit Menü aufklappen, sonst die Anwendung aktivieren
     function activateRow() {
         if (hasMenu) {
             root.expanded = !root.expanded;
@@ -47,7 +40,6 @@ ColumnLayout {
         }
     }
 
-    // „Beenden/Quit“ im StatusNotifier-Menü auslösen, sonst die Zeile ausblenden
     function requestQuit() {
         const wanted = /^(quit|exit|beenden|schließen|schliessen)\b/i;
         for (const entry of opener.children) {
@@ -62,7 +54,6 @@ ColumnLayout {
         root.dismissed();
     }
 
-    // Aufgeklapptes Menü beim Schließen des Popups wieder einklappen
     Connections {
         target: root.popupRef
 
@@ -74,7 +65,6 @@ ColumnLayout {
         }
     }
 
-    // ── Zeile (.background-app-item) ──
     Item {
         id: row
 
@@ -158,7 +148,6 @@ ColumnLayout {
                 }
             }
 
-            // .background-app-item .icon-button: durchscheinender Grund auf der bereits gefüllten Karte
             Item {
                 id: closeButton
 
@@ -191,7 +180,6 @@ ColumnLayout {
         }
     }
 
-    // Das StatusNotifier-Menü der Anwendung, aufgeklappt unter der Zeile
     TrayMenuList {
         Layout.fillWidth: true
         visible: root.expanded && root.hasMenu

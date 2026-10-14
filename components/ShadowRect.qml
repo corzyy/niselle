@@ -2,9 +2,6 @@ import QtQuick
 import QtQuick.Effects
 import qs
 
-// Rechteck mit CSS-artigem box-shadow (x y blur, Spread 0 wie überall im Shell-Theme).
-// Der Schatten wird außerhalb von Item-Grenzen gezeichnet; Eltern dürfen nicht clippen.
-// Kinder landen in `content` (an der Rechteckfläche abzüglich `padding`).
 Item {
     id: root
 
@@ -12,10 +9,8 @@ Item {
     property real radius: 0
     property alias border: body.border
     property real padding: 0
-    // Glanzkante ist abgeschaltet (minimal); bleibt für die API erhalten
     property bool highlight: false
 
-    // Schatten in px; shadowBlur 0 oder transparente Farbe schaltet ihn ab
     property color shadowColor: Theme.shadowColor
     property real shadowBlur: 0
     property real shadowOffsetX: 0

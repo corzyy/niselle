@@ -5,26 +5,15 @@ import Quickshell
 import Quickshell.Io
 import qs
 
-// Zustand der On-Screen-Anzeige [osdWindow.js]: Icon, optional Beschriftung und Pegel, nach `Theme.osdHideTimeout`
-// wieder weg. Gezeigt wird nur auf dem primären Monitor (siehe Osd.qml).
-//
-// Auslöser sind Änderungen der Dienste, egal woher sie kommen (Medientasten über wpctl/brightnessctl, Hyprland-Binds,
-// Schieberegler): Lautstärke/Stummschaltung, Mikrofon, Bildschirmhelligkeit, Tastatur-Hintergrundbeleuchtung.
-// Beim Start und beim Wechsel des Standardgeräts wird nichts angezeigt. Caps/Num-Lock meldet Hyprland nicht als Ereignis;
-// eine Tastenbindung ruft `quickshell ipc call osd locks` auf (siehe bin/niselle `niselle osd locks`), danach wird der Zustand gelesen.
 Singleton {
     id: root
 
-    // Anzeige soll sichtbar sein
     property bool shown: false
     property string iconName: ""
-    // null: keine Beschriftung
     property var label: null
-    // -1: kein Pegel
     property real level: -1
     property real maxLevel: 1
 
-    // Erst nach dem Start reagieren: die Dienste liefern erst beim Verbinden ihre Anfangswerte
     property bool armed: false
 
     function show(icon, label, level, maxLevel) {
@@ -48,7 +37,6 @@ Singleton {
         onTriggered: root.shown = false
     }
 
-    // Kurz warten, damit Dienste und Geräte ihre Anfangswerte gemeldet haben
     Timer {
         running: true
         interval: 1000
@@ -63,7 +51,6 @@ Singleton {
         return Math.abs(a - b) > 0.0005;
     }
 
-    // ───────────── Lautstärke (Ausgabe) ─────────────
 
     property var _sink: null
     property real _volume: 0
@@ -78,7 +65,6 @@ Singleton {
         root._muted = AudioService.muted;
     }
     function _onSinkState() {
-        // Anderes Standardgerät: nur Basiswerte übernehmen
         if (!root.armed || AudioService.sink !== root._sink) {
             root._syncSink();
             return;
@@ -104,7 +90,6 @@ Singleton {
         }
     }
 
-    // ───────────── Mikrofon ─────────────
 
     property var _source: null
     property real _sourceVolume: 0
@@ -141,7 +126,6 @@ Singleton {
         }
     }
 
-    // ───────────── Helligkeit ─────────────
 
     property string _brightnessDevice: ""
     property real _brightness: 0
@@ -185,19 +169,15 @@ Singleton {
         root._kbdBrightness = BrightnessService.kbdBrightness;
     }
 
-    // ───────────── Caps Lock / Num Lock ─────────────
 
-    // null: Zustand noch unbekannt
     property var _caps: null
     property var _num: null
 
-    // Liest den Zustand der Haupttastatur aus Hyprland; meldet Änderungen, nicht den Anfangszustand
     function refreshLocks() {
         if (!locksQuery.running)
             locksQuery.running = true;
     }
 
-    // Die Bindung feuert vor der Verarbeitung der Taste im Kompositor
     Timer {
         id: locksDelay
         interval: 50
@@ -231,14 +211,12 @@ Singleton {
         }
     }
 
-    // Steuerung von außen: quickshell ipc call osd locks | display <icon> <label> <level>
     IpcHandler {
         target: "osd"
 
         function locks(): void {
             locksDelay.restart();
         }
-        // Entwicklungshilfe; level < 0: ohne Balken, label "-": ohne Beschriftung (leere Argumente kennt die CLI nicht)
         function display(icon: string, label: string, level: real, maxLevel: real): void {
             root.show(icon, label === "-" ? null : label, level, maxLevel > 0 ? maxLevel : 1);
         }

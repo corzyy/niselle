@@ -45,7 +45,6 @@
 @define-color dark_3 #3d3846;
 @define-color dark_4 #241f31;
 @define-color dark_5 #000000;
-/* GTK NAMED COLORS ---------------- use responsibly! */
 @define-color destructive_bg_color @red_3;
 @define-color destructive_fg_color white;
 @define-color success_bg_color @green_4;
@@ -127,7 +126,6 @@ dnd { color: var(--window-fg-color); }
 
 .osd popover > arrow, .osd popover > contents, popover.touch-selection > arrow, popover.touch-selection > contents, popover.magnifier > arrow, popover.magnifier > contents, .app-notification, dialog-host > dialog.osd:not(progressbar):not(button):not(menubutton):not(splitbutton) sheet, .osd:not(progressbar):not(button):not(menubutton):not(splitbutton):not(inline-view-switcher) { --accent-bg-color: RGB(255 255 255 / 75%); --accent-fg-color: RGB(0 0 0 / 75%); --scrollbar-outline-color: RGB(0 0 0 / 50%); --standalone-color-oklab: Max(l, 0.85) a b; --accent-color: oklab(from var(--accent-bg-color) var(--standalone-color-oklab)); --destructive-color: oklab(from var(--destructive-bg-color) var(--standalone-color-oklab)); --success-color: oklab(from var(--success-bg-color) var(--standalone-color-oklab)); --warning-color: oklab(from var(--warning-bg-color) var(--standalone-color-oklab)); --error-color: oklab(from var(--error-bg-color) var(--standalone-color-oklab)); color: RGB(255 255 255/90%); border: none; background-color: RGB(0 0 0/70%); background-clip: padding-box; }
 
-/* Text selection */
 selection { background-color: color-mix(in srgb, var(--view-fg-color) 10%, transparent); color: transparent; }
 
 selection:focus-within { background-color: color-mix(in srgb, var(--accent-bg-color) 30%, transparent); }
@@ -136,10 +134,8 @@ selection:focus-within { background-color: color-mix(in srgb, var(--accent-bg-co
 
 placessidebar :not(window):drop(active):focus, placessidebar :not(window):drop(active), stackswitcher :not(window):drop(active):focus, stackswitcher :not(window):drop(active), expander-widget :not(window):drop(active):focus, expander-widget :not(window):drop(active) { box-shadow: none; }
 
-/* Outline for low res icons */
 .lowres-icon { -gtk-icon-shadow: 0 -1px RGB(0 0 6/5%), 1px 0 RGB(0 0 6/10%), 0 1px RGB(0 0 6/30%), -1px 0 RGB(0 0 6/10%); }
 
-/* Drop shadow for large icons */
 .icon-dropshadow { -gtk-icon-shadow: 0 1px 12px RGB(0 0 6/5%), 0 -1px RGB(0 0 6/5%), 1px 0 RGB(0 0 6/10%), 0 1px RGB(0 0 6/30%), -1px 0 RGB(0 0 6/10%); }
 
 @keyframes needs_attention { from { background-image: radial-gradient(farthest-side, var(--accent-color) 0%, transparent 0%); }
@@ -711,17 +707,12 @@ treeexpander { border-spacing: 4px; }
 
 .dialog-action-area { margin: 6px; border-spacing: 6px; }
 
-/**************** Print dialog * */
 window.print:not(.ssd-frame) drawing { color: var(--window-fg-color); background: none; border: none; padding: 0; }
 
 window.print:not(.ssd-frame) drawing paper { background-color: white; color: RGB(0 0 6/80%); background-clip: padding-box; border: 1px solid color-mix(in srgb, currentColor var(--border-opacity), transparent); }
 
-/******************** Page setup dalog * */
-/****************** GtkAboutDialog * */
 window.aboutdialog:not(.ssd-frame) image.large-icons { -gtk-icon-size: 128px; }
 
-/************************* GtkColorChooserDialog * */
-/************* AdwDialog * */
 floating-sheet > dimming { background-color: RGB(from var(--shade-color) r g b/calc(alpha * 2)); }
 
 floating-sheet > sheet { border-radius: 15px; box-shadow: 0 0 14px 2px RGB(0 0 6/3%), 0 0 5px 2px RGB(0 0 6/10%), 0 0 0 1px RGB(0 0 0/5%); outline: 1px solid RGB(255 255 255/7%); outline-offset: -1px; }
@@ -742,7 +733,6 @@ dialog-host > dialog.view, window.print:not(.ssd-frame) dialog-host > dialog.dia
 
 dialog-host > dialog.osd:not(progressbar):not(button):not(menubutton):not(splitbutton) { background: none; }
 
-/*********************** GtkAppChooserDialog * */
 window.appchooser:not(.ssd-frame) headerbar.titlebar > windowhandle { padding-top: 3px; }
 
 window.appchooser:not(.ssd-frame) headerbar.titlebar box.start + box { margin-top: -6px; margin-bottom: -6px; min-height: 12px; }
@@ -753,7 +743,6 @@ window.appchooser:not(.ssd-frame) .dialog-vbox > box > box:not(.dialog-action-ar
 
 window.appchooser:not(.ssd-frame) .dialog-action-area { margin-top: 0; }
 
-/**************** GtkAssistant * */
 window.assistant .sidebar { padding: 6px; background-color: var(--sidebar-bg-color); color: var(--sidebar-fg-color); }
 
 window.assistant .sidebar:not(separator):dir(ltr) { border-right: none; box-shadow: inset -1px 0 var(--sidebar-border-color); }
@@ -772,10 +761,8 @@ window.assistant .sidebar > label.highlight { background-color: color-mix(in srg
 
 @media (prefers-contrast: more) { window.assistant .sidebar > label.highlight { box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor var(--border-opacity), transparent); } }
 
-/*************** GtkComboBox * */
 combobox button { padding-top: 2px; padding-bottom: 2px; min-height: 30px; }
 
-/*************** GtkIconView * */
 iconview:not(:selected) { background-color: color-mix(in srgb, var(--accent-bg-color) 0.0001%, var(--view-bg-color)); }
 
 @media (prefers-contrast: more) { iconview:selected { box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor var(--border-opacity), transparent); } }
@@ -790,7 +777,6 @@ iconview:drop(active) { box-shadow: none; }
 
 iconview > dndtarget:drop(active) { border-style: solid; border-width: 1px; border-color: var(--accent-bg-color); }
 
-/************** GtkInfoBar * */
 infobar > revealer > box { padding: 6px; padding-bottom: 7px; border-spacing: 6px; box-shadow: inset 0 -1px var(--shade-color); }
 
 @media (prefers-contrast: more) { infobar > revealer > box { box-shadow: inset 0 -1px color-mix(in srgb, currentColor var(--border-opacity), transparent); } }
@@ -811,10 +797,8 @@ infobar.error > revealer > box { background-color: color-mix(in srgb, var(--erro
 
 infobar .close { min-width: 18px; min-height: 18px; padding: 4px; border-radius: 50%; }
 
-/**************** GtkStatusBar * */
 statusbar { padding: 6px 10px 6px 10px; }
 
-/*************** GtkTreeView * */
 treeview.view, window.print:not(.ssd-frame) treeview.dialog-action-box { border-left-color: color-mix(in srgb, currentColor 20%, var(--view-bg-color)); border-top-color: color-mix(in srgb, currentColor 20%, var(--view-bg-color)); }
 
 treeview.view:disabled, window.print:not(.ssd-frame) treeview.dialog-action-box:disabled { color: color-mix(in srgb, var(--view-fg-color) var(--disabled-opacity), transparent); }
@@ -869,7 +853,6 @@ treeview spinbutton:not(.vertical) { min-height: 0; border-style: none; border-r
 
 treeview spinbutton:not(.vertical) > text { min-height: 0; padding: 1px 2px; }
 
-/******************** GtkShortcutLabel * */
 shortcut { border-spacing: 6px; border-radius: 6px; }
 
 shortcut { outline: 0 solid transparent; outline-offset: 8px; transition: outline-color 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), outline-width 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), outline-offset 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
@@ -882,7 +865,6 @@ shortcut > .keycap { min-width: 20px; min-height: 25px; padding: 2px 6px; backgr
 
 @media (prefers-contrast: more) { shortcut > .keycap { box-shadow: inset 0 -2px var(--card-shade-color), 0 0 0 1px var(--border-color); } }
 
-/********************** GtkShortcutsWindow * */
 shortcuts-section { margin: 20px; }
 
 .shortcuts-search-results { margin: 20px; border-spacing: 24px; }
@@ -895,7 +877,6 @@ window.shortcuts:not(.ssd-frame) headerbar.titlebar > windowhandle { padding-top
 
 window.shortcuts:not(.ssd-frame) searchbar { background: none; }
 
-/* Transition shadows */
 flap > dimming, leaflet > dimming { background: var(--shade-color); }
 
 @media (prefers-contrast: more) { flap > border, leaflet > border { min-width: 1px; min-height: 1px; background: color-mix(in srgb, currentColor var(--border-opacity), transparent); } }
@@ -920,7 +901,6 @@ paned .sidebar.left, paned .sidebar.right, paned .sidebar.left:dir(rtl), paned .
 
 .large-title { font-weight: 300; font-size: 24pt; }
 
-/********************* App Notifications * */
 .app-notification { padding: 10px; border-spacing: 10px; border-radius: 0 0 15px 15px; background-image: linear-gradient(to bottom, RGB(0 0 0/20%), transparent 2px); background-clip: padding-box; }
 
 .app-notification border { border: none; }
@@ -1151,7 +1131,6 @@ filechooser paned.horizontal > separator:dir(rtl):backdrop { box-shadow: inset -
 
 filechooser paned.horizontal > separator:backdrop { transition: box-shadow 200ms ease-out; }
 
-/* Fix header bar height in the file chooser */
 window.filechooser headerbar box.start + box.vertical { margin-top: -6px; margin-bottom: -6px; min-height: 12px; }
 
 headerbar { min-height: 47px; background-color: var(--headerbar-bg-color); color: var(--headerbar-fg-color); box-shadow: inset 0 -1px var(--headerbar-shade-color), inset 1px 0 color-mix(in srgb, var(--headerbar-border-color) var(--border-opacity), transparent), inset -1px 0 color-mix(in srgb, var(--headerbar-border-color) var(--border-opacity), transparent); margin-left: -1px; margin-right: -1px; }
@@ -1218,7 +1197,6 @@ toolbarview > .top-bar .collapse-spacing headerbar.default-decoration > windowha
 
 .titlebar:not(headerbar) separator { background-color: color-mix(in srgb, var(--headerbar-border-color) var(--border-opacity), transparent); }
 
-/********************* GtkWindowControls * */
 windowcontrols { border-spacing: 3px; }
 
 windowcontrols > button { min-width: 24px; padding: 5px; }
@@ -1235,7 +1213,6 @@ windowcontrols > button:active > image { background-color: color-mix(in srgb, cu
 
 windowcontrols > .icon { margin: 9px; }
 
-/****************** AdwWindowTitle * */
 headerbar .title, windowtitle .title { padding-left: 12px; padding-right: 12px; font-weight: bold; }
 
 headerbar .subtitle, windowtitle .subtitle { font-size: smaller; padding-left: 12px; padding-right: 12px; }
@@ -1250,7 +1227,7 @@ window.devel sheet headerbar > windowhandle { background-image: unset; backgroun
 
 .accent-color-row color:disabled { opacity: var(--disabled-opacity); }
 
-adaptive-preview .device-view { background: #101013; color: white; box-shadow: 0 0 0 2px RGB(255 255 255/15%); margin: 2px; padding: var(--top-bezel) var(--side-bezel) var(--bottom-bezel); border-radius: var(--top-device-corner-radius) var(--top-device-corner-radius) var(--bottom-device-corner-radius) var(--bottom-device-corner-radius); --window-radius: 0px; /* Hack to make GtkGraphicsOffload disable offload in this case */ opacity: 99.9999999999999%; }
+adaptive-preview .device-view { background: #101013; color: white; box-shadow: 0 0 0 2px RGB(255 255 255/15%); margin: 2px; padding: var(--top-bezel) var(--side-bezel) var(--bottom-bezel); border-radius: var(--top-device-corner-radius) var(--top-device-corner-radius) var(--bottom-device-corner-radius) var(--bottom-device-corner-radius); --window-radius: 0px;  opacity: 99.9999999999999%; }
 
 adaptive-preview .device-view.custom { padding: 0; border-radius: 0; margin: 0; box-shadow: 0 0 14px 2px RGB(0 0 6/3%), 0 0 5px 2px RGB(0 0 6/10%), 0 0 0 1px RGB(0 0 0/5%); }
 
@@ -1282,7 +1259,6 @@ label:disabled { filter: Opacity(var(--disabled-opacity)); }
 
 .success { color: var(--accent-color); --accent-bg-color: var(--success-bg-color); --accent-fg-color: var(--success-fg-color); --accent-color: var(--success-color); }
 
-/********************** General Typography * */
 .title-1, statuspage > scrolledwindow > viewport > box > clamp > box > .title { font-weight: 800; font-size: 181%; }
 
 .title-2, statuspage.spinner > scrolledwindow > viewport > box > clamp > box > .title, statuspage.compact > scrolledwindow > viewport > box > clamp > box > .title, sidebar:not(.page).empty statuspage > scrolledwindow > viewport > box > clamp > box > .title, window.dialog.message box.dialog-vbox.vertical > box > box > box > label.title { font-weight: 800; font-size: 136%; }
@@ -1305,7 +1281,6 @@ label:disabled { filter: Opacity(var(--disabled-opacity)); }
 
 .numeric, spinbutton, scale > value, progressbar > text { font-variant-numeric: tabular-nums; }
 
-/******************* Editable Labels * */
 editablelabel > stack > text { color: var(--view-fg-color); background-color: var(--view-bg-color); }
 
 levelbar:disabled { filter: Opacity(var(--disabled-opacity)); }
@@ -1502,16 +1477,14 @@ row.activatable:selected.has-open-popup { background-color: color-mix(in srgb, v
 
 row:selected { background-color: color-mix(in srgb, var(--accent-bg-color) 25%, transparent); }
 
-/******************************************************* Rich Lists                                          * Large list usually containing lots of widgets       * https://gitlab.gnome.org/GNOME/gtk/-/issues/3073    * */
-.rich-list { /* rich lists usually containing other widgets than just labels/text */ }
+.rich-list {  }
 
-.rich-list > row { padding: 8px 12px; min-height: 32px; /* should be tall even when only containing a label */ }
+.rich-list > row { padding: 8px 12px; min-height: 32px;  }
 
 .rich-list > row > box { border-spacing: 12px; }
 
 .rich-list > header { padding-left: 12px; padding-right: 12px; }
 
-/**************** AdwActionRow * */
 row label.subtitle { font-size: smaller; }
 
 row > box.header { margin-left: 12px; margin-right: 12px; border-spacing: 6px; min-height: 50px; }
@@ -1530,7 +1503,6 @@ row > box.header > .icon:dir(ltr), row > box.header > .prefixes:dir(ltr) { margi
 
 row > box.header > .icon:dir(rtl), row > box.header > .prefixes:dir(rtl) { margin-left: 6px; }
 
-/****************************** AdwEntryRow and AdwSpinRow * */
 row.entry:disabled text { opacity: var(--disabled-opacity); }
 
 row.entry:disabled .dimmed, row.entry:disabled dialog.shortcuts .shortcut-row .title-box > .subtitle, dialog.shortcuts .shortcut-row row.entry:disabled .title-box > .subtitle, row.entry:disabled scale > value, row.entry:disabled progressbar > text, row.entry:disabled row.property > box.header > box.title > .title, row.entry:disabled row.property.expander > box > list > row.header > box.header > box.title > .title, row.entry:disabled row.expander image.expander-row-arrow, row.expander row.entry:disabled image.expander-row-arrow, row.entry:disabled spinbutton > text > placeholder, row.entry:disabled entry > text > placeholder, row.entry:disabled label.separator, row.entry:disabled .dim-label, row.entry:disabled .subtitle { opacity: 1; }
@@ -1591,7 +1563,6 @@ row.entry.success, row.spin.success { color: var(--accent-color); }
 
 row.entry.success .dimmed, row.entry.success dialog.shortcuts .shortcut-row .title-box > .subtitle, dialog.shortcuts .shortcut-row row.entry.success .title-box > .subtitle, row.entry.success scale > value, row.entry.success progressbar > text, row.entry.success row.property > box.header > box.title > .title, row.entry.success row.property.expander > box > list > row.header > box.header > box.title > .title, row.entry.success row.expander image.expander-row-arrow, row.expander row.entry.success image.expander-row-arrow, row.entry.success spinbutton > text > placeholder, row.entry.success entry > text > placeholder, row.entry.success label.separator, row.entry.success .dim-label, row.entry.success .subtitle, row.spin.success .dimmed, row.spin.success dialog.shortcuts .shortcut-row .title-box > .subtitle, dialog.shortcuts .shortcut-row row.spin.success .title-box > .subtitle, row.spin.success scale > value, row.spin.success progressbar > text, row.spin.success row.property > box.header > box.title > .title, row.spin.success row.property.expander > box > list > row.header > box.header > box.title > .title, row.spin.success row.expander image.expander-row-arrow, row.expander row.spin.success image.expander-row-arrow, row.spin.success spinbutton > text > placeholder, row.spin.success entry > text > placeholder, row.spin.success label.separator, row.spin.success .dim-label, row.spin.success .subtitle { opacity: 1; }
 
-/*************** AdwComboRow * */
 row.combo image.dropdown-arrow:disabled { filter: Opacity(var(--disabled-opacity)); }
 
 row.combo listview.inline { background: none; border: none; box-shadow: none; color: inherit; }
@@ -1606,7 +1577,6 @@ row.combo popover > contents .combo-searchbar + scrolledwindow > undershoot.top 
 
 @media (prefers-contrast: more) { row.combo popover > contents .combo-searchbar + scrolledwindow > undershoot.top { box-shadow: inset 0 1px color-mix(in srgb, currentColor var(--border-opacity), transparent); } }
 
-/****************** AdwExpanderRow * */
 list.boxed-list-separate > row.expander row.header, list.boxed-list > row, list.content > row, list.boxed-list > row.expander row.header, list.content > row.expander row.header, row.expander list.nested > row { border-bottom: 1px solid var(--card-shade-color); }
 
 list.boxed-list-separate > row.expander row.header, list.boxed-list > row, list.content > row, list.boxed-list > row.expander row.header, list.content > row.expander row.header, row.expander list.nested > row { outline: 0 solid transparent; outline-offset: 5px; transition: outline-color 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), outline-width 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), outline-offset 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), background-image 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), border-radius 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
@@ -1647,7 +1617,6 @@ row.expander:checked image.expander-row-arrow:not(:disabled) { color: var(--acce
 
 .osd row.expander:checked image.expander-row-arrow:not(:disabled) { color: inherit; }
 
-/***************** Property rows * */
 row.property > box.header > box.title > .title, row.property.expander > box > list > row.header > box.header > box.title > .title { font-size: smaller; }
 
 row.property > box.header > box.title > .subtitle, row.property.expander > box > list > row.header > box.header > box.title > .subtitle { font-size: inherit; opacity: 1; }
@@ -1656,7 +1625,6 @@ row.property.monospace, row.property.monospace.expander > box > list > row.heade
 
 row.property.monospace > box.header > box.title > .subtitle, row.property.monospace.expander > box > list > row.header > box.header > box.title > .subtitle { font-family: var(--monospace-font-family); font-size: var(--monospace-font-size); }
 
-/*************** AdwButtonRow * */
 row.button > box { margin-left: 12px; margin-right: 12px; border-spacing: 6px; min-height: 40px; }
 
 row.button > box > .icon:disabled { filter: Opacity(var(--disabled-opacity)); }
@@ -1681,7 +1649,6 @@ row.button.suggested-action:disabled > box > .icon:disabled, row.button.suggeste
 
 row.button.destructive-action { color: var(--accent-color); --accent-bg-color: var(--destructive-bg-color); --accent-fg-color: var(--destructive-fg-color); --accent-color: var(--destructive-color); }
 
-/***************** Boxed Lists * */
 list.boxed-list > row.expander, list.content > row.expander { border: none; }
 
 list.boxed-list > row:first-child, list.content > row:first-child, list.boxed-list > row:first-child.expander row.header, list.content > row:first-child.expander row.header { border-top-left-radius: 12px; border-top-right-radius: 12px; }
@@ -1824,7 +1791,6 @@ menubar > item popover.menu popover.menu > contents { margin: 0; border-radius: 
 
 toolbarview > .top-bar menubar, toolbarview > .bottom-bar menubar { box-shadow: none; padding-bottom: 0; }
 
-/******************** GtkMessageDialog * */
 window.dialog.message { background-color: var(--dialog-bg-color); color: var(--dialog-fg-color); }
 
 @media (prefers-contrast: more) { window.dialog.message.csd { outline: none; } }
@@ -1837,7 +1803,6 @@ window.dialog.message.csd .dialog-action-area { margin: 0; padding: 24px; paddin
 
 window.dialog.message.csd .dialog-action-area > button { min-height: 24px; padding: 10px 20px; border-radius: 12px; }
 
-/******************** AdwMessageDialog * */
 window.messagedialog, dialog-host > dialog.alert sheet, window.dialog-window.alert { background-color: var(--dialog-bg-color); color: var(--dialog-fg-color); }
 
 dialog-host > dialog.alert sheet { border-radius: 18px; }
@@ -1874,14 +1839,12 @@ window.messagedialog.short .response-area, dialog.alert.short .response-area { p
 
 window.messagedialog.short .response-area > button, dialog.alert.short .response-area > button { min-width: 0; padding: 8px 16px; }
 
-/********** Frames * */
 frame, .frame { border: 1px solid color-mix(in srgb, currentColor var(--border-opacity), transparent); }
 
 frame { border-radius: 12px; }
 
 frame > label { margin: 4px; }
 
-/************** Separators * */
 separator { background: color-mix(in srgb, currentColor var(--border-opacity), transparent); min-width: 1px; min-height: 1px; }
 
 separator.spacer { background: none; }
@@ -1890,7 +1853,6 @@ separator.spacer.horizontal { min-width: 12px; }
 
 separator.spacer.vertical { min-height: 12px; }
 
-/********** Toasts * */
 toast { background: #505053; color: white; box-shadow: 0 1px 3px 1px RGB(0 0 6/7%), 0 2px 6px 2px RGB(0 0 6/3%); --standalone-color-oklab: Max(l, 0.85) a b; --accent-color: oklab(from var(--accent-bg-color) var(--standalone-color-oklab)); --destructive-color: oklab(from var(--destructive-bg-color) var(--standalone-color-oklab)); --success-color: oklab(from var(--success-bg-color) var(--standalone-color-oklab)); --warning-color: oklab(from var(--warning-bg-color) var(--standalone-color-oklab)); --error-color: oklab(from var(--error-bg-color) var(--standalone-color-oklab)); margin: 12px; margin-bottom: 24px; border-radius: 150px; border-spacing: 6px; padding: 6px; }
 
 toast:dir(ltr) { padding-left: 12px; }
@@ -1901,10 +1863,8 @@ toast > widget { margin: 0 6px; }
 
 @media (prefers-contrast: more) { toast { box-shadow: 0 0 0 1px color-mix(in srgb, currentColor var(--border-opacity), transparent); } }
 
-/************** GtkVideo * */
 video image.osd { min-width: 64px; min-height: 64px; border-radius: 32px; }
 
-/****************** AdwAboutWindow * */
 window.about .main-page > viewport > clamp > box, dialog.about .main-page > viewport > clamp > box { margin: 12px; border-spacing: 6px; }
 
 window.about .main-page > viewport > clamp > box > box, dialog.about .main-page > viewport > clamp > box > box { margin-top: 18px; border-spacing: 18px; margin-bottom: 6px; }
@@ -1915,7 +1875,6 @@ window.about .subpage > viewport > clamp > box, dialog.about .subpage > viewport
 
 window.about .subpage > clamp > textview, dialog.about .subpage > clamp > textview { background: none; color: inherit; }
 
-/***************** AdwStatusPage * */
 statuspage > scrolledwindow > viewport > box { margin: 36px 12px; border-spacing: 36px; }
 
 statuspage > scrolledwindow > viewport > box > clamp > box { border-spacing: 12px; }
@@ -1938,7 +1897,6 @@ statuspage.spinner > scrolledwindow > viewport > box > clamp > box > .icon { -gt
 
 statuspage.spinner > scrolledwindow > viewport > box > clamp > box > .icon:not(:last-child) { margin-bottom: 12px; }
 
-/* Cards */
 list.boxed-list, list.content, list.boxed-list-separate > row, .card { background-color: var(--card-bg-color); color: var(--card-fg-color); border-radius: 12px; box-shadow: 0 0 0 1px RGB(0 0 6/3%), 0 1px 3px 1px RGB(0 0 6/7%), 0 2px 6px 2px RGB(0 0 6/3%); }
 
 @media (prefers-contrast: more) { list.boxed-list, list.content, list.boxed-list-separate > row, .card { box-shadow: 0 0 0 1px color-mix(in srgb, currentColor var(--border-opacity), transparent), 0 1px 3px 1px RGB(0 0 6/7%), 0 2px 6px 2px RGB(0 0 6/3%); } }
@@ -1959,7 +1917,6 @@ list.boxed-list, list.content, list.boxed-list-separate > row, .card { backgroun
 
 .card.activatable:active { background-image: image(color-mix(in srgb, currentColor 8%, transparent)); }
 
-/* Transition shadows */
 navigation-view > dimming, overlay-split-view > dimming { background: var(--shade-color); }
 
 @media (prefers-contrast: more) { navigation-view > border, overlay-split-view > border { min-width: 1px; min-height: 1px; background: color-mix(in srgb, currentColor var(--border-opacity), transparent); } }
@@ -2140,7 +2097,7 @@ progressbar > text { font-size: smaller; }
 
 progressbar:disabled { filter: Opacity(var(--disabled-opacity)); }
 
-progressbar > trough > progress { /* share most of scales' */ border-radius: 99px; }
+progressbar > trough > progress {  border-radius: 99px; }
 
 progressbar > trough > progress.left { border-top-left-radius: 99px; border-bottom-left-radius: 99px; }
 
@@ -2406,7 +2363,6 @@ shortcut-label > .dimmed, shortcut-label > .dim-label, headerbar shortcut-label 
 
 @media (prefers-contrast: more) { .sidebar-pane:dir(rtl), .sidebar-pane:dir(rtl) banner > revealer > widget, .sidebar-pane.end:dir(ltr), .sidebar-pane.end:dir(ltr) banner > revealer > widget { box-shadow: inset 1px 0 color-mix(in srgb, currentColor var(--border-opacity), transparent); } }
 
-/* Middle pane in three-pane setups */
 :not(.isolated) > .content-pane :not(.isolated) > .sidebar-pane, :not(.isolated) > .sidebar-pane :not(.isolated) > .content-pane { background-color: var(--secondary-sidebar-bg-color); color: var(--secondary-sidebar-fg-color); --shade-color: var(--secondary-sidebar-shade-color); }
 
 :not(.isolated) > .content-pane :not(.isolated) > .sidebar-pane:backdrop, :not(.isolated) > .sidebar-pane :not(.isolated) > .content-pane:backdrop { background-color: var(--secondary-sidebar-backdrop-color); transition: background-color 200ms ease-out; }
@@ -2431,8 +2387,7 @@ stacksidebar row > label { padding-left: 6px; padding-right: 6px; }
 
 stacksidebar row.needs-attention > label { background-size: 6px 6px, 0 0; }
 
-/********************** Navigation Sidebar * */
-.navigation-sidebar { padding-top: 6px; padding-bottom: 4px; /* No top margin on the first header */ }
+.navigation-sidebar { padding-top: 6px; padding-bottom: 4px;  }
 
 .navigation-sidebar, .navigation-sidebar.view, window.print:not(.ssd-frame) .navigation-sidebar.dialog-action-box, .navigation-sidebar.view:disabled { background-color: transparent; color: inherit; }
 
@@ -2466,7 +2421,6 @@ stacksidebar row.needs-attention > label { background-size: 6px 6px, 0 0; }
 
 gridview.navigation-sidebar, flowbox.navigation-sidebar { padding: 3px; }
 
-/************** AdwSidebar * */
 sidebar .navigation-sidebar > row { padding: 0; }
 
 sidebar .navigation-sidebar > row > box { padding: 3px 14px; min-height: 36px; border-spacing: 12px; }
@@ -2475,7 +2429,6 @@ sidebar .navigation-sidebar > row > box > .icon:disabled { opacity: var(--disabl
 
 sidebar .boxed-list .icon:disabled, sidebar list.content .icon:disabled, sidebar .boxed-list .arrow:disabled, sidebar list.content .arrow:disabled { opacity: var(--disabled-opacity); }
 
-/************************** AdwViewSwitcherSidebar * */
 view-switcher-sidebar .indicator { background: color-mix(in srgb, currentColor 40%, transparent); border-radius: 999px; min-width: 1.6em; min-height: 1.6em; font-weight: bold; font-size: smaller; }
 
 view-switcher-sidebar .indicator.dot { min-width: 8px; min-height: 8px; }
@@ -2494,16 +2447,15 @@ spinner:checked { opacity: 1; animation: spin 1s linear infinite; }
 
 spinner:checked:disabled { opacity: var(--disabled-opacity); }
 
-/************** AdwSpinner * */
 image.spinner:disabled { opacity: var(--disabled-opacity); }
 
-spinbutton { padding: 0; border-spacing: 0; /* :not here just to bump specificity above that of the list button styling */ }
+spinbutton { padding: 0; border-spacing: 0;  }
 
 spinbutton > button.image-button.up:not(.flat):not(.raised):not(.suggested-action):not(.destructive-action):not(.opaque), spinbutton > button.image-button.down:not(.flat):not(.raised):not(.suggested-action):not(.destructive-action):not(.opaque) { margin: 0; border-radius: 0; box-shadow: none; border-style: solid; border-color: color-mix(in srgb, currentColor 10%, transparent); }
 
 @media (prefers-contrast: more) { spinbutton > button.image-button.up:not(.flat):not(.raised):not(.suggested-action):not(.destructive-action):not(.opaque), spinbutton > button.image-button.down:not(.flat):not(.raised):not(.suggested-action):not(.destructive-action):not(.opaque) { border-color: color-mix(in srgb, currentColor 50%, transparent); } }
 
-spinbutton:not(.vertical) { /* :not here just to bump specificity above that of the list button styling */ }
+spinbutton:not(.vertical) {  }
 
 spinbutton:not(.vertical) > text { min-width: 28px; padding: 6px; }
 
@@ -2515,7 +2467,7 @@ spinbutton:not(.vertical) > button.image-button.up:not(.flat):not(.raised):not(.
 
 spinbutton:not(.vertical) > button.image-button.up:not(.flat):not(.raised):not(.suggested-action):not(.destructive-action):not(.opaque):dir(rtl):first-child, spinbutton:not(.vertical) > button.image-button.down:not(.flat):not(.raised):not(.suggested-action):not(.destructive-action):not(.opaque):dir(rtl):first-child { border-radius: 9px 0 0 9px; }
 
-spinbutton.vertical { /* :not here just to bump specificity above that of the list button styling */ }
+spinbutton.vertical {  }
 
 spinbutton.vertical > text { min-height: 30px; min-width: 30px; }
 
@@ -2693,7 +2645,6 @@ cursor-handle.insertion-cursor > contents { border-top-left-radius: 0; transform
 
 magnifier { background-color: var(--view-bg-color); }
 
-/****************** AdwToggleGroup * */
 toggle-group { ---group-padding: 3px; background: color-mix(in srgb, currentColor 10%, transparent); border-radius: 9px; padding: var(---group-padding); }
 
 toggle-group:disabled { background-color: color-mix(in srgb, color-mix(in srgb, currentColor 10%, transparent) var(--disabled-opacity), transparent); }
@@ -2790,7 +2741,6 @@ toggle-group.flat > toggle:checked:disabled { background-color: color-mix(in srg
 
 toggle-group.flat > separator { background: none; }
 
-/************************* AdwInlineViewSwitcher * */
 inline-view-switcher > toggle-group.icons > toggle { min-width: 34px; }
 
 inline-view-switcher > toggle-group.labels > toggle { min-width: calc(18px + var(---group-padding) * 2); }
@@ -2823,7 +2773,6 @@ actionbar > revealer > box switch, searchbar > revealer > box switch, .toolbar s
 
 toolbarview > .top-bar .collapse-spacing .toolbar, toolbarview > .bottom-bar .collapse-spacing .toolbar { padding-top: 3px; padding-bottom: 3px; }
 
-/**************** GtkSearchBar * */
 searchbar > revealer > box { padding: 6px 6px 7px 6px; background-color: var(--headerbar-bg-color); color: var(--headerbar-fg-color); box-shadow: inset 0 -1px var(--headerbar-shade-color); }
 
 @media (prefers-contrast: more) { searchbar > revealer > box { box-shadow: inset 0 -1px color-mix(in srgb, var(--headerbar-border-color) var(--border-opacity), transparent); } }
@@ -2846,7 +2795,6 @@ toolbarview > .top-bar searchbar > revealer > box:backdrop > *, toolbarview > .b
 
 toolbarview > .top-bar .collapse-spacing searchbar > revealer > box, toolbarview > .bottom-bar .collapse-spacing searchbar > revealer > box, window.appchooser.csd:not(.ssd-frame) searchbar > revealer > box, window.shortcuts:not(.ssd-frame) searchbar > revealer > box { padding-top: 3px; padding-bottom: 3px; }
 
-/**************** GtkActionBar * */
 actionbar > revealer > box { background-color: var(--headerbar-bg-color); color: var(--headerbar-fg-color); box-shadow: inset 0 1px var(--headerbar-shade-color); padding: 7px 6px 6px 6px; }
 
 @media (prefers-contrast: more) { actionbar > revealer > box { box-shadow: inset 0 1px color-mix(in srgb, var(--headerbar-border-color) var(--border-opacity), transparent); } }
@@ -2865,16 +2813,14 @@ toolbarview > .top-bar actionbar > revealer > box:backdrop > *, toolbarview > .b
 
 toolbarview > .top-bar .collapse-spacing actionbar > revealer > box, toolbarview > .bottom-bar .collapse-spacing actionbar > revealer > box { padding-top: 3px; padding-bottom: 3px; }
 
-/************* AdwBanner * */
 banner { --banner-color: #7d7d83; }
 
-banner > revealer > widget { /* There are 2 more instances in _sidebars.css, keep in sync with that */ background-color: color-mix(in srgb, var(--banner-color) 30%, var(--window-bg-color)); color: var(--window-fg-color); padding: 6px; }
+banner > revealer > widget {  background-color: color-mix(in srgb, var(--banner-color) 30%, var(--window-bg-color)); color: var(--window-fg-color); padding: 6px; }
 
 banner > revealer > widget:backdrop { background-color: color-mix(in srgb, var(--banner-color) 15%, var(--window-bg-color)); transition: background-color 200ms ease-out; }
 
 banner > revealer > widget:backdrop > label, banner > revealer > widget:backdrop > button { filter: opacity(0.5); transition: filter 200ms ease-out; }
 
-/****************** AdwToolbarView * */
 toolbarview > .top-bar .collapse-spacing, toolbarview > .bottom-bar .collapse-spacing { padding-top: 3px; padding-bottom: 3px; }
 
 toolbarview > .top-bar.raised, toolbarview > .bottom-bar.raised { background-color: var(--headerbar-bg-color); color: var(--headerbar-fg-color); }
@@ -2971,12 +2917,10 @@ viewswitcher button.toggle > stack > box.narrow > label { min-height: 18px; padd
 
 viewswitcher button.toggle > stack > box.wide { padding: 2px 12px; border-spacing: 6px; }
 
-/********************** AdwViewSwitcherBar * */
 viewswitcherbar actionbar > revealer > box { padding-left: 0; padding-right: 0; padding-top: 7px; }
 
 toolbarview > .top-bar .collapse-spacing viewswitcherbar actionbar > revealer > box, toolbarview > .bottom-bar .collapse-spacing viewswitcherbar actionbar > revealer > box { padding-top: 6px; }
 
-/************************ AdwViewSwitcherTitle * */
 viewswitchertitle { margin-top: -6px; margin-bottom: -6px; }
 
 viewswitchertitle viewswitcher { margin-left: 12px; margin-right: 12px; }
@@ -2987,7 +2931,6 @@ viewswitchertitle viewswitcher.wide { margin-top: 6px; margin-bottom: 6px; }
 
 viewswitchertitle windowtitle { margin-top: 0; margin-bottom: 0; }
 
-/******************* AdwIndicatorBin * */
 indicatorbin > indicator, indicatorbin > mask { min-width: 6px; min-height: 6px; border-radius: 100px; }
 
 indicatorbin > indicator { margin: 2px; background: color-mix(in srgb, currentColor 40%, transparent); }
@@ -3032,7 +2975,6 @@ window.ssd { box-shadow: 0 0 0 1px RGB(0 0 0/5%); }
 
 @media (prefers-contrast: more) { window.ssd { box-shadow: 0 0 0 1px RGB(0 0 0/80%); } }
 
-/* Public colors from Default */
 @define-color theme_bg_color @window_bg_color;
 @define-color theme_fg_color @window_fg_color;
 @define-color theme_base_color @view_bg_color;

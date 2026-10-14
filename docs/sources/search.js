@@ -115,7 +115,6 @@ class ListSearchResult extends SearchResult {
 
         content.add_child(titleBox);
 
-        // An icon for, or thumbnail of, content
         const icon = this.metaInfo['createIcon'](this.ICON_SIZE);
         if (icon)
             titleBox.add_child(icon);
@@ -294,9 +293,6 @@ const SearchResultsBase = GObject.registerClass({
             try {
                 await this._ensureResultActors(results);
 
-                // To avoid CSS transitions causing flickering when
-                // the first search result stays the same, we hide the
-                // content while filling in the results.
                 this.hide();
                 this._clearResultDisplay();
                 results.forEach(
@@ -533,8 +529,6 @@ class GridSearchResults extends SearchResultsBase {
             delete this._updateSearchLater;
         }
 
-        // Make sure the maximum number of results calculated by
-        // _getMaxDisplayedResults() is updated after width changes.
         this._notifyAllocationId = this.connect('notify::allocation', () => {
             if (this._updateSearchLater)
                 return;
@@ -681,7 +675,6 @@ export const SearchResultsView = GObject.registerClass({
     _registerProvider(provider) {
         provider.searchInProgress = false;
 
-        // Filter out unwanted providers.
         if (provider.appInfo && !this._parentalControlsManager.shouldShowApp(provider.appInfo))
             return;
 
@@ -763,10 +756,6 @@ export const SearchResultsView = GObject.registerClass({
     }
 
     setTerms(terms) {
-        // Check for the case of making a duplicate previous search before
-        // setting state of the current search or cancelling the search.
-        // This will prevent incorrect state being as a result of a duplicate
-        // search while the previous search is still active.
         const searchString = terms.join(' ');
         const previousSearchString = this._terms.join(' ');
         if (searchString === previousSearchString)
@@ -838,7 +827,7 @@ export const SearchResultsView = GObject.registerClass({
             const firstResult = display.getFirstResult();
             if (firstResult) {
                 newDefaultResult = firstResult;
-                break; // select this one!
+                break;
             }
         }
 
@@ -891,7 +880,6 @@ export const SearchResultsView = GObject.registerClass({
     }
 
     activateDefault() {
-        // If we have a search queued up, force the search now.
         if (this._searchTimeoutId > 0)
             this._doSearch();
 
@@ -905,7 +893,6 @@ export const SearchResultsView = GObject.registerClass({
     }
 
     popupMenuDefault() {
-        // If we have a search queued up, force the search now.
         if (this._searchTimeoutId > 0)
             this._doSearch();
 

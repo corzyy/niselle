@@ -1,21 +1,3 @@
-// niselle-overview – Hyprland-Plugin für die Übersicht der Niselle-Shell.
-//
-// Zweck: Hyprland reicht Wischgesten (3/4 Finger) an die Übersicht weiter, damit das Arbeitsflächen-Karussell
-// dem Finger in Echtzeit folgt, statt erst nach dem Umschalten umzuspringen. Optional kann das Plugin die
-// Geste übernehmen (consumieren), dann schaltet Hyprland selbst nicht um und die Shell entscheidet am Ende.
-//
-// Datenweg: Das Plugin lauscht auf den Gesten-Events der EventBus (Event::bus()->m_events.gesture.swipe.*)
-// und schreibt eigene Ereignisse auf den Hyprland-Ereignissocket (socket2) im Format `custom>>…`. Quickshell
-// empfängt sie über `Hyprland.rawEvent`. Die Shell meldet dem Plugin über den Dispatcher `niselle:overview`
-// (open|close|toggle), wann die Übersicht sichtbar ist (die Layer-Fläche bleibt bei Niselle dauerhaft geladen,
-// taugt also nicht als Erkennung).
-//
-// Nutzlast auf socket2 (Name, dann Komma-getrennte Felder):
-//   custom>>niselle-overview,open
-//   custom>>niselle-overview,close
-//   custom>>niselle-overview-swipe,begin,<fingers>,0,0
-//   custom>>niselle-overview-swipe,update,<fingers>,<dx>,<dy>
-//   custom>>niselle-overview-swipe,end,<cancelled>,0,0
 
 #include <hyprland/src/plugins/PluginAPI.hpp>
 #include <hyprland/src/event/EventBus.hpp>
@@ -28,23 +10,18 @@
 
 #include <string>
 
-// ───────── Zustand ─────────
 
 static HANDLE PHANDLE = nullptr;
 
-// Von der Shell gemeldet: die Übersicht ist gerade sichtbar
 static bool g_overviewOpen = false;
 
-// Konfiguration (plugin:niselle_overview:*)
 static SP<Config::Values::CBoolValue> g_enabled;
 static SP<Config::Values::CBoolValue> g_consumeSwipe;
 
-// Lauscher – die Handle-Objekte melden sich beim Verwerfen selbst ab
 static CHyprSignalListener g_swipeBegin;
 static CHyprSignalListener g_swipeUpdate;
 static CHyprSignalListener g_swipeEnd;
 
-// ───────── Helfer ─────────
 
 static bool enabled() {
     return !g_enabled || g_enabled->value();
@@ -65,7 +42,6 @@ static void setOverviewOpen(bool open) {
     post(open ? "niselle-overview,open" : "niselle-overview,close");
 }
 
-// ───────── Gesten weiterreichen ─────────
 
 static void onSwipeBegin(IPointer::SSwipeBeginEvent e, Event::SCallbackInfo& info) {
     if (!enabled() || !g_overviewOpen)
@@ -91,7 +67,6 @@ static void onSwipeEnd(IPointer::SSwipeEndEvent e, Event::SCallbackInfo& info) {
         info.cancelled = true;
 }
 
-// ───────── Dispatcher ─────────
 
 static SDispatchResult dispatchOverview(std::string arg) {
     SDispatchResult result;
@@ -108,7 +83,6 @@ static SDispatchResult dispatchOverview(std::string arg) {
     return result;
 }
 
-// ───────── Plugin-Lebenszyklus ─────────
 
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
@@ -119,7 +93,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     const std::string HASH = __hyprland_api_get_hash();
     if (HASH != __hyprland_api_get_client_hash()) {
-        // Falsche Header: lieber gar nicht laden, sonst stürzt der Compositor ab.
         HyprlandAPI::addNotification(PHANDLE, "[niselle-overview] Header/Hyprland-Version passt nicht – Plugin nicht geladen.", CHyprColor(1.F, 0.25F, 0.25F, 1.F), 5000);
         return {"niselle-overview", "Versionskonflikt", "jakob", "0.1.0"};
     }

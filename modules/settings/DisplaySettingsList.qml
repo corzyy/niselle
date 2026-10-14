@@ -4,14 +4,10 @@ import qs
 import qs.services
 import qs.components
 
-// CcDisplaySettings: Einstellungen eines Monitors als Zeilen (Drehung, Auflösung, Bildwiederholrate,
-// variable Bildwiederholrate, HDR, Skalierung). Wird direkt auf der Seite (ein Monitor/Spiegeln) oder
-// auf der Monitor-Unterseite verwendet.
 Column {
     id: root
 
     property var monitor: null
-    // Bildwiederholrate ausblenden, wenn gespiegelt wird (wie GNOME)
     property bool allowRefresh: true
 
     width: parent ? parent.width : 0
@@ -22,7 +18,6 @@ Column {
     readonly property var parts: root.d ? DisplayService._modeParts(root.d.mode) : ({ "w": 0, "h": 0 })
     readonly property var scales: root.parts.w > 0 ? DisplayService.scaleOptions(root.parts.w, root.parts.h) : [1]
 
-    // ───────── Drehung ─────────
     ChoiceRow {
         title: "Orientation"
         choices: DisplayService.orientationOptions.map(o => ({ "label": o.label, "value": o.transform }))
@@ -30,7 +25,6 @@ Column {
         onPicked: v => DisplayService.setTransform(root.monitor.name, v)
     }
 
-    // ───────── Auflösung ─────────
     ChoiceRow {
         title: "Resolution"
         choices: root.monitor ? DisplayService.resolutionOptions(root.monitor).map(r => ({ "label": r.label, "value": r.w + "x" + r.h })) : []
@@ -42,7 +36,6 @@ Column {
         }
     }
 
-    // ───────── Bildwiederholrate ─────────
     ChoiceRow {
         visible: root.allowRefresh
         title: "Refresh Rate"
@@ -51,7 +44,6 @@ Column {
         onPicked: m => DisplayService.setMode(root.monitor.name, m)
     }
 
-    // ───────── Variable Bildwiederholrate ─────────
     ActionRow {
         visible: root.allowRefresh
         title: "Variable Refresh Rate"
@@ -62,7 +54,6 @@ Column {
         }
     }
 
-    // ───────── HDR ─────────
     ActionRow {
         title: "HDR (High Dynamic Range)"
         subtitle: "Display content in a wider range of colors and brightness"
@@ -72,7 +63,6 @@ Column {
         }
     }
 
-    // ───────── Skalierung ─────────
     SegmentedRow {
         visible: root.scales.length <= 5 && root.scales.length > 1
         title: "Scale"

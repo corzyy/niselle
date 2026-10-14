@@ -16,17 +16,14 @@
   border-radius: $forced_circular_radius;
   min-width: 12em;
   max-width: 12em;
-  min-height: $scalable_icon_size * 3; // use icon size so the button scales
+  min-height: $scalable_icon_size * 3;
 }
 
-// standalone toggle button
 .quick-toggle {
   &:checked { @extend %default_button;}
 
   & > StBoxLayout { spacing: $base_padding * 1.5; }
 
-  /* Move padding into the box; this is to allow menu arrows
-     to extend to the border */
   &.button { padding: 0; }
   & > StBoxLayout {
     padding: 0 $base_padding * 2;
@@ -47,7 +44,6 @@
   .quick-toggle-icon { icon-size: $scalable_icon_size; }
 }
 
-// toggle with a menu button
 .quick-toggle-has-menu {
   & .quick-toggle {
     min-width: auto;
@@ -84,11 +80,7 @@
 }
 
 
-// Set the color of separators and menu buttons within the toggle.
-// This is bit of a mess but needed to have working colors in
-// both light, dark and high contrast styles.
 
-// menu button colors
 $quick_toggle_menubutton_bg_color: if(
   $contrast == 'high', lighten($bg_color, 22%),
   if($variant == 'light', darken($bg_color, 5%), lighten($bg_color, 8%))
@@ -98,7 +90,6 @@ $quick_toggle_menubutton_checked_bg_color: if(
   if($variant == 'light', st-mix(-st-accent-color, $fg_color, 92%), st-mix(-st-accent-color, $fg_color, 85%))
 );
 
-// separator colors
 $quick_toggle_separator_color: if(
   $contrast == 'high', transparent,
   transparentize($fg_color, .75)
@@ -151,7 +142,6 @@ $quick_toggle_checked_separator_color: if(
   @extend %card;
 
   &:insensitive {
-    // override insensitive style on submenu
     @include button(normal);
   }
 
@@ -180,7 +170,6 @@ $quick_toggle_checked_separator_color: if(
         color: -st-accent-fg-color;
       }
 
-      // draw hc outline
       @if $contrast == 'high' {
         @include draw_hc_inset();
         &.active {
@@ -217,7 +206,7 @@ $quick_toggle_checked_separator_color: if(
 }
 
 .nm-network-item {
-  .wireless-secure-icon { icon-size: $scalable_icon_size * 0.5; } // half-size symbolic
+  .wireless-secure-icon { icon-size: $scalable_icon_size * 0.5; }
 }
 
 .bt-device-item {
@@ -239,7 +228,6 @@ $quick_toggle_checked_separator_color: if(
   .button:checked { @extend %default_button; }
 }
 
-// background apps
 
 .background-apps-quick-toggle {
   min-height: to_em(40px);
@@ -258,8 +246,6 @@ $quick_toggle_checked_separator_color: if(
   & .icon-button {
     padding: $base_padding;
 
-    // override some background colors since it's a button on an already styled background
-    // FIXME: may need a generic drawing method for button in menu item in future
     background-color: transparentize($fg_color, 0.87);
     &:hover { background-color: transparentize($fg_color, 0.78);}
     &:active { background-color: transparentize($fg_color, 0.69);}

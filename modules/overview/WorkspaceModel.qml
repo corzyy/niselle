@@ -2,25 +2,12 @@ import QtQuick
 import qs
 import qs.services
 
-// Arbeitsflächen eines Monitors als stabiles Modell für Leiste und Fensterbereich der Übersicht.
-//
-// WorkspaceService.workspacesFor() liefert eine neue Liste, in der eine Fläche nur über ihre Position erkannt wird:
-// verschwindet eine mittlere Fläche, rutschen die Inhalte aller folgenden Flächen eine Stelle nach vorn und jede
-// Ansicht müsste ihren Inhalt tauschen. Dieses Modell führt die Flächen dagegen über ihre ID. Jede Fläche behält ihr
-// Delegate; neue Flächen kommen als eigene Zeile hinzu, entfernte bleiben `retain` ms als `gone` im Modell,
-// damit das Delegate ausblenden kann, bevor es verschwindet.
-//
-// Alle Bewegungen in der Übersicht (Gleiten zur aktiven Fläche, Nachrücken, Zuwachs) laufen mit derselben Kurve
-// und Dauer (motionSlow, easeOut): Die Versätze `slot - position` heben sich dadurch auch dann auf, wenn Wechsel
-// und Umbau gleichzeitig geschehen, und die aktive Fläche springt nie.
 Item {
     id: root
 
     required property var screen
 
-    // Zeilen { wsId, gone }
     readonly property alias model: rows
-    // Zeit, die eine entfernte Fläche zum Ausblenden bleibt
     readonly property int retain: Theme.motionSlow + 80
 
     visible: false
@@ -31,9 +18,6 @@ Item {
     }
     readonly property int count: list.length
 
-    // Die aktive Fläche; ein kurzzeitiges "keine aktive" (-1 während des Wechsels) wird ignoriert,
-    // damit Gleitposition und Nachbarn nicht springen. Eine angeforderte, noch unbestätigte Fläche
-    // (WorkspaceService.switchTo) gilt sofort als aktiv: das Karussell gleitet ohne IPC-Umlauf los.
     readonly property int pendingId: WorkspaceService.pendingFor(screen)
     readonly property int rawActiveIndex: {
         const real = list.findIndex(w => w.active);
@@ -51,7 +35,6 @@ Item {
     }
     readonly property int activeId: list[activeIndex]?.id ?? -1
 
-    // Gebrochene Mittelposition (Index in `list`), folgt der aktiven Fläche weich
     property real position: activeIndex
     Behavior on position {
         enabled: OverviewService.shown && !Theme.gameMode
@@ -61,14 +44,12 @@ Item {
         }
     }
 
-    // Zuletzt bekannte Daten je Fläche, auch nach dem Entfernen (zum Ausblenden)
     property var infoMap: ({})
     property var slotMap: ({})
 
     function infoFor(id) {
         return root.infoMap[id] ?? null;
     }
-    // Zielplatz (Index in der Anzeigereihenfolge); entfernte Flächen behalten ihren letzten Platz
     function slotFor(id) {
         return root.slotMap[id] ?? 0;
     }
@@ -77,7 +58,6 @@ Item {
         id: rows
     }
 
-    // Entfernt abgelaufene `gone`-Zeilen
     Timer {
         id: purgeTimer
         interval: root.retain
@@ -106,9 +86,6 @@ Item {
             info[list[i].id] = list[i];
             slots[list[i].id] = i;
         }
-        // Zuerst die Karten, damit Delegates beim Anlegen/Aktualisieren ihre Daten finden. Unveränderte Einträge
-        // behalten ihr altes Objekt, und die Karten werden nur bei einer echten Änderung ersetzt: jede neue Karte
-        // wertet alle Seiten und Vorschauen neu aus.
         let infoChanged = false;
         const nextInfo = Object.assign({}, root.infoMap);
         for (const id in info) {
@@ -128,7 +105,6 @@ Item {
         if (slotsChanged)
             root.slotMap = Object.assign({}, root.slotMap, slots);
 
-        // Entfernte Flächen als `gone` markieren, zurückgekehrte wiederbeleben
         let anyGone = false;
         for (let i = 0; i < rows.count; i++) {
             const r = rows.get(i);
@@ -143,7 +119,6 @@ Item {
                 anyGone = true;
         }
 
-        // Reihenfolge herstellen: lebende Zeilen in Listenreihenfolge, entfernte bleiben, wo sie sind
         let cursor = 0;
         for (const w of list) {
             while (cursor < rows.count && rows.get(cursor).gone && rows.get(cursor).wsId !== w.id)

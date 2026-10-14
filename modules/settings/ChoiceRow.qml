@@ -4,9 +4,6 @@ import Quickshell
 import qs
 import qs.components
 
-// ActionRow mit einer Auswahl als Libadwaita-Dropdown (GtkDropDown in AdwComboRow): rechts ein Knopf mit
-// dem aktuellen Wert und einem Pfeil; ein Klick öffnet ein Popover mit allen Werten (Häkchen am gewählten).
-// `choices`: [{ value, label }]; `value` ist der gewählte Wert, `picked(value)` kommt bei einer Auswahl.
 ActionRow {
     id: root
 
@@ -73,7 +70,6 @@ ActionRow {
             onClicked: menu.toggle()
         }
 
-        // Popover unterhalb des Knopfes, rechtsbündig; Klick daneben schließt über den Fokus-Grab
         PopupMenu {
             id: menu
 

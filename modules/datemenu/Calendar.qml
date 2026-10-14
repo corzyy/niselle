@@ -5,19 +5,11 @@ import qs
 import qs.components
 import qs.services
 
-// Monatskalender (.calendar) [calendar.js Calendar, _calendar.scss:39-149]: Kopf "‹ Oktober ›" mit Pager-Knöpfen,
-// Wochentagskürzel, immer 6 Wochen. Heute im Akzentstil, ausgewählter Tag im flachen Aktiv-Stil, Wochenenden
-// gedimmt, Tage anderer Monate halbtransparent, Punkt bei Tagen mit Terminen. Wochennummern und Wochenstart
-// folgen SettingsService (showWeekNumbers, weekStart), Wochenstart sonst nach Locale.
-// Mausrad wechselt den Monat.
 Item {
     id: root
 
-    // Ausgewählter Tag (bestimmt auch den angezeigten Monat)
     property date selectedDate: new Date()
-    // Heutiges Datum (von außen, damit der Kalender um Mitternacht neu zeichnet)
     property date today: new Date()
-    // Wochennummern unabhängig von der Einstellung zeigen (Demo)
     property bool forceWeekNumbers: false
 
     signal dateSelected(date date)
@@ -29,10 +21,8 @@ Item {
         return i >= 0 && i <= 6 ? i : locale.firstDayOfWeek % 7;
     }
 
-    // Kürzel des Wochenrasters [calendar.js:55-74, de.po "grid …"]: S M D M D F S
     readonly property var dayAbbreviations: locale.name.startsWith("de") ? ["S", "M", "D", "M", "D", "F", "S"] : [0, 1, 2, 3, 4, 5, 6].map(d => locale.dayName(d, Locale.NarrowFormat))
 
-    // Arbeitsfreie Tage: "06" (Sonntag, Samstag) [calendar.js:32-36]
     function isWorkDay(d) {
         return d.getDay() !== 0 && d.getDay() !== 6;
     }
@@ -40,7 +30,6 @@ Item {
         return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
     }
 
-    // Erster sichtbarer Tag; 6 Wochen mit Polsterung nach calendar.js:633-666
     readonly property date beginDate: {
         const first = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
         const daysToWeekStart = (7 + first.getDay() - weekStart) % 7;
@@ -54,7 +43,6 @@ Item {
         return list;
     }
 
-    // ISO-Wochennummer (%V)
     function isoWeek(d) {
         const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
         t.setDate(t.getDate() + 3 - (t.getDay() + 6) % 7);
@@ -62,7 +50,6 @@ Item {
         return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + (firstThursday.getDay() + 6) % 7) / 7);
     }
 
-    // Monat zurück/vor; Tag auf Monatsende begrenzen [calendar.js:575-619]
     function shiftMonth(delta) {
         const y = selectedDate.getFullYear();
         const m = selectedDate.getMonth() + delta;
@@ -70,11 +57,9 @@ Item {
         dateSelected(new Date(y, m, Math.min(selectedDate.getDate(), last)));
     }
 
-    // Termine des sichtbaren Bereichs anfordern
     onBeginDateChanged: EventsService.requestRange(beginDate, new Date(beginDate.getFullYear(), beginDate.getMonth(), beginDate.getDate() + 42))
     Component.onCompleted: EventsService.requestRange(beginDate, new Date(beginDate.getFullYear(), beginDate.getMonth(), beginDate.getDate() + 42))
 
-    // %card_flat mit padding 0 und margin-top 0 [_calendar:40-43]
     implicitWidth: grid.implicitWidth + 2 * (Theme.cardMargin + Theme.cardBorderWidth)
     implicitHeight: grid.implicitHeight + Theme.cardMargin + 2 * Theme.cardBorderWidth
 
@@ -96,7 +81,6 @@ Item {
         rowSpacing: 0
         columnSpacing: 0
 
-        // Kopf: ‹ Monat › [_calendar:45-71]
         RowLayout {
             Layout.columnSpan: grid.columns
             Layout.fillWidth: true
@@ -130,7 +114,6 @@ Item {
                     Text {
                         id: monthText
                         anchors.centerIn: parent
-                        // "%OB" bzw. "%OB %Y" außerhalb des aktuellen Jahres [calendar.js:419-435]
                         text: root.locale.standaloneMonthName(root.selectedDate.getMonth(), Locale.LongFormat) + (monthLabel.sameYear ? "" : " " + root.selectedDate.getFullYear())
                         color: Theme.fgColor
                         font.family: Theme.fontFamily
@@ -153,7 +136,6 @@ Item {
             }
         }
 
-        // Wochentagskürzel [_calendar:120-130]
         Item {
             visible: root.showWeekNumbers
             implicitWidth: 1
@@ -187,7 +169,6 @@ Item {
             }
         }
 
-        // 6 Wochen
         Repeater {
             model: 6
 
@@ -212,7 +193,6 @@ Item {
                     Component {
                         id: weekNumber
 
-                        // Wochennummer des Donnerstags der Zeile [calendar.js:730-739, _calendar:133-147]
                         Item {
                             implicitWidth: weekText.implicitWidth + 2 * (Theme.calendarWeekNumberPaddingH + Theme.calendarWeekNumberMargin)
 

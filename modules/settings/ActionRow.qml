@@ -3,24 +3,17 @@ import QtQuick.Layouts
 import qs
 import qs.components
 
-// AdwActionRow (55px bei zwei Zeilen, 50px bei einer). `property`: Stil .property – kleine Beschriftung oben, Wert unten
-// (title = Beschriftung, subtitle = Wert). Trailing-Widgets als Kinder (Schalter, Knöpfe).
 Item {
     id: root
 
     property string title: ""
     property string subtitle: ""
-    // .property-Stil: Titel klein/gedämpft über dem Wert
     property bool propertyStyle: false
     property string icon: ""
-    // Nummern-Kennzeichen vor dem Titel (Anzeigen-Nummer, .monitor-label)
     property string badge: ""
-    // false: Icon unverändert darstellen (App-Icons)
     property bool iconSymbolic: true
     property bool activatable: false
-    // Pfeil „>“ bzw. Symbol am Ende (z. B. "adw-external-link-symbolic")
     property string suffixIcon: ""
-    // Schmale Zeile für reine Navigationslisten (einzeilig, 40px)
     property bool dense: false
 
     default property alias trailing: trailingRow.data
@@ -32,7 +25,6 @@ Item {
     width: parent ? parent.width : implicitWidth
     implicitHeight: Math.max(dense ? 40 : Theme.compact ? 48 : 60, textColumn.implicitHeight + 2 * (dense ? 4 : Theme.compact ? 6 : 10) + (textColumn.visibleChildren.length > 1 ? 6 : 0))
 
-    // Trennlinie zur vorigen Zeile
     Rectangle {
         visible: root.y > 0
         anchors.top: parent.top
@@ -68,7 +60,6 @@ Item {
             color: Theme.windowFg
         }
 
-        // Nummern-Kennzeichen (.monitor-label): Kreis mit Zahl
         Rectangle {
             visible: root.badge !== ""
             Layout.alignment: Qt.AlignVCenter
@@ -148,7 +139,6 @@ Item {
     MouseArea {
         id: mouse
         anchors.fill: parent
-        // unter den Trailing-Widgets, damit deren Knöpfe Klicks bekommen
         z: -1
         enabled: root.activatable
         hoverEnabled: true

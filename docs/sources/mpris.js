@@ -91,8 +91,6 @@ export const MprisPlayer = GObject.registerClass({
     }
 
     raise() {
-        // The remote Raise() method may run into focus stealing prevention,
-        // so prefer activating the app via .desktop file if possible
         if (this._app)
             this._app.activate();
         else if (this._mprisProxy.CanRaise)
@@ -113,9 +111,6 @@ export const MprisPlayer = GObject.registerClass({
                 if (!this._mprisProxy.g_name_owner)
                     this._close();
             }, this);
-        // It is possible for the bus to disappear before the previous signal
-        // is connected, so we must ensure that the bus still exists at this
-        // point.
         if (!this._mprisProxy.g_name_owner)
             this._close();
     }
@@ -131,8 +126,6 @@ export const MprisPlayer = GObject.registerClass({
         for (const prop in this._playerProxy.Metadata)
             metadata[prop] = this._playerProxy.Metadata[prop].deepUnpack();
 
-        // Validate according to the spec; some clients send buggy metadata:
-        // https://www.freedesktop.org/wiki/Specifications/mpris-spec/metadata
         this._trackArtists = metadata['xesam:artist'];
         if (!Array.isArray(this._trackArtists) ||
             !this._trackArtists.every(artist => typeof artist === 'string')) {
@@ -245,8 +238,6 @@ export const MprisSource = GObject.registerClass({
                 this._players.delete(name);
                 player.disconnectObject(this);
 
-                // if !canPlay, the player has already been removed
-                // or was never exposed in our public players list
                 if (player.canPlay)
                     this.emit('player-removed', player);
             }

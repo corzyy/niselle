@@ -29,7 +29,6 @@ const A11Y_SCHEMA = 'org.gnome.desktop.a11y.keyboard';
 
 export const SIDE_CONTROLS_ANIMATION_TIME = 250;
 
-/** @enum {number} */
 export const ControlsState = {
     HIDDEN: 0,
     WINDOW_PICKER: 1,
@@ -144,12 +143,10 @@ class ControlsManagerLayout extends Clutter.LayoutManager {
     }
 
     vfunc_get_preferred_width(_container, _forHeight) {
-        // The MonitorConstraint will allocate us a fixed size anyway
         return [0, 0];
     }
 
     vfunc_get_preferred_height(_container, _forWidth) {
-        // The MonitorConstraint will allocate us a fixed size anyway
         return [0, 0];
     }
 
@@ -162,7 +159,6 @@ class ControlsManagerLayout extends Clutter.LayoutManager {
         const spacing = Math.round(height * VERTICAL_SPACING_RATIO);
         let availableHeight = height;
 
-        // Search entry
         const [searchHeight] = this._searchEntry.get_preferred_height(width);
         childBox.set_origin(0, startY);
         childBox.set_size(width, searchHeight);
@@ -170,7 +166,6 @@ class ControlsManagerLayout extends Clutter.LayoutManager {
 
         availableHeight -= searchHeight + spacing;
 
-        // Dash
         const maxDashHeight = Math.round(box.get_height() * DASH_MAX_HEIGHT_RATIO);
         this._dash.setMaxSize(width, maxDashHeight);
 
@@ -182,7 +177,6 @@ class ControlsManagerLayout extends Clutter.LayoutManager {
 
         availableHeight -= dashHeight + spacing;
 
-        // Workspace Thumbnails
         let thumbnailsHeight = 0;
         if (this._workspacesThumbnails.visible) {
             const {expandFraction} = this._workspacesThumbnails;
@@ -196,11 +190,9 @@ class ControlsManagerLayout extends Clutter.LayoutManager {
             this._workspacesThumbnails.allocate(childBox);
         }
 
-        // Workspaces
         let params = [box, searchHeight, dashHeight, thumbnailsHeight, spacing];
         const transitionParams = this._stateAdjustment.getStateTransitionParams();
 
-        // Update cached boxes
         for (const state of Object.values(ControlsState)) {
             this._cachedWorkspaceBoxes.set(
                 state, this._computeWorkspacesBoxForState(state, ...params));
@@ -217,7 +209,6 @@ class ControlsManagerLayout extends Clutter.LayoutManager {
 
         this._workspacesDisplay.allocate(workspacesBox);
 
-        // AppDisplay
         if (this._appDisplay.visible) {
             const workspaceAppGridBox =
                 this._cachedWorkspaceBoxes.get(ControlsState.APP_GRID);
@@ -239,7 +230,6 @@ class ControlsManagerLayout extends Clutter.LayoutManager {
             this._appDisplay.allocate(appDisplayBox);
         }
 
-        // Search
         childBox.set_origin(0, startY + searchHeight + spacing);
         childBox.set_size(width, availableHeight);
 
@@ -325,10 +315,6 @@ class ControlsManager extends St.Widget {
 
         this._searchEntry = new Search.SearchEntry({
             style_class: 'search-entry',
-            /* Translators: this is the text displayed
-               in the search entry when no search is
-               active; it should not exceed ~30
-               characters. */
             hint_text: _('Type to search'),
             track_hover: true,
             can_focus: true,
@@ -812,13 +798,10 @@ class ControlsManager extends St.Widget {
         this.dash.showAppsButton.checked = false;
         this._ignoreShowAppsButtonToggle = false;
 
-        // Set the opacity here to avoid a 1-frame flicker
         this.opacity = 0;
 
-        // We can't run the animation before the first allocation happens
         await this.layout_manager.ensureAllocation();
 
-        // Opacity
         startupPromises.push(
             this.easeAsync({
                 opacity: 255,
@@ -826,7 +809,6 @@ class ControlsManager extends St.Widget {
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             }));
 
-        // Search bar falls from the ceiling
         const {primaryMonitor} = Main.layoutManager;
         const [, y] = this._searchEntryBin.get_transformed_position();
         const yOffset = y - primaryMonitor.y;
@@ -839,8 +821,6 @@ class ControlsManager extends St.Widget {
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             }));
 
-        // The Dash rises from the bottom. This is the last animation to finish,
-        // so resolve the promise there.
         this.dash.translation_y = this.dash.height + this.dash.margin_bottom;
         startupPromises.push(
             this.dash.easeAsync({

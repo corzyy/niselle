@@ -2,13 +2,9 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// Anordnungsvorschau der Anzeigen (gnome-control-center cc-display-arrangement): die Monitore werden maßstäblich
-// angeordnet, mit Nummer in der Mitte, dicker Oberkante für die Primäranzeige und Akzentrahmen für die Auswahl.
-// Ziehen verschiebt einen Monitor im Raster; Kanten rasten an den Nachbarn ein.
 Item {
     id: root
 
-    // [{ name, number, x, y, w, h, primary, selected }] – x/y/w/h in logischen Layout-Einheiten
     property var monitors: []
     property string selected: ""
 
@@ -18,7 +14,6 @@ Item {
     readonly property real marginMon: 0.66
     readonly property real dragThreshold: 25
 
-    // Maßstab und Mittelpunkt des Layouts, damit alles in die Fläche passt
     readonly property var _box: {
         let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity, maxW = 0, maxH = 0;
         for (const m of monitors) {
@@ -53,9 +48,6 @@ Item {
 
     implicitHeight: 200
 
-    // Das Modell sind nur die Namen: beim Ziehen ändert sich jedes Mal Position und damit `monitors`. Mit einem
-    // Modell aus Objekten würde der Repeater alle Delegates neu bauen und den Zug mitten in der Bewegung abbrechen;
-    // eine unveränderte Namensliste lässt die Delegates stehen.
     Repeater {
         model: root.monitors.map(m => m.name)
 
@@ -83,7 +75,6 @@ Item {
             height: rh
             z: isSelected ? 2 : 1
 
-            // Füllfläche
             Rectangle {
                 anchors.fill: parent
                 radius: 5
@@ -92,7 +83,6 @@ Item {
                 border.color: mon.isSelected ? Theme.accentColor : Theme.alpha(Theme.windowFg, 0.15)
             }
 
-            // Primäranzeige: dicke Oberkante (wie .monitor.primary)
             Rectangle {
                 visible: mon.isPrimary
                 anchors.top: parent.top
@@ -102,7 +92,6 @@ Item {
                 color: Theme.dark ? Theme.windowFg : "#000000"
             }
 
-            // Anzeigenummer
             Rectangle {
                 anchors.centerIn: parent
                 width: Math.max(18, label.implicitWidth + 8)
@@ -160,7 +149,6 @@ Item {
         }
     }
 
-    // Rastet den gezogenen Monitor an den Kanten der übrigen ein
     function _snap(name, x, y, w, h) {
         const others = root.monitors.filter(m => m.name !== name);
         const major = others.length >= 2 ? dragThreshold / root.scale : Infinity;

@@ -2,14 +2,11 @@ import QtQuick
 import QtQuick.Layouts
 import qs
 
-// AdwPreferencesGroup: optionale Überschrift (heading) und eine Karte (.boxed-list) mit Zeilen.
-// Die Zeilen sind direkte Kinder; ActionRow zeichnet die Trennlinie selbst.
 ColumnLayout {
     id: root
 
     property string title: ""
     property string description: ""
-    // false: Inhalt ohne Karte (eigene Flächen, z. B. der Leisten-Editor)
     property bool boxed: true
 
     default property alias rows: list.data
@@ -54,7 +51,6 @@ ColumnLayout {
             width: parent.width
         }
 
-        // 1px-Innenrand wie .card/.boxed-list (box-shadow 0 0 0 1px cardShade)
         Rectangle {
             visible: root.boxed
             anchors.fill: parent

@@ -3,20 +3,15 @@ import QtQuick.Layouts
 import qs
 import qs.components
 
-// Kachel im Bearbeitungsmodus der Quick-Settings: Pille wie ToggleButton (nur Icon und Titel) mit rundem
-// Plus-/Minus-Abzeichen an der oberen rechten Ecke. `dimmed`: Kachel ist bereits in der Leiste (blass, ohne Abzeichen).
 Item {
     id: root
 
     property string title: ""
     property string icon: ""
-    // false: Icon unverändert (farbig) darstellen, z. B. die israelische Flagge der BigYahoo-Kachel
     property bool symbolic: true
-    // "remove" (Minus), "add" (Plus) oder "" (kein Abzeichen)
     property string badge: ""
     property bool dimmed: false
     property bool dragging: false
-    // Ziehbar: die Maus bleibt beim Ziehen bei der Kachel, die Flickable-Liste scrollt dann nicht mit
     property bool draggable: false
 
     property alias mouse: area
@@ -75,7 +70,6 @@ Item {
         onClicked: root.clicked()
     }
 
-    // Abzeichen: dunkler Kreis mit Rand, ragt über die Ecke der Pille
     Rectangle {
         id: badgeDot
 

@@ -82,7 +82,6 @@ const WorkspacesViewBase = GObject.registerClass({
     }
 });
 
-/** @enum {number} */
 export const FitMode = {
     SINGLE: 0,
     ALL: 1,
@@ -103,8 +102,8 @@ class WorkspacesView extends WorkspacesViewBase {
             this.queue_relayout();
         }, this);
 
-        this._animating = false; // tweening
-        this._gestureActive = false; // touch(pad) gestures
+        this._animating = false;
+        this._gestureActive = false;
 
         this._scrollAdjustment = scrollAdjustment;
         this._scrollAdjustment.connectObject('notify::value',
@@ -135,9 +134,6 @@ class WorkspacesView extends WorkspacesViewBase {
 
         let [x1, y1] = box.get_origin();
 
-        // Spacing here is not only the space between workspaces, but also the
-        // space before the first workspace, and after the last one. This prevents
-        // workspaces from touching the edges of the allocation box.
         if (vertical) {
             const availableHeight = height - spacing * (nWorkspaces + 1);
             let workspaceHeight = availableHeight / nWorkspaces;
@@ -180,7 +176,6 @@ class WorkspacesView extends WorkspacesViewBase {
         const currentWorkspace = vertical || !rtl
             ? adj.value : adj.upper - adj.value - 1;
 
-        // Single fit mode implies centered too
         let [x1, y1] = box.get_origin();
         if (vertical) {
             const [, workspaceHeight] = workspace.get_preferred_height(width);
@@ -253,7 +248,6 @@ class WorkspacesView extends WorkspacesViewBase {
             this._getWorkspaceModeForOverviewState(finalState),
             progress);
 
-        // Fade and scale inactive workspaces
         this._workspaces.forEach((w, index) => {
             w.stateAdjustment.value = workspaceMode;
 
@@ -296,18 +290,12 @@ class WorkspacesView extends WorkspacesViewBase {
             const initialFitMode = this._getFitModeForState(initialState);
             const finalFitMode = this._getFitModeForState(finalState);
 
-            // Only use the relative boxes when the overview is in a state
-            // transition, and the corresponding fit modes are different.
             if (initialFitMode !== finalFitMode) {
                 const initialBox =
                     this._controls.getWorkspacesBoxForState(initialState).copy();
                 const finalBox =
                     this._controls.getWorkspacesBoxForState(finalState).copy();
 
-                // Boxes are relative to ControlsManager, transform them;
-                //   this.apply_relative_transform_to_point(controls,
-                //       new Graphene.Point3D());
-                // would be more correct, but also more expensive
                 const [parentOffsetX, parentOffsetY] =
                     this.get_parent().allocation.get_origin();
                 [initialBox, finalBox].forEach(b => {
@@ -350,7 +338,6 @@ class WorkspacesView extends WorkspacesViewBase {
         fitAllBox =
             this._getFirstFitAllWorkspaceBox(fitAllBox, fitAllSpacing, vertical);
 
-        // Account for RTL locales by reversing the list
         const workspaces = this._workspaces.slice();
         if (rtl)
             workspaces.reverse();
@@ -452,7 +439,7 @@ class WorkspacesView extends WorkspacesViewBase {
             const metaWorkspace = workspaceManager.get_workspace_by_index(j);
             let workspace;
 
-            if (j >= this._workspaces.length) { /* added */
+            if (j >= this._workspaces.length) {
                 workspace = new Workspace.Workspace(
                     metaWorkspace,
                     this._monitorIndex,
@@ -462,10 +449,10 @@ class WorkspacesView extends WorkspacesViewBase {
             } else  {
                 workspace = this._workspaces[j];
 
-                if (workspace.metaWorkspace !== metaWorkspace) { /* removed */
+                if (workspace.metaWorkspace !== metaWorkspace) {
                     workspace.destroy();
                     this._workspaces.splice(j, 1);
-                } /* else kept */
+                }
             }
         }
 
@@ -499,13 +486,10 @@ class WorkspacesView extends WorkspacesViewBase {
     endTouchGesture() {
         this._gestureActive = false;
 
-        // Make sure title captions etc are shown as necessary
         this._scrollToActive();
         this._updateVisibility();
     }
 
-    // sync the workspaces' positions to the value of the scroll adjustment
-    // and change the active workspace if appropriate
     _onScrollAdjustmentChanged() {
         if (!this.has_allocation())
             return;
@@ -520,11 +504,6 @@ class WorkspacesView extends WorkspacesViewBase {
 
         if (allowSwitch && active !== current) {
             if (!this._workspaces[current]) {
-                // The current workspace was destroyed. This could happen
-                // when you are on the last empty workspace, and consolidate
-                // windows using the thumbnail bar.
-                // In that case, the intended behavior is to stay on the empty
-                // workspace, which is the last one, so pick it.
                 current = this._workspaces.length - 1;
             }
 
@@ -897,7 +876,7 @@ export class WorkspacesDisplay extends St.Widget {
         this._inWindowDrag = false;
         this._leavingOverview = false;
 
-        this._gestureActive = false; // touch(pad) gestures
+        this._gestureActive = false;
     }
 
     _windowDragBegin() {

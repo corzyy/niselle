@@ -12,13 +12,8 @@ import {QuickSlider, SystemIndicator} from '../quickSettings.js';
 const ALLOW_AMPLIFIED_VOLUME_KEY = 'allow-volume-above-100-percent';
 const UNMUTE_DEFAULT_VOLUME = 0.25;
 
-// Each Gvc.MixerControl is a connection to PulseAudio,
-// so it's better to make it a singleton
 let _mixerControl;
 
-/**
- * @returns {Gvc.MixerControl} - the mixer control singleton
- */
 export function getMixerControl() {
     if (_mixerControl)
         return _mixerControl;
@@ -209,7 +204,7 @@ const StreamSlider = GObject.registerClass({
         this._volumeCancellable = null;
 
         if (this._stream.state === Gvc.MixerStreamState.RUNNING)
-            return; // feedback not necessary while playing
+            return;
 
         this._volumeCancellable = new Gio.Cancellable();
         const player = global.display.get_sound_player();
@@ -331,14 +326,10 @@ class OutputStreamSlider extends StreamSlider {
     }
 
     _findHeadphones(sink) {
-        // This only works for external headphones (e.g. bluetooth)
         if (sink.get_form_factor() === 'headset' ||
             sink.get_form_factor() === 'headphone')
             return true;
 
-        // a bit hackish, but ALSA/PulseAudio have a number
-        // of different identifiers for headphones, and I could
-        // not find the complete list
         if (sink.get_ports().length > 0)
             return sink.get_port().port.toLowerCase().includes('headphone');
 
@@ -406,11 +397,8 @@ class InputStreamSlider extends StreamSlider {
     }
 
     _maybeShowInput() {
-        // only show input widgets if any application is recording audio
         let showInput = false;
         if (this._stream) {
-            // skip gnome-volume-control and pavucontrol which appear
-            // as recording because they show the input level
             const skippedApps = [
                 'org.gnome.VolumeControl',
                 'org.PulseAudio.pavucontrol',
@@ -543,7 +531,6 @@ class InputIndicator extends VolumeIndicator {
         if (!this._input.stream)
             return;
 
-        // Muted microphone doesn't need privacy indicator (no privacy concern)
         const {isMuted} = this._input.stream;
         if (isMuted)
             this._indicator.remove_style_class_name('privacy-indicator');

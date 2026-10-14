@@ -1,15 +1,11 @@
-/* Buttons */
 
 .button {
   @extend %button;
-  // uses scalable value since it's a text element
   min-height: to_em(22px);
 
-  // default style
   &.default {
     @extend %default_button;
   }
-  // flat style
   &.flat {
     @extend %flat_button;
   }
@@ -18,7 +14,7 @@
 .icon-button {
   @extend %button;
 
-  border-radius: $forced_circular_radius; // is circular
+  border-radius: $forced_circular_radius;
   padding: $scaled_padding * 2;
   min-height: $scalable_icon_size;
 
@@ -27,12 +23,10 @@
     -st-icon-style: symbolic;
   }
 
-  // default style
   &.default {
     @extend %default_button;
   }
 
-  // flat style
   &.flat {
     @extend %flat_button;
   }

@@ -1,7 +1,5 @@
 .pragma library
 
-// Rechenausdrücke für die Suche. Eigener Parser statt eval(): Zahlen, + - * / ^ %, Klammern, Fakultät,
-// Konstanten und Funktionen. Ein einzelner Wert ohne Rechenzeichen ist kein Ausdruck.
 
 const constants = {
     "pi": Math.PI,
@@ -110,7 +108,6 @@ function factorial(n) {
     return r;
 }
 
-// Rekursiver Abstieg: expr → term (± term)*, term → power ((* / %) power)*, power → unary (^ power)?
 function evaluate(text) {
     const tokens = tokenize(text);
     if (!tokens || tokens.length === 0)
@@ -152,7 +149,6 @@ function evaluate(text) {
                 operators++;
                 v = v % parsePower();
             } else if (startsOperand(peek())) {
-                // Implizite Multiplikation: 2(3+4), 2pi
                 operators++;
                 v = v * parsePower();
             } else {
@@ -243,7 +239,6 @@ function evaluate(text) {
     }
 }
 
-// Ergebnis als Text mit höchstens 12 gültigen Stellen, ohne überflüssige Nullen
 function format(value, decimalPoint) {
     let s = Math.abs(value) >= 1e15 || (Math.abs(value) < 1e-9 && value !== 0) ? value.toExponential(9) : String(parseFloat(value.toPrecision(12)));
     if (s.indexOf("e") >= 0)

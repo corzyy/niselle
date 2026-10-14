@@ -1,16 +1,3 @@
-// Preload-Shim für Qt: QScreen::refreshRate() meldet mindestens NISELLE_ANIM_HZ.
-//
-// Warum: Sind mehrere Fenster sichtbar (Leiste auf jedem Monitor, Übersicht …), treibt Qt Quick die Animationen
-// mit einem Timer im Takt des *primären* QScreen (QSGThreadedRenderLoop::startOrStopAnimationTimer, Intervall
-// = 1000 / primaryScreen()->refreshRate()). Unter Wayland ist das der erste wl_output – hier ein 60-Hz-Monitor –,
-// also liefen Übersicht & Co. auch auf dem 144-Hz-Monitor nur mit 60 Bildern/s. Die „basic“-Renderschleife (Qt-Standard
-// mit NVIDIA) hat dafür sogar fest 16 ms; bin/niselle schaltet deshalb zusätzlich auf die „threaded“-Schleife um.
-//
-// bin/niselle setzt NISELLE_ANIM_HZ auf die höchste Bildrate aller Monitore und lädt diese Bibliothek vor.
-// Quickshell merkt sich die Umgebung beim Start und gibt sie an jedes gestartete Programm weiter; damit Apps weder den
-// Shim noch QSG_RENDER_LOOP erben, filtert execve() diese Variablen heraus.
-//
-// Ohne Qt-Header: das Symbol ist `qreal QScreen::refreshRate() const` (Itanium-ABI, qreal = double).
 #define _GNU_SOURCE
 #include <dlfcn.h>
 #include <stdlib.h>
@@ -27,8 +14,6 @@ double _ZNK7QScreen11refreshRateEv(const void *self)
 {
     static refresh_fn real;
     static double floor_hz = -1;
-    // Erste Abfrage kommt aus dem Konstruktor der Renderschleife, also aus der Shell selbst (nicht aus
-    // setsid & Co., die den Shim beim Start ebenfalls laden)
     if (floor_hz < 0) {
         real = (refresh_fn)dlsym(RTLD_NEXT, "_ZNK7QScreen11refreshRateEv");
         const char *env = getenv("NISELLE_ANIM_HZ");
@@ -49,7 +34,6 @@ static int drop(const char *kv)
     return scrub_render_loop && !strncmp(kv, "QSG_RENDER_LOOP=", 16);
 }
 
-// Läuft auch im vfork-Kind von QProcess: kein malloc, kein dlsym, nur Stack und Syscall
 int execve(const char *path, char *const argv[], char *const envp[])
 {
     if (!scrub_children || !envp)

@@ -7,7 +7,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Datum und Uhrzeit: Zeitzone und automatische Zeit (timedatectl), Uhrformat, Wochenstart und Wochennummern.
 SettingsPage {
     id: root
 
@@ -61,7 +60,6 @@ SettingsPage {
         }
     }
 
-    // polkit fragt bei Bedarf selbst nach der Berechtigung
     Process {
         id: setter
         onExited: root.refresh()

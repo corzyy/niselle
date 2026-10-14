@@ -4,10 +4,6 @@ import qs
 import qs.components
 import qs.services
 
-// Terminliste (.events-button) [dateMenu.js EventsSection, _calendar.scss:156-190]: Titel („Heute“, „Gestern“, „Morgen“ oder
-// Datum), je Termin Zusammenfassung und Zeit, ohne Termine „Keine Termine“. Ohne Kalender ausgeblendet.
-// `plain` (linke Spalte des zweispaltigen Menüs, GNOME-Mockup): ohne Karte und Titel, je Termin eine Zeile
-// „14:00  Zusammenfassung“. Mit calendarUpcomingOnly zeigt der heutige Tag nur noch nicht beendete Termine.
 Card {
     id: root
 
@@ -52,7 +48,6 @@ Card {
         return german ? startDate.getDate() + ". " + month + year : month + " " + startDate.getDate() + year;
     }
 
-    // Zeitspalte der schlichten Zeile: Beginn, bei Ganztags- und mehrtägigen Terminen ein Strich
     function rowTime(event) {
         if (event.start < startDate || event.end > endDate)
             return "–";
@@ -69,7 +64,6 @@ Card {
         return german ? Qt.formatDate(d, "dd.MM.") : Qt.formatDate(d, "MM/dd");
     }
 
-    // Zeitangabe eines Termins [dateMenu.js _formatEventTime]
     function formatEventTime(event) {
         const start = event.start;
         let end = event.end;
@@ -128,7 +122,6 @@ Card {
                     Layout.fillWidth: true
                     spacing: Theme.eventsListSpacing
 
-                    // Schlichte Zeile: Beginn und Zusammenfassung
                     RowLayout {
                         visible: root.plain
                         Layout.fillWidth: true
@@ -156,7 +149,6 @@ Card {
                         }
                     }
 
-                    // Kartenzeile: Zusammenfassung über Zeitangabe
                     Text {
                         visible: !root.plain
                         Layout.fillWidth: true

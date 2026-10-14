@@ -5,7 +5,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Power: Energiemodus, automatisches Sperren und Standby nach Leerlauf (IdleService), Sperren vor dem Standby und Koffein.
 SettingsPage {
     id: root
 

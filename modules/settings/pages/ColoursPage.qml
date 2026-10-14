@@ -5,8 +5,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Farben: Palette aus dem Hintergrundbild (Matugen), Schema und feste Akzentfarbe.
-// Eigene Seite der Einstellungen (Seitenleiste „Colours“), zuvor Teil von Appearance.
 SettingsPage {
     id: root
 

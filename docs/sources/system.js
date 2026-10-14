@@ -67,12 +67,10 @@ const PowerToggle = GObject.registerClass({
     }
 
     _sync() {
-        // Do we have batteries or a UPS?
         this.visible = this._proxy.IsPresent;
         if (!this.visible)
             return;
 
-        // The icons
         let chargingState;
         if (this._proxy.State === UPower.DeviceState.CHARGING)
             chargingState = '-charging';
@@ -90,8 +88,6 @@ const PowerToggle = GObject.registerClass({
             ? 'battery-level-100-charged-symbolic'
             : `battery-level-${fillLevel}${chargingState}-symbolic`;
 
-        // Make sure we fall back to fallback-icon-name and not GThemedIcon's
-        // default fallbacks
         const gicon = new Gio.ThemedIcon({
             name: icon,
             use_default_fallbacks: false,
@@ -206,10 +202,6 @@ class ShutdownItem extends QuickSettingsItem {
             Main.panel.closeQuickSettings();
         });
 
-        // Whether shutdown is available or not depends on both lockdown
-        // settings (disable-log-out) and Polkit policy - the latter doesn't
-        // notify, so we update the item each time we become visible or
-        // the lockdown setting changes, which should be close enough.
         this.connect('notify::mapped', () => {
             if (!this.mapped)
                 return;
@@ -353,7 +345,6 @@ class Indicator extends SystemIndicator {
             this._percentageLabel.visible =
                 this._desktopSettings.get_boolean(SHOW_BATTERY_PERCENTAGE);
         } else {
-            // If there's no battery, then we use the power icon.
             this._indicator.icon_name = 'system-shutdown-symbolic';
             this._percentageLabel.hide();
         }

@@ -11,13 +11,6 @@ import * as ParentalControlsManager from '../misc/parentalControlsManager.js';
 import * as PopupMenu from './popupMenu.js';
 
 export class AppMenu extends PopupMenu.PopupMenu {
-    /**
-     * @param {Clutter.Actor} sourceActor - actor the menu is attached to
-     * @param {St.Side} side - arrow side
-     * @param {object} params - options
-     * @param {bool} params.favoritesSection - show items to add/remove favorite
-     * @param {bool} params.showSingleWindow - show window section for a single window
-     */
     constructor(sourceActor, side = St.Side.TOP, params = {}) {
         if (Clutter.get_default_text_direction() === Clutter.TextDirection.RTL) {
             if (side === St.Side.LEFT)
@@ -45,7 +38,6 @@ export class AppMenu extends PopupMenu.PopupMenu {
         this._windowsChangedId = 0;
         this._updateWindowsLaterId = 0;
 
-        /* Translators: This is the heading of a list of open windows */
         this._openWindowsHeader = new PopupMenu.PopupSeparatorMenuItem(_('Open Windows'));
         this.addMenuItem(this._openWindowsHeader);
 
@@ -195,24 +187,17 @@ export class AppMenu extends PopupMenu.PopupMenu {
             : Shell.AppLaunchGpu.DISCRETE;
     }
 
-    /** */
     destroy() {
         this.setApp(null);
         super.destroy();
     }
 
-    /**
-     * @returns {bool} - true if the menu is empty
-     */
     isEmpty() {
         if (!this._app)
             return true;
         return super.isEmpty();
     }
 
-    /**
-     * @param {Shell.App} app - the app the menu represents
-     */
     setApp(app) {
         if (this._app === app)
             return;

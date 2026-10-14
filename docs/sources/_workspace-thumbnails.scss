@@ -1,8 +1,6 @@
-/* Workspace pager */
 
-// thumbnails in overview
 .workspace-thumbnails {
-  visible-width: 32px; //amount visible before hover
+  visible-width: 32px;
   spacing: $base_padding;
   padding: $base_padding;
 
@@ -17,7 +15,6 @@
     }
   }
 
-  // drag and drop indicator
   .placeholder {
     background-image: url("resource:///org/gnome/shell/theme/workspace-placeholder.svg");
     background-size: contain;
@@ -25,7 +22,6 @@
   }
 }
 
-// selected indicator
 .workspace-thumbnail-indicator {
   border: 3px solid -st-accent-color;
   border-radius: $base_border_radius;

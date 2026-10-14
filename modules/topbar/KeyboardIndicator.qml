@@ -3,7 +3,6 @@ import qs
 import qs.services
 import qs.components
 
-// Aktives Tastaturlayout (Kurzname wie "de"), nur bei mehreren konfigurierten Layouts sichtbar
 Pill {
     id: root
 

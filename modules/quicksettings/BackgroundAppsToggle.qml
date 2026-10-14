@@ -3,9 +3,6 @@ import QtQuick.Layouts
 import qs
 import qs.components
 
-// Hintergrundprogramme-Zeile (.background-apps-quick-toggle) [backgroundApps.js:121-143, _quick-settings.scss:244-249]:
-// flach (transparent), 40px hoch, über die volle Breite. Titel links, Pfeil (go-next-symbolic) rechts. Im
-// Unterschied zu den Kacheln hat sie keinen eigenen Menü-Knopf – die ganze Zeile öffnet das Untermenü.
 Item {
     id: root
 
@@ -23,7 +20,6 @@ Item {
     activeFocusOnTab: true
     Layout.fillWidth: true
 
-    // Ruhezustand ist transparent, nur Hover/Fokus/Drücken füllen (.background-apps-quick-toggle background-color)
     Rectangle {
         anchors.fill: parent
         radius: Theme.radiusPill

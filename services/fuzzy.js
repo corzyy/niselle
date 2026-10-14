@@ -1,20 +1,14 @@
 .pragma library
 
-// Unscharfe Suche für App- und Einstellungsnamen. Alle Funktionen erwarten bereits normalisierte Texte (norm()).
 
-// Akzente und Groß-/Kleinschreibung ignorieren
 function norm(s) {
     return (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-// Zeichen, nach denen ein neues Wort beginnt
 function isBoundary(ch) {
     return ch === " " || ch === "-" || ch === "_" || ch === "." || ch === "/";
 }
 
-// Teilfolgen-Treffer wie bei fzf: die Zeichen des Musters müssen in Reihenfolge im Text vorkommen.
-// Bewertet werden zusammenhängende Läufe, Wortanfänge und der Textanfang; Lücken kosten Punkte.
-// Rückgabe: Anteil 0..1 des erreichbaren Höchstwerts, 0 ohne Treffer.
 function subsequence(pattern, text) {
     const n = pattern.length;
     if (n === 0 || n > text.length)
@@ -54,7 +48,6 @@ function subsequence(pattern, text) {
     return Math.max(0, best) / (n * perChar);
 }
 
-// Edit-Distanz mit Vertauschung (Damerau, eingeschränkt), bricht bei Überschreiten von `max` ab
 function editDistance(a, b, max) {
     if (Math.abs(a.length - b.length) > max)
         return max + 1;
@@ -81,7 +74,6 @@ function editDistance(a, b, max) {
     return rows[a.length][b.length];
 }
 
-// Tippfehler: das Muster liegt höchstens `max` Änderungen neben einem Wortanfang des Textes
 function typo(pattern, text) {
     if (pattern.length < 4)
         return 0;
@@ -99,7 +91,6 @@ function typo(pattern, text) {
     return 0;
 }
 
-// Unscharfer Wert 0..90 (liegt immer unter exakten Teilstring-Treffern), 0 ohne Treffer
 function fuzzyScore(pattern, text) {
     if (pattern.length < 2 || text.length === 0)
         return 0;

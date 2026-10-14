@@ -79,9 +79,6 @@ const RfkillManager = GObject.registerClass({
 
 let _manager;
 
-/**
- * @returns {RfkillManager}
- */
 export function getRfkillManager() {
     if (_manager != null)
         return _manager;
@@ -130,7 +127,6 @@ class Indicator extends SystemIndicator {
     }
 
     _sync() {
-        // Only show indicator when airplane mode is on
         const {visible, checked} = this._rfkillToggle;
         this._indicator.visible = visible && checked;
     }

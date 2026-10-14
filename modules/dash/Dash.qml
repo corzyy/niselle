@@ -3,34 +3,18 @@ import qs
 import qs.services
 import qs.components
 
-// Dash [dash.js, _dash.scss]: Pille mit angehefteten und laufenden Apps, Trennlinie dazwischen, „Apps anzeigen“ ganz rechts.
-// Füllt den Dash-Slot der Übersicht; die Pille liegt oben im Slot, darunter bleibt der Randabstand (dashEdgeOffset).
-//
-// Reihenfolge: Favoriten, dann laufende Apps ohne Favorit; Apps ohne Desktop-Eintrag (kind "win") erscheinen als laufende Apps.
-// Die Einträge liegen in `model` und werden bei Änderungen abgeglichen (applyModel), damit neue Einträge einwachsen und
-// entfernte schrumpfen [dash.js: _redisplay, DashItemContainer.show/animateOutAndDestroy]; Animationen laufen nur bei sichtbarer,
-// ruhender Übersicht.
-//
-// Ziehen [dash.js: handleDragOver/acceptDrop]: Einträge setzen beim Ziehen über die Leiste einen Platzhalter in den Favoritenbereich;
-// Ablegen heftet an oder verschiebt. Quelle ist ein Objekt mit Schlüssel "niselle-app" und den Eigenschaften `entry`, `favorite`
-// (so ziehen später auch App-Grid-Icons hinein).
 Item {
     id: root
 
-    // Platz, den die Übersicht dem Dash höchstens gibt (setMaxSize) [overviewControls.js:173-181]
     property real maxWidth: width
     property real maxHeight: 100000
 
     readonly property alias menu: menu
     readonly property bool anyMenuOpen: menu.open || showApps.menuOpen
-    // Mit `dragOverlay` (Overview) liegen gezogene Icons über der ganzen Übersicht, damit sie beim Ziehen auf eine
-    // Arbeitsflächen-Vorschau sichtbar bleiben; ohne Overlay (Dock) bleibt die Ebene im Dash.
     property Item dragOverlay: null
     readonly property Item dragLayer: dragOverlay ? dragOverlay : localDragLayer
 
-    // ───────── Größen ─────────
 
-    // Favoriten, dann laufende Apps; nFav = Zahl der Favoriten
     readonly property var appsInfo: {
         const list = [];
         const seen = {};
@@ -60,7 +44,6 @@ Item {
         };
     }
 
-    // Größte Icongröße, die in Breite (alle Einträge samt „Apps anzeigen“) und Höhe passt [dash.js:573-628]
     readonly property int iconSize: {
         const n = root.appsInfo.list.length + 1;
         const tileExtra = 2 * Theme.tilePadding;
@@ -74,11 +57,9 @@ Item {
         }
         return size;
     }
-    // Die Icongröße wechselt über 200 ms [dash.js:660-666]
     property real iconSizeShown: iconSize
     readonly property real tileSize: iconSizeShown + 2 * Theme.tilePadding
     readonly property real cellWidth: tileSize + 2 * Theme.dashItemSpacing
-    // Höhe eines Eintrags samt Klickfläche: Kachel, Hintergrund-Padding, Randabstand
     readonly property real columnHeight: tileSize + 2 * Theme.dashPadding + Theme.dashEdgeOffset
 
     implicitWidth: contentRow.width + 2 * Theme.dashOuterPadding + 2 * (Theme.dashPadding - Theme.dashItemSpacing)
@@ -92,21 +73,16 @@ Item {
         }
     }
 
-    // ───────── Zustand ─────────
 
     property bool ready: false
-    // Einblenden/Ausblenden von Einträgen nur bei offener, ruhender Übersicht [dash.js:794-798]
     readonly property bool animate: ready && OverviewService.shown && !OverviewService.animating
 
-    // Platzhalter beim Ziehen: Index unter den Apps (-1: keiner)
     property int placeholderPos: -1
     property int dragCount: 0
     readonly property bool dragging: dragCount > 0
-    // Beim Ablegen verschwindet der Platzhalter ohne Animation
     property bool instantPlaceholder: false
     property int nextUid: 1
 
-    // Gewünschte Einträge in Reihenfolge, samt Platzhalter, Trennlinie und leerem Ablageziel
     readonly property var desired: {
         const info = root.appsInfo;
         const apps = info.list.slice();
@@ -154,8 +130,6 @@ Item {
         return -1;
     }
 
-    // Modell dem Soll angleichen: neue Einträge einfügen, fehlende ausblenden, Reihenfolge herstellen.
-    // Ausblendende Einträge bleiben stehen, bis ihre Animation endet (finishRemove).
     function applyModel() {
         const want = {};
         for (const d of root.desired)
@@ -205,7 +179,6 @@ Item {
         ready = true;
     }
 
-    // ───────── Ziehen ─────────
 
     function dragStarted() {
         root.dragCount++;
@@ -231,7 +204,6 @@ Item {
         return -1;
     }
 
-    // Platzhalter nachführen [dash.js:861-940]; x in Koordinaten der Eintragsleiste
     function dragMotion(source, x) {
         if (!source || !source.entry)
             return;
@@ -252,7 +224,6 @@ Item {
         pos = Math.max(0, Math.min(pos, root.appsInfo.nFav));
         if (pos === root.placeholderPos)
             return;
-        // Nicht direkt vor oder hinter sich selbst einfügen
         const own = root._favoriteIndex(source.entry);
         if (own !== -1 && (pos === own || pos === own + 1)) {
             root.clearPlaceholder();
@@ -261,7 +232,6 @@ Item {
         root.placeholderPos = pos;
     }
 
-    // Ablegen [dash.js:943-989]: ohne Platzhalter bleibt alles, wie es ist
     function acceptDrop(source) {
         if (!source || !source.entry || root.placeholderPos < 0)
             return;
@@ -274,8 +244,6 @@ Item {
             AppsService.addFavorite(source.entry, pos);
     }
 
-    // ───────── Tooltip ─────────
-    // Ein Tooltip für alle Einträge. Erscheint nach 300 ms, wechselt der Zeiger zum Nachbarn, sofort [dash.js:539-571]
 
     property Item labelItem: null
     property bool labelShowing: false
@@ -325,7 +293,6 @@ Item {
         onTriggered: root.labelShowing = false
     }
 
-    // Übersicht schließt: Tooltip weg [dash.js:493-496]
     Connections {
         target: OverviewService
         function onShownChanged() {
@@ -337,9 +304,7 @@ Item {
         }
     }
 
-    // ───────── Aufbau ─────────
 
-    // Hintergrund hinter den Einträgen; fängt Klicks ab, damit die Übersicht nicht schließt
     Rectangle {
         readonly property real pad: Theme.dashPadding - Theme.dashItemSpacing
 
@@ -389,7 +354,6 @@ Item {
                         return Theme.dashPlaceholderSize;
                     }
 
-                    // 0 → 1 beim Einblenden, 1 → 0 beim Ausblenden [dash.js:154-185]
                     property bool entered: !animateIn
                     property real factor: entered && !removing ? 1 : 0
 
@@ -442,8 +406,6 @@ Item {
                     Component {
                         id: separator
 
-                        // Dünne, durchgehende Linie, etwas kürzer als die Icons.
-                        // Der Loader füllt die Zelle und würde ein Rectangle direkt darin aufziehen, daher der Item-Rahmen.
                         Item {
                             Rectangle {
                                 x: Theme.dashSeparatorMargin
@@ -472,7 +434,6 @@ Item {
         }
     }
 
-    // Ablegeziel: die Eintragsleiste
     DropArea {
         x: contentRow.x + itemsRow.x
         y: 0
@@ -503,7 +464,6 @@ Item {
         }
     }
 
-    // Gezogene Icons liegen über allem
     Item {
         id: localDragLayer
         anchors.fill: parent

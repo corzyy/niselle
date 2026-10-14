@@ -3,13 +3,9 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// Katalog der Einstellungen-App (modules/settings): Seitenleisten-Bereiche, Unterseiten und die daraus
-// abgeleitete, durchsuchbare Liste. SettingsWindow nutzt `groups`/`subpageTitles`/`pageFiles`; die Shell-Suche
-// (SearchService) nutzt `searchable`, um Bereiche und Unterseiten als Ergebnis anzubieten.
 Singleton {
     id: root
 
-    // Seitenleiste: Gruppen durch Trennlinien getrennt [Reihenfolge wie in der Vorlage]
     readonly property var groups: [
         [
             {
@@ -110,7 +106,6 @@ Singleton {
             "system/datetime": "DateTimePage"
         })
 
-    // Unterseiten ohne eigenen Seitenleisten-Eintrag, die aber durchsuchbar sein sollen
     readonly property var subpages: [
         {
             "id": "settings:network/saved",
@@ -194,7 +189,6 @@ Singleton {
         }
     ]
 
-    // Zusatzbegriffe je Seitenleisten-Bereich (über den Titel hinaus)
     readonly property var _keywords: ({
             "network": "network wifi wireless ethernet vpn proxy dns",
             "bluetooth": "bluetooth device pairing",
@@ -209,8 +203,6 @@ Singleton {
             "system": "system date time default apps"
         })
 
-    // Flache, durchsuchbare Liste { id, name, genericName, keywords, comment, icon, panel, description }.
-    // Aufbau wie ein Desktop-Eintrag, damit AppsService.makeIndex/searchIndex sie indizieren können.
     readonly property var searchable: {
         const list = [];
         for (const g of root.groups)

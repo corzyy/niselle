@@ -5,27 +5,18 @@ import Quickshell
 import Quickshell.Io
 import qs
 
-// Hintergrundbild je Monitor für die Arbeitsflächen-Vorschauen. Quelle: awww (`awww query`, zeigt, was tatsächlich
-// auf dem Monitor liegt), sonst die Einstellung wallpaper(Dark) aus SettingsService. Fehlt beides, bleibt `sourceFor` leer.
-// awww meldet keine Ereignisse; abgefragt wird deshalb nur beim Öffnen der Übersicht.
-// Beim Start wird das gemerkte Hintergrundbild einmal wiederhergestellt: awww überlebt keinen Reboot, ohne einen
-// Aufruf bliebe der Desktop nach dem Login leer.
 Singleton {
     id: root
 
-    // { Monitorname: Dateipfad }
     property var awwwPaths: ({})
 
-    // Eingestelltes Hintergrundbild als Dateipfad (Dark-Variante im dunklen Stil), ohne file://-Präfix
     readonly property string configuredPath: {
         const path = Theme.dark && SettingsService.wallpaperDark !== "" ? SettingsService.wallpaperDark : SettingsService.wallpaper;
         return path.startsWith("file://") ? path.slice(7) : path;
     }
 
-    // Eingestelltes Hintergrundbild als file://-URL
     readonly property string configuredUri: root.configuredPath === "" ? "" : "file://" + root.configuredPath
 
-    // file://-URL des Hintergrunds, "" wenn unbekannt
     function sourceFor(screenName) {
         const p = root.awwwPaths[screenName];
         if (p)
@@ -33,8 +24,6 @@ Singleton {
         return root.configuredUri;
     }
 
-    // Wie sourceFor, aber ohne Rückfall auf die Einstellung: "" solange awww nichts meldet.
-    // Für das Vorladen, damit kein nicht ladbarer Ersatz (z. B. .jxl) angefasst wird.
     function awwwSourceFor(screenName) {
         const p = root.awwwPaths[screenName];
         return p ? "file://" + p : "";
@@ -45,9 +34,6 @@ Singleton {
             query.running = true;
     }
 
-    // Gemerktes Hintergrundbild beim Start setzen, solange awww noch kein Bild anzeigt (z. B. direkt nach dem Booten).
-    // Nur einmal; wartet, bis die Einstellungen aus der Datei geladen sind. Startet awww-daemon bei Bedarf, da er
-    // einen Reboot nicht überlebt.
     property bool _restoreTried: false
 
     readonly property string restoreScript:
@@ -76,17 +62,14 @@ Singleton {
         onExited: root.refresh()
     }
 
-    // Per Drag & Drop abgelegte Bilder: in <XDG-Bilderordner>/wallpapers kopieren (außer sie liegen dort schon,
-    // bei Namensgleichheit mit anderem Inhalt wird durchnummeriert), dann als Hintergrund setzen.
     function isImage(path) {
         return /\.(jpe?g|png|webp|bmp|gif|avif|jxl)$/i.test(path);
     }
 
     function importAndApply(urls) {
-        const files = urls.map(u => decodeURIComponent(u.toString().replace(/^file:\/\//, ""))).filter(root.isImage);
+        const files = urls.map(u => decodeURIComponent(u.toString().replace(/^file:\/\
         if (files.length === 0 || importProc.running)
             return;
-        // Das zuletzt abgelegte Bild wird gesetzt, alle werden kopiert
         const script = 'pics=$(xdg-user-dir PICTURES 2>/dev/null); [ -n "$pics" ] || pics="$HOME/Pictures"; dir="$pics/wallpapers"; mkdir -p "$dir" || exit 1\n' +
             'for f in "$@"; do\n' +
             '  [ -f "$f" ] || continue\n' +
@@ -146,7 +129,6 @@ Singleton {
         }
     }
 
-    // Zeilen: ": HDMI-A-1: 1920x1080, scale: 1, currently displaying: image: /pfad/bild.jpg"
     Process {
         id: query
         command: ["sh", "-c", "command -v awww >/dev/null 2>&1 && awww query"]

@@ -4,34 +4,21 @@ import qs
 import qs.services
 import qs.components
 
-// Ein Eintrag des App-Grids (.overview-tile / .app-folder) [appDisplay.js: AppIcon, FolderIcon].
-// Zeigt entweder eine App (Icon + Titel + Laufpunkt) oder einen Ordner (2×2-Vorschau der ersten vier Apps,
-// gefüllte Kachel). Klick startet die App bzw. öffnet den Ordner, Rechtsklick öffnet das App-Menü,
-// Ziehen löst ein Ablegen (Schlüssel "niselle-app") aus. Das Raster legt Zellgröße und Icongröße fest.
-//
-// `controller` (AppGrid oder AppFolderDialog) liefert dragLayer, aktiviert Einträge und öffnet das Menü.
 Item {
     id: root
 
     required property var controller
-    // Eintrag aus AppGridService.model.byId: { id, kind: "app"|"folder", name, entry, apps }
     required property var item
-    // Apps lassen sich aufeinander zu einem Ordner legen (nicht im Ordner-Dialog)
     property bool nestFolders: true
     property int pageIndex: 0
     property int position: 0
     property real iconSize: Theme.appGridIconSizes[0]
     property real cellSize: iconSize + 2 * Theme.overviewTilePadding
-    // Einblenden beim Öffnen des App-Grids: Fortschritt 0 → 1 und Staffelung (0 = zuerst, 1 = zuletzt).
-    // Die Kachel fährt von `revealOrigin` (Mitte des „Apps anzeigen“-Knopfs) an ihren Platz und blendet gestaffelt auf.
-    // Der Ordner-Dialog setzt beides nicht, dort bleibt die Kachel voll sichtbar (reveal = 1).
     property real revealProgress: 1
     property real revealDelay: 0
     property point revealOrigin: Qt.point(0, 0)
-    // Minimal: keine Staffelung, keinen Überschwinger, kein Aufwachsen – Kacheln sind sofort an ihrem Platz
     readonly property real reveal: 1
 
-    // Kacheln blenden gestaffelt von oben nach unten auf
     opacity: 1
 
     readonly property bool isFolder: item ? item.kind === "folder" : false
@@ -46,11 +33,8 @@ Item {
     readonly property bool dropTarget: drop.containsDrag
     property bool pressed: false
 
-    // Wird dieses Icon gerade gezogen (Geist aktiv)
     readonly property bool dragging: ghost.Drag.active
 
-    // Ziehen einer App auf die Mitte einer anderen App: Vorschau des entstehenden Ordners
-    // [appDisplay.js: AppIcon._canAccept/createFolderIcon]. `drop.drag` gilt nur während des Ziehens.
     readonly property var draggedItem: drop.containsDrag ? drop.drag.source : null
     readonly property var draggedEntry: root.draggedItem ? root.draggedItem.entry : null
     readonly property bool folderDropPreview: {
@@ -83,7 +67,6 @@ Item {
             root.controller.menu.openFor(root);
     }
 
-    // Vorschau eines Ordners: 2×2-Raster der ersten vier Apps, je 0.4 der Icongröße [appDisplay.js: createFolderIcon]
     Component {
         id: folderPreview
 
@@ -112,7 +95,6 @@ Item {
         }
     }
 
-    // Vorschau beim Ziehen auf eine andere App: Ziel- und gezogene App im Ordnermuster
     Component {
         id: dragFolderPreview
 
@@ -167,7 +149,6 @@ Item {
         opacity: root.dragging ? Theme.appIconDragSourceOpacity : 1
     }
 
-    // Einfügemarke am Rand der Kachel, wenn das Ablegen sortiert statt einen Ordner zu bilden
     readonly property bool insertMark: {
         if (!root.draggedItem || root.draggedItem.gridId === root.item.id || root.folderDropPreview)
             return false;
@@ -186,7 +167,6 @@ Item {
         color: Theme.accentColor
     }
 
-    // Gezogenes Icon: Kachel in Icongröße am Zeiger [appDisplay.js: BaseIcon.getDragActorSource]
     Item {
         id: ghost
         parent: root.controller && root.controller.dragLayer ? root.controller.dragLayer : null
@@ -195,7 +175,6 @@ Item {
         height: root.iconSize
         transformOrigin: Item.Center
 
-        // Auf eine Arbeitsflächen-Vorschau abgelegt: das Icon fliegt in die Vorschau, schrumpft und blendet aus
         property bool flying: false
         function flyTo(center) {
             flyX.to = center.x - width / 2;
@@ -245,7 +224,6 @@ Item {
             }
         }
 
-        // Von DropArea/Dash gelesen
         property var entry: root.entry
         property string gridId: root.item ? root.item.id : ""
         property string gridKind: root.item ? root.item.kind : ""
@@ -297,7 +275,6 @@ Item {
                 root.controller.dragStarted();
                 ghost.Drag.active = true;
             }
-            // Geist dem Zeiger nachführen (wie DashItem); ohne das bliebe das gezogene Icon an seiner Stelle
             const p = mouse.mapToItem(root.controller.dragLayer, m.x, m.y);
             ghost.x = p.x - ghost.width / 2;
             ghost.y = p.y - ghost.height / 2;
@@ -319,7 +296,6 @@ Item {
         }
     }
 
-    // Ablegeziel: Ordner nimmt Apps auf, ein Icon nimmt Umsortieren bzw. (Mitte) ein neues Ordnerpaar an
     DropArea {
         id: drop
         anchors.fill: parent

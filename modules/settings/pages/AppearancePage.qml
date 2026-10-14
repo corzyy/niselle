@@ -8,7 +8,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Erscheinungsbild: Stil (Hell/Dunkel), Hintergrundbild und Unterseiten für Farben, Schrift, Fenster, Leiste und Dock.
 SettingsPage {
     id: root
 
@@ -87,16 +86,13 @@ SettingsPage {
         }
     }
 
-    // Hintergrundbilder aus <XDG-Bilderordner>/wallpapers (sonst der Bilderordner selbst); Anwenden über awww, Pfad wird in den Einstellungen gemerkt.
     property var scannedFiles: []
-    // Nach Nutzung sortiert: zuletzt gesetzte zuerst, danach die übrigen (neueste Datei zuerst)
     readonly property var wallpaperFiles: {
         const history = SettingsService.wallpaperHistory.filter(p => root.scannedFiles.indexOf(p) >= 0);
         return history.concat(root.scannedFiles.filter(p => history.indexOf(p) < 0));
     }
     property bool showAllWallpapers: false
     readonly property int recentWallpapers: 3
-    // Was awww tatsächlich anzeigt (primärer Monitor), sonst die gespeicherte Einstellung
     readonly property string currentWallpaper: WallpaperService.awwwPaths[Theme.primaryScreenName] || SettingsService.wallpaper
 
     function applyWallpaper(path) {
@@ -130,7 +126,6 @@ SettingsPage {
 
         Item {
             width: parent.width
-            // Zeile mit „Get New“/„More“ unter dem Raster (bzw. ganz oben, wenn kein Bild da ist)
             readonly property real actionsY: grid.visible ? grid.y + grid.childrenRect.height + 12 : 12
             implicitHeight: actionsY + actions.implicitHeight + 12
 

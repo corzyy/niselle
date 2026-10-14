@@ -29,10 +29,6 @@ export const PageIndicators = GObject.registerClass({
     }
 
     vfunc_get_preferred_height(forWidth) {
-        // We want to request the natural height of all our children as our
-        // natural height, so we chain up to St.BoxLayout, but we only request 0
-        // as minimum height, since it's not that important if some indicators
-        // are not shown
         const [, natHeight] = super.vfunc_get_preferred_height(forWidth);
         return [0, natHeight];
     }

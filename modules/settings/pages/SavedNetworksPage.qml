@@ -4,7 +4,6 @@ import qs.services
 import qs.components
 import ".."
 
-// Gespeicherte WLAN-Netze (auch außer Reichweite): automatisch verbinden und entfernen.
 SettingsPage {
     id: root
 

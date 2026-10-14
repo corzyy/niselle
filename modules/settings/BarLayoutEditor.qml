@@ -4,8 +4,6 @@ import qs
 import qs.services
 import qs.components
 
-// Anordnung der Menüleiste: Vorschau mit drei Zonen (links, Mitte, rechts) und einer Ablage für ausgeblendete Elemente.
-// Ein Klick wählt ein Element; die Leiste darunter verschiebt es (Reihenfolge, Zone, ausblenden). Änderungen gelten sofort.
 Item {
     id: root
 
@@ -25,7 +23,6 @@ Item {
         SettingsService.moveBarItem(selected, zone, undefined);
     }
 
-    // Ziehen: Chip folgt dem Zeiger (Ghost), eine Markierung zeigt die Einfügestelle
     property string dragId: ""
     property bool dragging: false
     property real dragX: 0
@@ -56,7 +53,6 @@ Item {
                 break;
             }
         }
-        // Pflichtelemente lassen sich nicht ausblenden
         if (found && found.zone === "" && (selectedItem?.required ?? false))
             found = null;
         dropBox = found;
@@ -149,7 +145,6 @@ Item {
 
             anchors.fill: parent
             hoverEnabled: true
-            // Die scrollbare Seite (Flickable) darf den Zug nicht übernehmen
             preventStealing: true
             enabled: chip.interactive
             cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
@@ -179,7 +174,6 @@ Item {
         }
     }
 
-    // Eine Zone: Beschriftung und Chips; ein Klick auf die leere Fläche legt das gewählte Element hier ab
     component ZoneBox: Rectangle {
         id: box
 
@@ -252,7 +246,6 @@ Item {
         anchors.right: parent.right
         spacing: 12
 
-        // Vorschau der Leiste
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: zones.implicitHeight + 24
@@ -285,7 +278,6 @@ Item {
             }
         }
 
-        // Ablage: ausgeblendete Elemente
         Rectangle {
             id: hiddenBox
 
@@ -357,7 +349,6 @@ Item {
         }
     }
 
-    // Einfügemarke und Ghost beim Ziehen
     Rectangle {
         visible: root.dragging && root.dropBox !== null
         x: root.dropMarker.x

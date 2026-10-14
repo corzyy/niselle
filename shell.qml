@@ -18,11 +18,9 @@ import qs.modules.matugeninstall
 ShellRoot {
     id: root
 
-    // Hell/Dunkel folgt SettingsService.darkMode (Dunkler Stil in den Quick-Settings)
     Binding {
         target: Theme
         property: "dark"
-        // NISELLE_LIGHT=1 erzwingt hell (Entwicklungshilfe, speichert nichts)
         value: Quickshell.env("NISELLE_LIGHT") === "1" ? false : SettingsService.darkMode
     }
 
@@ -41,28 +39,23 @@ ShellRoot {
     Component.onCompleted: {
         MatugenService.init();
         BlurService.available;
-        // GameModeService laden, damit Hyprland-Blur und -Animationen folgen (sonst bliebe das Singleton ungenutzt)
         GameModeService.available;
-        // Leerlauf-Sperre/-Standby und Koffein
         IdleService.caffeine;
         ClipboardService.available;
     }
 
-    // Farben aus Matugen (Palette wird von `matugen` erzeugt, siehe MatugenService)
     Binding {
         target: Theme
         property: "matugen"
         value: SettingsService.useMatugen
     }
 
-    // Gamemode: Shell-Animationen und -Schatten aus (Hyprland wendet GameModeService an)
     Binding {
         target: Theme
         property: "gameMode"
         value: SettingsService.gameMode
     }
 
-    // Schrift aus den Einstellungen (Appearance › Font)
     Binding {
         target: Theme
         property: "fontOverride"
@@ -74,8 +67,6 @@ ShellRoot {
         value: SettingsService.fontFamilyMono
     }
 
-    // Leiste nur auf dem primären Monitor (Theme.primaryScreenName), nicht auf Zweitmonitoren
-    // Primäranzeige aus den Displays-Einstellungen (DisplayService)
     Binding {
         target: Theme
         property: "primaryScreenName"
@@ -94,7 +85,6 @@ ShellRoot {
         }
     }
 
-    // Dauerhaftes Dock (Einstellung „Persistent“) nur auf dem primären Monitor
     Variants {
         model: OverviewService.primaryScreen ? [OverviewService.primaryScreen] : []
 
@@ -104,7 +94,6 @@ ShellRoot {
         }
     }
 
-    // Hintergrundflächen je Monitor: Rechtsklick auf den Desktop öffnet das Hintergrundmenü
     Variants {
         model: Quickshell.screens
 
@@ -141,7 +130,6 @@ ShellRoot {
         }
     }
 
-    // Bildschirmfoto-/Aufnahme-Oberfläche je Monitor (niselle screenshot); lädt erst beim ersten Öffnen
     LazyLoader {
         active: ScreenshotService.open
         Variants {
@@ -154,7 +142,6 @@ ShellRoot {
         }
     }
 
-    // Zwischenablage-Verlauf am Mauszeiger (niselle clipboard, Super+V)
     Variants {
         model: Quickshell.screens
 
@@ -164,13 +151,11 @@ ShellRoot {
         }
     }
 
-    // Einstellungen-App (niselle settings [panel]); lädt erst beim ersten Öffnen
     LazyLoader {
         active: SettingsWindowService.open
         component: SettingsWindow {}
     }
 
-    // Protokollfenster der Matugen-Installation (Einstellungen › System); lädt erst beim ersten Öffnen
     LazyLoader {
         active: MatugenInstallService.open
         component: MatugenInstallWindow {}
@@ -185,9 +170,7 @@ ShellRoot {
         }
     }
 
-    // Sperrbildschirm (niselle lock, loginctl lock-session)
     LockScreen {}
 
-    // Polkit-Agent mit Authentifizierungsdialog (pkexec, Systemeinstellungen usw.)
     PolkitDialog {}
 }

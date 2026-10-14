@@ -5,38 +5,25 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
-// Anzeigen über Hyprland: liest die Monitore (hyprctl -j monitors all), hält einen Entwurf (draft) für die
-// Einstellungen-App und wendet ihn per Lua-`hl.monitor` (Hyprland ≥ 0.55) bzw. klassischem `keyword monitor` an.
-// Aufbau und Werte folgen gnome-control-center (panels/display): Auflösung/Refresh/Skalierung/Drehung, Primäranzeige.
 Singleton {
     id: root
 
     readonly property bool available: Hyprland.monitors.values.length > 0
-    // Hyprland mit Lua-Konfiguration (hl.monitor) statt klassischem keyword
     readonly property bool usingLua: Hyprland.usingLua
 
-    // Aufgelöste Monitore (feste Reihenfolge wie hyprctl); `number` ist die 1-basierte Anzeigenummer
     property var outputs: []
-    // Entwurf je Monitorname: { enabled, mode, x, y, scale, transform, vrr, cm }
     property var draft: ({})
-    // Ausgewählter Monitor (Name) im Layout-Bereich
     property string selected: ""
-    // "join" (erweitern) oder "mirror" (spiegeln); nur bei mehreren Monitoren von Bedeutung
     property string configMode: "join"
 
-    // Erst nach dem ersten Einlesen sind outputs gültig
     property bool loaded: false
-    // Gespeicherte Zuweisung wurde bereits angewandt
     property bool _restored: false
-    // Beim Einlesen gemerkter Modus (join/mirror)
     property string _appliedMode: "join"
 
     readonly property var enabledOutputs: outputs.filter(o => root._d(o).enabled)
     readonly property int outputCount: outputs.length
 
-    // Primäranzeige: gespeicherte Auswahl, sonst der erste aktive Monitor
     readonly property string primaryName: {
-        // Erst nach dem Laden der Einstellungen entscheiden, sonst flackert die Leiste auf den falschen Monitor
         if (!SettingsService.loaded)
             return "";
         const want = SettingsService.primaryDisplay;
@@ -48,7 +35,6 @@ Singleton {
 
     readonly property var selectedOutput: outputs.find(o => o.name === root.selected) ?? null
 
-    // ───────────────────────── Entwurf ─────────────────────────
 
     function _d(output) {
         return draft[output.name] ?? root._fromOutput(output);
@@ -74,7 +60,6 @@ Singleton {
         return JSON.parse(JSON.stringify(obj));
     }
 
-    // Entwurf weicht von der live gelesenen Zuweisung ab?
     readonly property bool dirty: {
         if (!loaded)
             return false;
@@ -123,7 +108,6 @@ Singleton {
         root.configMode = mode;
     }
 
-    // Alle Entwürfe verwerfen
     function cancel() {
         const next = {};
         for (const o of outputs)
@@ -132,7 +116,6 @@ Singleton {
         root.configMode = _appliedMode;
     }
 
-    // ───────────────────────── Geometrie ─────────────────────────
 
     function _modeParts(mode) {
         const m = String(mode).match(/^(\d+)x(\d+)@([\d.]+)/);
@@ -145,7 +128,6 @@ Singleton {
         return mode.w + "x" + mode.h + "@" + root._trim(mode.refresh);
     }
 
-    // Logische Breite/Höhe (physisch/Skalierung, bei 90°/270° getauscht) – wie GNOME get_scaled_geometry
     function logicalWidth(output) {
         const d = root._d(output);
         const p = root._modeParts(d.mode);
@@ -157,7 +139,6 @@ Singleton {
         return Math.round(((d.transform % 2 === 1) ? p.w : p.h) / d.scale);
     }
 
-    // ───────────────────────── Auswahllisten (wie CcDisplaySettings) ─────────────────────────
 
     function resolutionOptions(output) {
         const seen = {};
@@ -189,7 +170,6 @@ Singleton {
         return list;
     }
 
-    // Unterstützte Skalierungen (Mutter-Algorithmus, meta-monitor.c)
     function scaleOptions(w, h) {
         const MAX_INTEGER_SCALE = 4;
         const MAX_DENOMINATOR = 4;
@@ -234,13 +214,11 @@ Singleton {
         { "transform": 2, "label": "Landscape (flipped)" }
     ]
 
-    // ───────────────────────── Anwenden ─────────────────────────
 
     function _shq(s) {
         return "'" + String(s).replace(/'/g, "'\\''") + "'";
     }
 
-    // Lua-Feldliste eines Monitors
     function _luaFields(name, d, mirrorSrc) {
         const fields = ["output = " + JSON.stringify(name)];
         if (!d.enabled) {
@@ -275,7 +253,6 @@ Singleton {
                 lines.push("hyprctl keyword monitor " + root._shq(name + ",disable"));
                 continue;
             }
-            // Alles in EINER Regel: Hyprland liest nach der Skalierung Schlüssel/Wert-Paare
             let rule = name + "," + d.mode + "," + d.x + "x" + d.y + "," + d.scale;
             if (d.transform)
                 rule += ",transform," + d.transform;
@@ -291,7 +268,6 @@ Singleton {
     function apply() {
         if (!available)
             return;
-        // Zustand vor dem Anwenden merken (für „Zurücksetzen“ im Bestätigungsdialog)
         root._preApply = outputs.map(o => ({ "name": o.name, "d": root._fromOutput(o) }));
         root._preApplyMode = _appliedMode;
         const entries = outputs.map(o => ({ "name": o.name, "d": root._d(o) }));
@@ -305,7 +281,6 @@ Singleton {
     property var _preApply: []
     property string _preApplyMode: "join"
 
-    // Vorherigen Zustand wiederherstellen (Revert)
     function revertApply() {
         if (root._preApply.length === 0)
             return;
@@ -316,7 +291,6 @@ Singleton {
         refreshTimer.restart();
     }
 
-    // Aktuelle Zuweisung in die Einstellungen schreiben (Persistenz)
     function save() {
         const map = {};
         for (const o of outputs) {
@@ -326,7 +300,6 @@ Singleton {
         SettingsService.set("displays", { "mode": root.configMode, "outputs": map });
     }
 
-    // Gespeicherte Zuweisung anwenden (beim Start bzw. nach Neuladen der Hyprland-Konfiguration)
     function applySaved() {
         const saved = SettingsService.displays;
         const outs = saved && saved.outputs ? saved.outputs : null;
@@ -344,7 +317,6 @@ Singleton {
         id: applyProcess
     }
 
-    // ───────────────────────── Einlesen ─────────────────────────
 
     function refresh() {
         if (!query.running)
@@ -403,11 +375,9 @@ Singleton {
                 "modeString": root._nearestMode(modes, m.width, m.height, m.refreshRate)
             });
         }
-        // Anzeigenummern wie GNOME: von links nach rechts, dann von oben nach unten
         parsed.sort((a, b) => (a.x - b.x) || (a.y - b.y));
         parsed.forEach((o, i) => o.number = i + 1);
 
-        // Nutzer-Entwurf bleibt erhalten, sonst aus dem gelesenen Zustand neu aufbauen
         if (root.dirty) {
             const next = root._clone(root.draft);
             for (const o of parsed)
@@ -454,7 +424,6 @@ Singleton {
         target: Hyprland
         function onRawEvent(e) {
             if (["monitoradded", "monitorremoved", "monitoraddedv2", "configreloaded"].indexOf(e.name) >= 0) {
-                // Hyprland setzt Monitore dabei auf die Regeln der Konfiguration zurück
                 if (e.name === "configreloaded" || e.name.startsWith("monitoradded"))
                     root._restored = false;
                 refreshTimer.restart();

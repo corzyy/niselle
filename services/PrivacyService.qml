@@ -5,21 +5,15 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 
-// Datenschutz-Anzeigen der Leiste: Kamera, Mikrofon, Bildschirmfreigabe (PipeWire-Verbindungen), Standortdienste
-// (GeoClue) und Thunderbolt-Geräte, die eine Freigabe brauchen (bolt). Kamera/Mikrofon/Freigabe werden aus den
-// PipeWire-Links gelesen: ein Link von einer Quelle zu einem App-Stream heißt „in Benutzung“.
 Singleton {
     id: root
 
-    // Eigene Streams der Shell (Pegelanzeige usw.) zählen nicht als Mikrofonzugriff
     readonly property var ignoredApps: ["quickshell", "niselle"]
 
-    // Eigenschaften der Knoten sind erst nach dem Binden lesbar
     PwObjectTracker {
         objects: Pipewire.ready ? Pipewire.nodes.values : []
     }
 
-    // Aktive Verbindungen Quelle → App-Stream: [{ app, source, stream }]
     readonly property var _uses: {
         const out = [];
         if (!Pipewire.ready)
@@ -45,11 +39,8 @@ Singleton {
         return out;
     }
 
-    // Kamera: Video-Gerät (v4l2/libcamera) → App
     readonly property var cameraUsers: _uses.filter(u => u.srcClass === "Video/Source")
-    // Bildschirmfreigabe: Stream des Compositors/Portals (Stream/Output/Video) → App
     readonly property var screenShares: _uses.filter(u => u.srcClass === "Stream/Output/Video")
-    // Mikrofon: Audioquelle (kein Monitor eines Ausgangs) → App
     readonly property var micUsers: _uses.filter(u => u.srcClass === "Audio/Source" && u.dstClass === "Stream/Input/Audio")
 
     readonly property bool cameraInUse: cameraUsers.length > 0
@@ -63,7 +54,6 @@ Singleton {
     readonly property string microphoneApps: _names(micUsers)
     readonly property string screenShareApps: _names(screenShares)
 
-    // Freigabe beenden: Verbindung des App-Streams trennen (pw-cli destroy), die App sieht das Ende des Streams
     property bool canStopSharing: false
 
     function stopSharing() {
@@ -71,8 +61,6 @@ Singleton {
             Quickshell.execDetached(["pw-cli", "destroy", String(u.stream.id)]);
     }
 
-    // ───────── Standortdienste (GeoClue) ─────────
-    // Nur abfragen, wenn GeoClue schon läuft: busctl würde den Dienst sonst über DBus starten.
 
     property bool locationInUse: false
 
@@ -84,8 +72,6 @@ Singleton {
         }
     }
 
-    // ───────── Thunderbolt (bolt) ─────────
-    // Geräte, die verbunden, aber noch nicht freigegeben sind (Status „connected“)
 
     property int thunderboltPending: 0
     readonly property bool thunderboltAttention: thunderboltPending > 0

@@ -4,29 +4,16 @@ import qs
 import qs.services
 import qs.components
 
-// Geöffneter App-Ordner (.app-folder-dialog) [appDisplay.js: AppFolderDialog, _app-grid.scss:58-109].
-// 720×720 große Fläche, Radius 64, auf dem System-Hintergrund; oben der Ordnername mit Stift-Knopf, darunter
-// ein 3×3-Raster der Apps mit Seitenpunkten. Öffnen/Schließen 200 ms (Maßstab 0.9 → 1, Deckkraft), der
-// Hintergrund dunkelt ab. Klick ins Leere und Esc schließen; Apps lassen sich aus dem Ordner herausziehen:
-// auf dem Hintergrund losgelassen schließt der Ordner und die App kehrt an die Ablegestelle im App-Grid zurück,
-// im Raster lassen sie sich umsortieren.
-//
-// Liegt als Overlay über der ganzen Übersicht (`windowWidth`/`windowHeight`), gesteuert über
-// OverviewService.openFolderId. Der Dialog beginnt `panelHeight` unter der Fenstermitte [appDisplay.js: container padding-top].
 Item {
     id: root
 
     required property real windowWidth
     required property real windowHeight
-    // Nur der primäre Monitor zeigt den Ordner-Dialog
     property bool primary: true
 
-    // Füllt das Fenster: der Hintergrund (Abdunklung, Klick schließt, Ablegen zum Herausziehen) liegt
-    // darüber; ohne feste Größe wäre er 0×0 und Ziehen aus dem Ordner unmöglich.
     width: windowWidth
     height: windowHeight
 
-    // Der Dialog liegt in einer eigenen Layer-Fläche mit Tastaturfokus: Esc schließt (zuerst den Ordner)
     focus: open
     Keys.onEscapePressed: OverviewService.dismiss()
 
@@ -45,9 +32,7 @@ Item {
         }
     }
 
-    // Minimal: der Ordner blendet ein, ohne aus der Kachel aufzuwachsen
 
-    // ───────── Controller-Schnittstelle für AppGridItem ─────────
 
     property bool dragging: false
     function dragStarted() {
@@ -61,7 +46,6 @@ Item {
         OverviewService.openFolder(id);
     }
 
-    // Einträge des Ordners als Rastereinträge
     readonly property var items: root.folderItem ? root.folderItem.appIds.map((id, i) => ({
                 "id": id,
                 "kind": "app",
@@ -70,7 +54,6 @@ Item {
                 "apps": []
             })) : []
 
-    // ───────── Raster-Aufteilung (3 Spalten × 3 Zeilen) [FolderGrid]
 
     readonly property int columns: Theme.appFolderGridColumns
     readonly property int rowsCount: Theme.appFolderGridRows
@@ -134,20 +117,17 @@ Item {
         };
     }
 
-    // Ordner verschwindet (leer, gelöscht): Dialog schließen
     onFolderItemChanged: {
         if (root.folderId !== "" && !root.folderItem)
             OverviewService.closeFolder();
     }
 
-    // Geöffneten Ordner initialisieren
     onFolderIdChanged: {
         root.currentPage = 0;
         nameEntry.visible = false;
         nameLabel.visible = true;
     }
 
-    // ───────── Hintergrund (Abdunklung), Klick schließt ─────────
 
     Rectangle {
         anchors.fill: parent
@@ -160,8 +140,6 @@ Item {
             onClicked: OverviewService.closeFolder()
         }
 
-        // App aus dem Ordner ziehen und auf dem Hintergrund ablegen: der Ordner schließt und die App
-        // landet an der Ablegestelle im App-Grid [appDisplay.js: AppFolderDialog.acceptDrop]
         DropArea {
             anchors.fill: parent
             keys: ["niselle-app"]
@@ -177,7 +155,6 @@ Item {
         }
     }
 
-    // ───────── Dialogfläche ─────────
 
     Rectangle {
         id: panel
@@ -191,12 +168,10 @@ Item {
         y: Math.round((root.windowHeight + Theme.panelHeight - height) / 2)
         opacity: Math.min(1, root.fade * 2.5)
 
-        // Klicks in der Fläche nicht durchreichen
         MouseArea {
             anchors.fill: parent
         }
 
-        // ───────── Ordnername mit Stift-Knopf ─────────
 
         Item {
             id: nameRow
@@ -205,7 +180,6 @@ Item {
             anchors.right: parent.right
             height: root.nameRowHeight
 
-            // Anklickbarer Name
             Text {
                 id: nameLabel
                 anchors.centerIn: parent
@@ -261,7 +235,6 @@ Item {
             nameLabel.visible = true;
         }
 
-        // ───────── Raster ─────────
 
         Item {
             id: gridArea
@@ -347,7 +320,6 @@ Item {
         }
     }
 
-    // Einfügeposition auf einer Seite für einen Punkt in Seitenkoordinaten
     function slotAt(px, py) {
         const g = root.geometry;
         const col = Math.max(0, Math.min(root.columns - 1, Math.floor((px - g.left + g.hSpacing / 2) / (g.cell + g.hSpacing))));
@@ -355,7 +327,6 @@ Item {
         return row * root.columns + col;
     }
 
-    // App an die Einfügeposition `pos` (Index in der gesamten Liste, vor dem Entfernen) setzen
     function moveTo(appId, pos) {
         const ids = root.folderItem.appIds.slice();
         const from = ids.indexOf(appId);
@@ -366,7 +337,6 @@ Item {
         AppGridService.setFolderApps(root.folderId, ids);
     }
 
-    // Umsortieren innerhalb des Ordners (Position ist seitenweise, daher in die Gesamtliste umrechnen)
     function dropOnItem(target, source, x) {
         if (!source || !source.gridId || !root.folderItem || source.gridKind !== "app")
             return;
@@ -379,7 +349,6 @@ Item {
         root.moveTo(source.gridId, target.pageIndex * root.perPage + target.position + (x < target.width / 2 ? 0 : 1));
     }
 
-    // Gezogene Icons über dem Dialog
     Item {
         id: dragLayer
         anchors.fill: parent
